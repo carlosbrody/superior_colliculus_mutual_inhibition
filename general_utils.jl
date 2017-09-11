@@ -128,3 +128,35 @@ function two_level_copy(x)
 end
 
 
+
+
+"""
+new_fname = next_file(basename, ndigits)
+
+Returns a numbered and presumably unused filename starting with the string basename, followed by an integer
+digit. The returned integer will be one higher than the number of existing filenames starting with basename,
+and will be written with ndigits numbers, using leading eros if necessary.
+
+# EXAMPLE:
+
+If there are already 8 files starting with "model" then
+
+> next_file("model_", 4)
+
+"model_0009"
+"""
+function next_file(basename, ndigits)
+    fnames = readdir()
+    matched_filenames = Array{Bool}(length(fnames))
+    for i=1:length(fnames)
+        matched_filenames[i] = ismatch(Regex(@sprintf("^%s", basename)), fnames[i])
+    end
+    
+    mynum = length(find(matched_filenames))+1
+    myname = @sprintf("%d", mynum)
+    while length(myname)<ndigits
+        myname = "0" * myname
+    end
+
+    return basename * myname
+end
