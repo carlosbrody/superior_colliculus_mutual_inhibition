@@ -919,6 +919,7 @@ end
 
 
 
+
 ######################################################
 #                                                    #
 #         BBOX_HESSIAN_KEYWORD_MINIMIZATION          #
@@ -1030,79 +1031,75 @@ function bbox_Hessian_keyword_minimization(seed, args, bbox, func; wallwidth=NaN
 
 Like constrained_Hessian_minimization, but uses keyword_hessian!(). 
 
-PARAMETERS:
-===========
+# PARAMETERS:
 
-seed        column vector, representing the starting value of the parameters.
+- seed        column vector, representing the starting value of the parameters.
 
-args        List of strings identifying parameters for differentiation, e.g., ["const_E", "w_self]
+- args        List of strings identifying parameters for differentiation, e.g., ["const_E", "w_self]
 
-bbox        If softbox=true (the default), should then be a Dict of Symbol=>[minval maxval] entries. An entry
+- bbox        If softbox=true (the default), should then be a Dict of Symbol=>[minval maxval] entries. An entry
             in this Dict indicates that the corresponding parameter is to be bounded, as indicated by the associated 
             [minval maxval] vector. The bbox dictionary can have fewer entries than the number of parameters, and its
             default value is Dict(), indicating an unbounded search.
-
-            If softbox=false, then bbox should be an nargs-by-2 matrix indicating the range for each argument,
+                If softbox=false, then bbox should be an nargs-by-2 matrix indicating the range for each argument,
             with the minima (first column) and maxima (second column), and entries for ALL parameters.
 
-func        func must take only optional keyword args, and must 
+- func        func must take only optional keyword args, and must 
             take nderivs=0, difforder=0  and declare any new matrices using ForwardDiffZeros() instead of zeros()
 
 
-OPTIONAL PARAMETERS:
-====================
+# OPTIONAL PARAMETERS:
 
-start_eta    Starting value of the radius.  It's good to start with somethibg biggish, if it is
+- start_eta    Starting value of the radius.  It's good to start with somethibg biggish, if it is
              too much, it'll quickly get cut down.
 
-tol=1e-6     Numerical tolerance. If a proposed jump produces a change in func that is less than
+- tol=1e-6     Numerical tolerance. If a proposed jump produces a change in func that is less than
              this, the minimization stops.
 
-maxiter=400  Maximum number of iterations to do before stopping
+- maxiter=400  Maximum number of iterations to do before stopping
 
-verbose=false   If true, print out a report on each iteration of iteration number, radius size (eta),
+- verbose=false   If true, print out a report on each iteration of iteration number, radius size (eta),
                 what type jump was proposed ("Newton" means going straight to global min, "constrained" means jump has 
                 norm eta, failed means that finding the minimum at a given radius somehow didn't work). Will also
                 print out the cosine of the angle between the proposed jump and the gradient.
 
-verbose_level   If less than 2, regular verbose output, if 2 or greater, very verbose, for debugging.
+- verbose_level   If less than 2, regular verbose output, if 2 or greater, very verbose, for debugging.
 
-softbox         If true, then bbox must be a Dict() and we use the tanh() mechanism for putting a fixed limit
+- softbox         If true, then bbox must be a Dict() and we use the tanh() mechanism for putting a fixed limit
                 on the parameters.
 
-hardbox=false   If true, ignores wallwidth, and just rests parameter values to the bounding box if they go outside it.
+- hardbox=false   If true, ignores wallwidth, and just rests parameter values to the bounding box if they go outside it.
                 If false, adds cost function "walls" to implement the bounding box.
 
-walldith=NaN     Used for putting up cost function "walls" that implement the bounding box limits. Can be NaN.
+- walldith=NaN     Used for putting up cost function "walls" that implement the bounding box limits. Can be NaN.
                 If it is NaN, then the wallwidth is a constant factor of the range width for each argument. If not NaN, must
                 be an nargs-long vector that indicates the actual wall widths.
 
-wallwidth_factor=0.18   Only relevant if wallwidth is NaN, otherwise ignored. For each arg, the wall width
+- wallwidth_factor=0.18   Only relevant if wallwidth is NaN, otherwise ignored. For each arg, the wall width
                 is going to be wall_width_factor*(bbox[i,2] - bbox[i,1])
 
 
-RETURNS:
-========
+# RETURNS:
 
-params       A vector the size of seed that has the last values of the minimizing parameters for func
-trajectory   A (2+length(params))-by-nsteps matrix. Each column corresponds to an iteration step, and contains
+- params       A vector the size of seed that has the last values of the minimizing parameters for func
+- trajectory   A (2+length(params))-by-nsteps matrix. Each column corresponds to an iteration step, and contains
                  the value of eta used, the cost, and the value of the parameters at that iteration
-cost         Final value of objective function
-cpm_traj     A 2-by-nsteps matrix, containing reports from the contrained parabolic minimization at each timestep.
+- cost         Final value of objective function
+- cpm_traj     A 2-by-nsteps matrix, containing reports from the contrained parabolic minimization at each timestep.
              The first row is niters (how many iterations cpm's 1-d minimization ran for) and the second row is
              Dlambda, the last change in the parameter being minimized in cpm's internal search
 
 
-EXAMPLE:
-========
+# EXAMPLE:
 
+```
 function tester(;x=5, y=10, z=20, nderivs=0, difforder=0)
     return x^2*y + z/tanh(y)
 end
 
 params, trajectory = bbox_Hessian_keyword_minimization([0.5, 0.5], ["x", "y"], [1.1 2 ; 1.1 4], tester, 
     verbose=true, tol=1e-12, start_eta=1);
-
+```
 
 
 """
@@ -1149,6 +1146,7 @@ function bbox_Hessian_keyword_minimization(seed, args, bbox, func; start_eta=0.1
 
     traj_increment = 100
     params = 0  # Make sure to have this here so that params stays defined beyond the try/catch
+    if ( !(typeof(bbox)<:Dict) ); error("Currently only supporting softbox=true, bbox must be a Dict"); end;
     try
         params = copy(inverse_wall(bbox, args, seed))
     catch
@@ -1174,7 +1172,8 @@ function bbox_Hessian_keyword_minimization(seed, args, bbox, func; start_eta=0.1
     end
         
     chessdelta = zeros(size(params))
-
+    
+    i=0  # here so variable i is available outside the loop
     for i in [1:maxiter;]
         if i > size(trajectory, 2)
             trajectory = [trajectory zeros(2+length(params), traj_increment)]
@@ -1249,7 +1248,6 @@ function bbox_Hessian_keyword_minimization(seed, args, bbox, func; start_eta=0.1
             end
             
             if abs(new_cost - cost) < tol || eta < tol
-                trajectory = trajectory[:,1:i]; cpm_traj = cpm_traj[:,1:i]
                 if verbose
                     @printf("About to break -- tol=%g, new_cost-cost=%g, eta=%g\n", tol, new_cost-cost, eta)
                 end
@@ -1272,7 +1270,6 @@ function bbox_Hessian_keyword_minimization(seed, args, bbox, func; start_eta=0.1
             eta = eta/2
             costheta = NaN
             if eta < tol
-                trajectory = trajectory[:,1:i]; cpm_traj = cpm_traj[:,1:i]
                 if verbose
                     @printf("About to break -- tol=%g, new_cost-cost=%g, eta=%g\n", tol, new_cost-cost, eta)
                 end
@@ -1301,6 +1298,7 @@ function bbox_Hessian_keyword_minimization(seed, args, bbox, func; start_eta=0.1
             end
         end
     end
-    
+
+    trajectory = trajectory[:,1:i]; cpm_traj = cpm_traj[:,1:i]
     return vector_wrap(bbox, args, params), trajectory, cost, cpm_traj
 end
