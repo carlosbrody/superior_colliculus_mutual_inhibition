@@ -160,3 +160,36 @@ function next_file(basename, ndigits)
 
     return basename * myname
 end
+
+
+
+"""
+ad = ascii_key_ize(d)
+
+Given a dictionary that has keys that can be converted to strings, returns a copy with all 
+keys converted to strings
+"""
+function ascii_key_ize(d)
+    ad = Dict()
+    for k in keys(d)
+        get!(ad, string(k), d[k])
+    end
+    return ad
+end
+
+
+
+"""
+sd = symbol_key_ize(d)
+
+Given a dictionary that has keys that can be converted to Symbols, returns a copy with all 
+keys converted to Symbols
+"""
+function symbol_key_ize(d)
+    sd = Dict()
+    for k in keys(d)
+        get!(sd, Symbol(k), d[k])
+    end
+    return sd
+end
+
