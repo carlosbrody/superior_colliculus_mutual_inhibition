@@ -685,6 +685,7 @@ while true
 
         matwrite(next_file(basename, 4), Dict("args"=>args, "myseed"=>myseed, "pars"=>pars, "traj"=>traj,
         "cost"=>cost, "cpm_traj"=>cpm_traj, "nPro"=>nPro, "nAnti"=>nAnti, "sr"=>sr, "cb"=>cb, 
-        "model_params"=>ascii_key_ize(model_params), "bbox"=>ascii_key_ize(bbox), "sbox"=>ascii_key_ize(sbox)))
+        "model_params"=>ascii_key_ize(model_params), "bbox"=>ascii_key_ize(bbox), "sbox"=>ascii_key_ize(sbox),
+        "rule_and_delay_periods"=>rule_and_delay_periods, "post_target_periods"=>post_target_periods))
     end
 end
