@@ -5,7 +5,7 @@ using ForwardDiff
 using DiffBase
 using MAT
 
-pygui(true)
+# pygui(true)
 
 import Base.convert
 convert(::Type{Float64}, x::ForwardDiff.Dual) = Float64(x.value)
@@ -656,7 +656,7 @@ sbox = Dict(:sW=>[0.001 0.5], :vW=>[-0.5 0.5], :hW=>[-0.5 0.5], :dW=>[-0.5 0.5],
 
 cbetas = [0.002, 0.01]
 
-basename = "farm_A_"
+basename = "farm_C_"
 
 while true
     myseed = seed;
