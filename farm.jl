@@ -653,12 +653,15 @@ cost = standard_cost(filename)
 Returns the standard cost (at cb=0.01) and inserts it into the file with key "scost" if it wasn't there
 already
 """
-function standard_cost(filename)
+function standard_cost(filename; verbose=false)
     A = matread(filename)
     if !haskey(A, "scost")
         get!(A, "scost", standard_cost(A["args"], A["pars"], A["sr"], symbol_key_ize(A["model_params"])))
+        if verbose
+            @printf("File %s did not have scost, adding its value %g\n", filename, A["scost"])
+        end
+        matwrite(filename, A)
     end
-    matwrite(filename, A)
     return A["scost"]
 end
 
@@ -695,7 +698,7 @@ sbox = Dict(:sW=>[0.001 0.5], :vW=>[-0.5 0.5], :hW=>[-0.5 0.5], :dW=>[-0.5 0.5],
 
 cbetas = [0.002, 0.01]
 
-basename = "farm_TEST_"
+basename = "farm_C_"
 
 while true
     myseed = seed;
