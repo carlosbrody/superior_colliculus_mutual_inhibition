@@ -696,9 +696,9 @@ sbox = Dict(:sW=>[0.001 0.5], :vW=>[-0.5 0.5], :hW=>[-0.5 0.5], :dW=>[-0.5 0.5],
 :constant_excitation=>[-0.5 0.5], :right_light_excitation=>[0.1 0.5], :target_period_excitation=>[0.1 0.5],
 :const_pro_bias=>[0 0.2], :sigma=>[0.02 0.19])
 
-cbetas = [0.002, 0.01]
+cbetas = [0.02, 0.04]
 
-basename = "farm_C_"
+basename = "farm_E_"
 
 while true
     myseed = seed;
@@ -716,10 +716,13 @@ while true
     rule_and_delay_periods = [0.4, 1.2]
     post_target_periods    = [0.5, 1.5]
 
+    theta1 = 0.15; theta2 = 0.25
+
     for cb in cbetas
         @printf("Going with seed = "); print_vector_g(myseed); print("\n")
         pars, traj, cost, cpm_traj = bbox_Hessian_keyword_minimization(myseed, args, bbox, 
             (;params...) -> JJ(nPro, nAnti; rule_and_delay_periods=rule_and_delay_periods,
+	    theta1=theta1, theta2=theta2,
             post_target_periods=post_target_periods,
             seedrand=sr, cbeta=cb, verbose=false, merge(model_params, Dict(params))...),
             start_eta = 0.01, tol=1e-12, verbose=true, verbose_every=10, maxiter=400)
@@ -728,7 +731,8 @@ while true
         myfilename = next_file(basename, 4)
 
         matwrite(myfilename, Dict("args"=>args, "myseed"=>myseed, "pars"=>pars, "traj"=>traj,
-        "cost"=>cost, "cpm_traj"=>cpm_traj, "nPro"=>nPro, "nAnti"=>nAnti, "sr"=>sr, "cb"=>cb, 
+        "cost"=>cost, "cpm_traj"=>cpm_traj, "nPro"=>nPro, "nAnti"=>nAnti, "sr"=>sr, "cb"=>cb,
+	"theta1"=>theta1, "theta2"=>theta2,
         "model_params"=>ascii_key_ize(model_params), "bbox"=>ascii_key_ize(bbox), "sbox"=>ascii_key_ize(sbox),
         "rule_and_delay_periods"=>rule_and_delay_periods, "post_target_periods"=>post_target_periods))
 
