@@ -10,7 +10,8 @@ using JSON
 # Scrape a notebook for julia code that should be written into an indicated file
 
 """
-filenames_written = scrape_notebook(notebook_filename; verbose=false, includemagic="#@include_me")
+filenames_written = scrape_notebook(notebook_filename; verbose=false, includemagic="#@include_me",
+    update_db=false)
 
 Goes through a file notebook_filename, assuming it is an ipynb, and looks for code cells that start with
 includemagic, followed by whitespace, followed by a string (which we shall call filename). 
@@ -22,7 +23,7 @@ append to it.
 Returns an array with the written filenames
 
 """
-function scrape_notebook(notebook_filename; verbose=false, includemagic="#@include_me")
+function scrape_notebook(notebook_filename; verbose=false, includemagic="#@include_me", update_db=false)
 
     filenames = [];    # List of output files found in this notebook
     A = JSON.parse(readstring(notebook_filename))
@@ -51,6 +52,18 @@ function scrape_notebook(notebook_filename; verbose=false, includemagic="#@inclu
                 end
             end
         end
+    end
+    
+    if update_db && length(filenames)>0
+        latest = latest_scrapedict();
+        if haskey(latest, notebook_filename)
+            latest[notebook_filename] = string(now())
+        else
+            get!(latest, notebook_filename, string(now()))
+        end
+
+        if verbose; @printf("Refreshing database with info about %s\n", notebook_filename) end;
+        write_scrapedict(latest)
     end
 
     return filenames
@@ -136,7 +149,9 @@ function scrape_all_notebooks(; scrapedir=".scrapedir", scrapefile="scrapelist",
         end
     end
 
-    write_scrapedict(latest; scrapedir=scrapedir, scrapefile=scrapefile)
+    if length(rescraped)>0
+        write_scrapedict(latest; scrapedir=scrapedir, scrapefile=scrapefile)
+    end
     
     return rescraped
 end
@@ -154,6 +169,20 @@ function scraperobot()
     end
 end
 
-scraperobot()
+
+if length(ARGS)==0
+    scraperobot()
+elseif any(ARGS[1] .== ["-h", "--h", "-help", "--help"])
+        @printf("\nUsage: julia scraper.jl &     to run the scraping robot in the background\n\n")
+        @printf("   OR\n\n")
+        @printf("julia scraper.jl notebook1.ipynb [notebook2.ipynb ...]   to scrape the indicated notebooks, then stop.\n\n")
+else
+    for nf in ARGS
+        if endswith(nf, ".ipynb") && isfile(nf)
+            scrape_notebook(nf; verbose=true, update_db=true)
+        end
+    end
+end
+
 
 
