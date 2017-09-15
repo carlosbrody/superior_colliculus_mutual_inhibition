@@ -1,3 +1,8 @@
+#!/bin/sh
+
+# This shell script will take a brand new Deebian machine (like the ones in Google Compute Engine)
+# and will install all the packages needed to get Julia up and running for parameter minimization.
+#
 
 # ON DEBIAN:
 sudo apt-get -y install build-essential
