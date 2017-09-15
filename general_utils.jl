@@ -1,7 +1,10 @@
+# DON'T MODIFY THIS FILE -- the source is in file General Utilities.ipynb
+
+
 """
 [] = remove_xtick_labels(ax)
 
-Given an axis object, or an array of axes objects, replaces each xtick label string with ""
+Given an axis object, or an array of axes objects, replaces each xtick label string with the empty string ""
 
 
 """
@@ -192,4 +195,7 @@ function symbol_key_ize(d)
     end
     return sd
 end
+
+
+
 

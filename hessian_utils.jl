@@ -1,3 +1,6 @@
+# DON'T MODIFY THIS FILE -- the source is in file Cost Function Minimization and Hessian Utilities.ipynb
+
+
 """
 function value, gradient, hessian = vgh(func, x0)
 
@@ -918,13 +921,7 @@ end
 
 
 
-
-
-######################################################
-#                                                    #
-#         BBOX_HESSIAN_KEYWORD_MINIMIZATION          #
-#                                                    #
-######################################################
+# DON'T MODIFY THIS FILE -- the source is in file Cost Function Minimization and Hessian Utilities.ipynb
 
 
 
@@ -937,7 +934,11 @@ bdict and modifies the corresponding value in pdict putting it through a tanh so
 within the limits in bdict.  Returns the new pdict.  Makes a copy of pdict so as not to modify the original.
 """
 function wallwrap(bdict, epdict)
-    local pdict = two_level_copy(epdict)
+    local pdict = two_level_copy(epdict)  # Must be very careful here! I got bit by the bug of forgetting that without
+    # an explicit copy() call, Julia does not make copies of the contents of arrays or dictionaries, making it
+    # easy to inadvertently modify something one did not intend to perturb.  Note the two_level_copy() call, 
+    # necessary to make sure we don't mess up the content of the caller's dictionary.
+    
     if typeof(pdict)<:Array
         pdict = Dict(pdict)
     end
@@ -1023,6 +1024,19 @@ function inverse_wall(bdict, wdict)
     return(pdict)
 end
   
+
+
+# DON'T MODIFY THIS FILE -- the source is in file Cost Function Minimization and Hessian Utilities.ipynb
+
+
+
+######################################################
+#                                                    #
+#         BBOX_HESSIAN_KEYWORD_MINIMIZATION          #
+#                                                    #
+######################################################
+
+
 
 
 """
@@ -1302,3 +1316,5 @@ function bbox_Hessian_keyword_minimization(seed, args, bbox, func; start_eta=0.1
     trajectory = trajectory[:,1:i]; cpm_traj = cpm_traj[:,1:i]
     return vector_wrap(bbox, args, params), trajectory, cost, cpm_traj
 end
+
+
