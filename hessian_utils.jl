@@ -1,5 +1,120 @@
 # DON'T MODIFY THIS FILE -- the source is in file Cost Function Minimization and Hessian Utilities.ipynb
 
+        
+"""
+dict = make_dict(argstrings, x, [starting_dict=Dict()] )
+
+Given a list of strings, and a list of values, makes a dictionary of Symbols to values, with the Symbols 
+corresponding to each of the strings.  Mostly used to pass arguments as a keyword-value set into a function.
+If one of the elements of argstrings is *not* a string, but is instead a 2-long list, the first element of that 
+list should be a string, and the second element of that list should be a positive integer. This will be 
+interpreted as "don't take only one value, take this number of values and this parameter will be a vector"
+
+PARAMS:
+=======
+
+argstrings       A list of strings. Each element may also be a two-long list of a string, positive integer,
+                 e.g., ["this" 3]
+
+x                A vector of numeric values. Its length must be such that all the strings in argstrings
+                 can take their corresponding element(s), sequentially, from x
+
+starting_dict    An initial dictionary to work with.  Any key in this starting dictionary matching an argstring
+                 will be replaced by the new value. Keys not matched will remain.
+
+RETURNS:
+========
+
+dict             The symbol dictionary.
+
+
+EXAMPLES:
+=========
+
+>> make_dict(["this", "that", ["there", 2]], [10, 20, 3, 4])
+
+Dict{Any,Any} with 3 entries:
+  :this  => 10
+  :that  => 20
+  :there => [3,4]
+
+>> make_dict(["doo", "gaa"], [10, 20], Dict(:blob=>100, :gaa=>-44))
+
+Dict{Symbol,Int64} with 3 entries:
+  :gaa  => 20
+  :blob => 100
+  :doo  => 10
+
+"""
+function make_dict(args, x, starting_dict=Dict())
+    kwargs = starting_dict;
+    i = 1; j=1
+    while i<=length(args)
+        if typeof(args[i])==String
+            kwargs = merge(kwargs, Dict(Symbol(args[i]) => x[j]))
+        else
+            if length(args[i]) == 2
+                extra = args[i][2]-1
+                kwargs = merge(kwargs, Dict(Symbol(args[i][1]) => x[j:(j+extra)]))
+                j = j+extra
+            else
+                error("Each element of the args vector must be either a string, or a 2-long vector, first element a string, second integer")
+            end            
+        end
+        i = i+1; j=j+1
+    end
+    return kwargs
+end 
+
+
+
+"""
+function M = ForwardDiffZeros(m, n; nderivs=0, difforder=0)
+
+Use instead of zeros(). Creates a matrix of zeros, of size m rows by n columns, with elements appropriate for 
+differentiation by ForwardDiff. If nderivs==0 or difforder==0 then the elements will be regular
+Float64, not ForwardDiff types.
+
+PARAMETERS:
+===========
+
+m        Integer, number of rows
+
+n        Integer, number of columns
+
+
+OPTIONAL PARAMETERS:
+====================
+
+nderivs=0       The number of variables that we'll be differentiating with respect to. In other
+                words, this number is equal to the length of the gradient. If this is left as zero (the default) then 
+                the data type will be regular Float64
+
+difforder=0     The order of the derivative we will want to take.  Zero means nothing, stick with
+                regular Float64, 1 means gradient, 2 means hessian
+
+RETURNS:
+========
+
+An m-by-n matrix of zeros that can be used with Forward Diff.
+
+"""
+function ForwardDiffZeros(m, n; nderivs=0, difforder=0)
+    if nderivs == 0 || difforder == 0
+        return zeros(m, n)
+    elseif difforder == 1
+        return zeros(ForwardDiff.Dual{nderivs, Float64}, m , n)
+    elseif difforder == 2
+        return zeros(ForwardDiff.Dual{nderivs, ForwardDiff.Dual{nderivs, Float64}}, m, n)
+    else
+        error("Don't know how to do that order of derivatives!", nderivs)
+    end
+end
+      
+
+
+# DON'T MODIFY THIS FILE -- the source is in file Cost Function Minimization and Hessian Utilities.ipynb
+
 
 """
 function value, gradient, hessian = vgh(func, x0)
@@ -29,291 +144,244 @@ end
 
 
 
+#############################################################################
+#                                                                           #
+#                   KEYWORD GRADIENTS AND HESSIANS                          #
+#                                                                           #
+#############################################################################
+
+
 """
-function x, cost, iters_used, last_Delta_x = one_d_minimizer(seed, func; tol=1e-5, maxiter=100, start_eta=0.1)
+function keyword_gradient(func, args, x0)
 
-Minimizes a 1-d function using constrained Hessian minimization. 
-We don't trust the long-range info from the Hessian too much, meaning that there's
-a given (adaptive) step size. If Newton's method suggests a step smaller than that step
-size, we take it. Otherwise, we only move in the direction of the gradient by the stepsize.
+Same as ForwardDiff.gradient except that func() must be a function taking only optional 
+keyword arguments, and the derivative is taken with respect to an arbitrarily chosen set of 
+those, indicated by a list of strings.
 
-Adaptive step size: Every step that the cost function gets smaller, the step grows by a factor 
-of 1.1. If a step would have led to a larger cost function, the step is not taken, and
-the size falls by a factor of 2.
+In addition, func *MUST* take optional keyword args nderivs=0 and difforder=0, and within it,
+if matrices or vectors of zeros are declared, use ForwardDiffZeros() instead of zeros().
 
 PARAMETERS:
 ===========
 
-seed       A float, the starting point for the minimization
+func        A scalar function taking only optional keyword arguments, including nderivs=0 and difforder=0
 
-func       A one dimensional function, takes a float and returns a float that represents the current cost.
+args        A list of strings indicating which keyword arguments to differentiate. These strings must
+            match the keyword names in func()   For example, func(;this=10, that=20) would mean that 
+            "this" and "that" are allowable elements in args.
 
-
-OPTIONAL PARAMETERS:
-====================
-
-tol=1e-5   If a step would lead to a change in cost that is smaller in magnitude than tol, stop the minimization.
-
-maxiter=100   Maximum number of iterations for the minimization
-
-start_eta=0.1  The starting value of the step size
-
+x0          A vector of floats, same length as args, representing the values of these args at which the
+            derivatives will be taken.
 
 RETURNS:
 ========
 
-x0     the value of x that minimizes f(x)
-
-cost   The value of f(x0) 
-
-niters  The number of iterations done
-
-Dparam  The last change to the parameter value
-
-"""
-function one_d_minimizer(seed, func; tol=1e-5, maxiter=100, start_eta=0.1)
-    eta = start_eta;
-    lambdavec = [seed]
+grad        The gradient of func w.r.t. args
 
 
-    out = DiffBase.HessianResult(lambdavec)
-    ForwardDiff.hessian!(out, func, lambdavec)
-    cost = DiffBase.value(out)
-    grad = DiffBase.gradient(out)
-    hess = DiffBase.hessian(out)
+EXAMPLE:
+========
 
-    i = delta_lambda = 0;  # declare it so we can use it after the if
-    for i in [1:maxiter;]
-        h_delta = - grad./hess;
-        if abs(h_delta[1]) < eta
-            new_lambdavec = lambdavec + h_delta
-        else
-            new_lambdavec = lambdavec - eta*sign(grad)
-        end
-
-        delta_lambda = new_lambdavec[1] - lambdavec[1]
-        if abs(delta_lambda) < tol
-            break
-        end
-        
-        ForwardDiff.hessian!(out, func, new_lambdavec)
-        new_cost = DiffBase.value(out)
-        new_grad = DiffBase.gradient(out)
-        new_hess = DiffBase.hessian(out)
-
-        if new_cost .< cost
-            lambdavec[1] = new_lambdavec[1]
-            cost = new_cost;
-            grad = new_grad;
-            hess = new_hess;
-
-            eta = eta*1.1
-        else
-            eta = eta/2
-        end
-
-        # @printf "%d: cost=%.3f lambda=%.3f\n" i cost lambdavec[1]
-    end
-    
-    return lambdavec[1], cost, i, delta_lambda
+function tester(;a=10, b=20, c=30, nderivs=0, difforder=0)
+    M = ForwardDiffZeros(3, 3; nderivs=nderivs, difforder=difforder)
+    M[1,1] = a^2*10
+    M[2,2] = b*20
+    M[3,3] = a*sqrt(c)*30.1
+    return trace(M)
 end
+
+grad_a_c = keyword_gradient((;pars...) -> tester(;pars...), ["a", "c"], [10, 3.1])  # note initial values must be floats
+
+grad_b_c = keyword_gradient((;pars...) -> tester(;pars...), ["b", "c"], [10, 3.1]) 
+
+"""
+function keyword_gradient(func, args, x0)
     
+    ans = ForwardDiff.gradient(x -> func(;nderivs=length(x0), difforder=1, make_dict(args, x)...), x0)
+    
+    return ans
+end
 
 
 """
-function constrained_parabolic_minimization(H, G, r; tol=1e-6, min_only=true, do_plot=false, 
-    verbose=false, efactor=3.0, max_efactor_tries=10, 
-    lambdastepsize=0.003, minimum_tol=1e-24, tol_delta=1e-3, maxiter=200)
+function keyword_gradient!(out, func, args, x0)
 
-Given a Hessian matrix, a gradient vector, and a desired radius from the origin, finds the vector 
-that minimizes the parabola defined by the Hessian and the gradient, subject to the constraint that the
-vector's length equals the desired radius.
+Same as keyword_gradient, but puts the result in mutable out. See keyword_gradient() for documentation.
+
+EXAMPLE:
+========
+
+function tester(;a=10, b=20, c=30, nderivs=0, difforder=0)
+    M = ForwardDiffZeros(3, 3; nderivs=nderivs, difforder=difforder)
+    M[1,1] = a^2*10
+    M[2,2] = b*20
+    M[3,3] = a*sqrt(c)*30.1
+    return trace(M)
+end
+
+out = DiffBase.GradientResult([10, 3.1])  # out must be same length as whatever we will differentiate w.r.t.
+keyword_gradient!(out, (;pars...) -> tester(;pars...), ["a", "c"], [10, 3.1])  # note initial values must be floats
+grad_a_c = DiffBase.gradient(out)
+value    = DiffBase.value(out)
+
+out = DiffBase.GradientResult([10, 3.1, 20])  # out must be same length as whatever we will differentiate w.r.t.
+keyword_gradient!(out, (;pars...) -> tester(;pars...), ["a", "b", "c"], [10, 20, 3.1])  # note initial values must be floats
+grad_a_b_c = DiffBase.gradient(out)
+
+"""
+function keyword_gradient!(out, func, args, x0)
+
+    if length(args) != length(x0)
+        error("Oy! args and x0 must be the same length!")
+    end
+
+    ForwardDiff.gradient!(out, x -> func(;nderivs=length(x0), difforder=1, make_dict(args, x)...), x0)
+    
+    return 
+end
+
+
+"""
+function keyword_hessian(func, args, x0)
+
+Same as ForwardDiff.hessian except that func() must be a function taking only optional 
+keyword arguments, and the derivative is taken with respect to an arbitrarily chosen set of 
+those, indicated by a list of strings.
+
+In addition, func *MUST* take optional keyword args nderivs=0 and difforder=0, and within it,
+if matrices or vectors of zeros are declared, use ForwardDiffZeros() instead of zeros().
 
 PARAMETERS:
 ===========
 
-H      A square symmetric matrix. It should have all positive eigenvalues.
+func        A scalar function taking only optional keyword arguments, including nderivs=0 and difforder=0
 
-G      A vector, length equal to the size(H,2)
+args        A list of strings indicating which keyword arguments to differentiate. These strings must
+            match the keyword names in func()   For example, func(;this=10, that=20) would mean that 
+            "this" and "that" are allowable elements in args.
 
-r      desired radius
-
-OPTIONAL PARAMETERS:
-====================
-
-tol=1e-6        Numerical tolerance on the computations
-
-min_only=true   Return only the minimum, or, if false, all xs for all lambdas that match x'*x = r^2
-
-efactor=3       The initial exploration of lambdas will go from -efactor(max(absolute(eig(H)))) to +efactor(max(absolute(eig(H))))
-                If that does not produce a solution within the indicates tolerance, then efactor is multiplied by efactor_growth
-                and we try again, up to max_efactor_tries.
-
-efactor_growth  see efactor
-
-max_efactor_tries   see efactor
-
-minimum_tol     Each candidate value of lambda, identified as a minimum in the grid scan and 
-                proposed as satisfying |x|^2=r^2, is then used to seed a Newton's method one-d minimization with a certain tolerance.
-                If the results of that search do not satisfy |x|^2=r^2 within the desired tolerance, then the tolerance
-                for the 1-d search is reduced (to make the one-d search more exact), by a factor of tol_delta, 
-                up to minimu_tol
-
-tol_delta       see minimum_tol
-
-max_iter        Maximum number of iterations in the 1-d search (see minimum_tol).
-
-
-lambdastepsize=0.003    The step size for initial exploration of lambdas, un units of efactor. It sshould
-                probably scale with the smallest difference in the eigenvalues of H; that has not been implemented yet.
-
-do_plot         If true, produces plot of the initial gridscans of lambda versus (x'*x - r^2)^2
-
-verbose         If true, produces diagnostic info as it goes.
-
+x0          A vector of floats, same length as args, representing the values of these args at which the
+            derivatives will be taken.
 
 RETURNS:
 ========
 
-x        The vector that minimizes 0.5*x'*H*x + x'*G subject to x'*x = r
- 
-J        0.5*x'*H*x + x'*G at the returned x
+grad        The gradient of func w.r.t. args
 
-lambda   value of the Lagrange multiplier at which the radius constraint is satisfied
 
-c        The squared difference between the length of x and r. Should be small, otherwise somthing went wrong!
+EXAMPLE:
+========
 
-niters   The number of iterations used in the one-d minimiation that identified the output lambdas.
+function tester(;a=10, b=20, c=30, nderivs=0, difforder=0)
+    M = ForwardDiffZeros(3, 3; nderivs=nderivs, difforder=difforder)
+    M[1,1] = a^2*10
+    M[2,2] = b*20
+    M[3,3] = a*sqrt(c)*30.1
+    return trace(M)
+end
 
-Dlambda  The last change in lambda during the one-d minimization. If the one-d minimization did not reach
-         its maxiters, then this will be smaller than the one-d minimization's tolerance.
+hess_b_c = keyword_hessian((;pars...) -> tester(;pars...), ["b", "c"], [10, 3.1])  # note initial values must be floats
+
+hess_a_b_c = keyword_hessian((;pars...) -> tester(;pars...), ["a", "b", c"], [10, 2, 3.1]) 
 
 """
-function constrained_parabolic_minimization(H, G, r; tol=1e-6, min_only=true, 
-    do_plot=false, verbose=false, efactor=3.0, efactor_growth=4, max_efactor_tries=10, 
-    lambdastepsize=0.003, minimum_tol=1e-24, tol_delta=1e-3, maxiter=200)
+function keyword_hessian(func, args, x0)
 
-    #  --- First a couple of helper functions ----
-    
-    """
-    function x_of_lambda(lambda)
-
-    Given square matrix H, vector G, and passed scalar lambda, returns the vector x that minimizes
-    
-    0.5 x'*H*x + x'*G - lambda *x'*x
-
-    """
-    function x_of_lambda(lambda)
-        return inv(H - lambda*eye(size(H,1)))*(-G)
-    end
-    
-    
-    """
-    function q(lambda, r)
-
-    Returns the squared difference between r and the norm of x_of_lambda(lambda).
-    """
-    function q(lambda, r)
-        return (r - norm(x_of_lambda(lambda)))^2
+    if length(args) != length(x0)
+        error("Oy! args and x0 must be the same length!")
     end
 
-
-    # efactor is the factor that multiplies the biggest eigenvalue of H, to determine the range over which we'll
-    # look for a lambda that satisfies the norm(x)==r requirement. If we don't find a solution, we iteratively 
-    # increase efactor to try to get there, for a maximum of max_efactor_tries
-    for m=1:max_efactor_tries
-        # First scan lambda to find good candidates for minimizing the parabolic 
-        # surface under the x'*x = r^2 constraint
-        L = eig(H)[1]
-        L0 = maximum(abs(L))
-        lambdas = L0*efactor*[-1.0:lambdastepsize:1.0;]
-        costs = zeros(size(lambdas))
-        for i in [1:length(lambdas);]
-            try 
-                costs[i] = q(lambdas[i], r)
-            catch
-                costs[i] = Inf
-            end
-        end
-
-        if do_plot
-            figure(2); clf();
-            plot(lambdas, costs, "b.-")
-            xlabel("lambda")
-            ylabel("cost")
-        end
-
-        # Take all candidates where the derivative of costs changes sign 
-        # from negative to positive (those would be minima),
-        # plus the smallest and the largest lambdas tested, as candidates
-        g = append!(prepend!(find(diff(sign(diff(costs))) .> 0.99), [1]), [length(lambdas)])
-        if verbose
-            @printf("cpm: g (candidate indices) are : ");           print_vector_g(g);        print("\n")
-            @printf("cpm: and their corresponding costs are : ");   print_vector(costs[g]);   print("\n");
-            @printf("cpm: and their corresponding lambdas are : "); print_vector(lambdas[g]); print("\n");
-            @printf("cpm: the minimum cost was : %g\n", minimum(costs[g]))
-        end
-        # found_it_flag = 0  # A flag for when we've found at least one lambda that satisfies the r constraint
-        mytol = tol
-
-        while mytol > minimum_tol
-            lambdas_out = zeros(size(g))
-            costs_out   = zeros(size(g))
-            niters_out  = zeros(size(g))
-            Dlambda_out = zeros(size(g))
-            for i in [1:length(g);]
-                lambdas_out[i], costs_out[i], niters_out[i], Dlambda_out[i] = 
-                one_d_minimizer(lambdas[g[i]], x -> q(x[1], r), start_eta=1, tol=mytol, maxiter=maxiter)
-            end
-
-            # Eliminate any lambdas where x'*x doesn't match our desired value r
-            I = find(costs_out .< tol)
-            lambdas_out = lambdas_out[I]; costs_out = costs_out[I];
-            niters_out  = niters_out[I];  Dlambda_out = Dlambda_out[I]
-
-            if length(I) > 0; break; end
-
-            mytol *= tol_delta
-        end
-        if verbose
-            @printf("%d : After searching for lambdas with efactor=%g, we found these : ", m, efactor)
-            print_vector_g(lambdas_out); print("\n")
-        end
-        if length(lambdas_out) > 0; break; end;
-        efactor = efactor*efactor_growth
-    end
+    ans = ForwardDiff.hessian(x -> func(;nderivs=length(x0), difforder=2, make_dict(args, x)...), x0)
     
-    # Eliminate any repeated lambdas, to within the specified numerical tolerance.
-    I = setdiff(1:length(lambdas_out), find(diff(lambdas_out) .< tol))
-    lambdas_out = lambdas_out[I]; costs_out = costs_out[I];
-    niters_out  = niters_out[I];  Dlambda_out = Dlambda_out[I]
-    
-    # Find the parabolic estimate of the cost function at these points
-    J  = zeros(size(lambdas_out))
-    xs = zeros(length(G), length(lambdas_out))
-    for i in [1:length(J);]
-        xs[:,i] = x_of_lambda(lambdas_out[i])
-        J[i] = (0.5*xs[:,i]'*H*xs[:,i] + xs[:,i]'*G)[1]
-    end
-
-    # Find and return only the x that has the smallest J
-    if min_only
-        I = indmin(J)    
-    else
-        I = 1:length(J)
-    end
-    return xs[:,I], J[I], lambdas_out[I], costs_out[I], niters_out[I], Dlambda_out[I]
+    return ans
 end
 
 
-    
+"""
+function keyword_hessian!(out, func, args, x0)
 
+Same as keyword_hessian, but puts the result in mutable out. See keyword_hessian() for documentation.
+
+EXAMPLE:
+========
+
+function tester(;a=10, b=20, c=30, nderivs=0, difforder=0)
+    M = ForwardDiffZeros(3, 3; nderivs=nderivs, difforder=difforder)
+    M[1,1] = a^2*10
+    M[2,2] = b*20
+    M[3,3] = a*sqrt(c)*30.1
+    return trace(M)
+end
+
+out = DiffBase.HessianResult([10, 3.1])  # out must be same length as whatever we will differentiate w.r.t.
+keyword_hessian!(out, (;pars...) -> tester(;pars...), ["a", "c"], [10, 3.1])  # note initial values must be floats
+hess_a_c = DiffBase.hessian(out)
+grad_a_c = DiffBase.gradient(out)
+value    = DiffBase.value(out)
+
+out = DiffBase.HessianResult([10, 3.1, 20])  # out must be same length as whatever we will differentiate w.r.t.
+keyword_hessian!(out, (;pars...) -> tester(;pars...), ["a", "b", "c"], [10, 20, 3.1])  # note initial values must be floats
+hess_a_b_c = DiffBase.hessian(out)
+
+"""
+function keyword_hessian!(out, func, args, x0)
+    nargs = 0
+    for i in [1:length(args);]
+        if typeof(args[i])==String
+            nargs += 1
+        else
+            nargs += args[i][2]
+        end
+    end
+    if nargs != length(x0)
+        error("Oy! args and x0 must be the same length!")
+    end
+
+    ForwardDiff.hessian!(out, x -> func(;nderivs=length(x0), difforder=2, make_dict(args, x)...), x0)
     
+    return 
+end
+
+
+
+
+"""
+function value, gradient, hessian = keyword_vgh(func, args, x0)
+
+Wrapper for keyword_hessian!() that computes and returns all three of a function's value, gradient, and hessian.
+
+EXAMPLE:
+========
+
+function tester(;a=10, b=20, c=30, nderivs=0, difforder=0)
+    M = ForwardDiffZeros(3, 3; nderivs=nderivs, difforder=difforder)
+    M[1,1] = a^2*10
+    M[2,2] = b*20
+    M[3,3] = a*sqrt(c)*30.1
+    return trace(M)
+end
+
+value, grad, hess = keyword_vgh(tester, ["a", "c"], [10, 3.1])
+"""
+function keyword_vgh(func, args, x0)
+    out = DiffBase.HessianResult(x0)
+    keyword_hessian!(out, func, args, x0)
+    value    = DiffBase.value(out)
+    gradient = DiffBase.gradient(out)
+    hessian  = DiffBase.hessian(out)
+    
+    return value, gradient, hessian    
+end
+
+
+# DON'T MODIFY THIS FILE -- the source is in file Cost Function Minimization and Hessian Utilities.ipynb
 
 
 """
 function constrained_Hessian_minimization(seed, func; start_eta=10, tol=1e-6, maxiter=400,
     verbose=false)
+
+LARGELY SUPERSEDED BY BBOX_HESSIAN_KEYWORD_MINIMIZATION
 
 Minimizes a function using. At each step, it computes the Hessian approximation to the function, 
 and then asks, according to the corresponding parabolic approximation: is the global minimum within a
@@ -577,348 +645,6 @@ function trust_region_Hessian_minimization(seed, func; start_eta=10, tol=1e-15, 
     
     return params, cost
 end
-
-
-#############################################################################
-#                                                                           #
-#                   KEYWORD GRADIENTS AND HESSIANS                          #
-#                                                                           #
-#############################################################################
-        
-"""
-dict = make_dict(argstrings, x, [starting_dict=Dict()] )
-
-Given a list of strings, and a list of values, makes a dictionary of Symbols to values, with the Symbols 
-corresponding to each of the strings.  Mostly used to pass arguments as a keyword-value set into a function.
-If one of the elements of argstrings is *not* a string, but is instead a 2-long list, the first element of that 
-list should be a string, and the second element of that list should be a positive integer. This will be 
-interpreted as "don't take only one value, take this number of values and this parameter will be a vector"
-
-PARAMS:
-=======
-
-argstrings       A list of strings. Each element may also be a two-long list of a string, positive integer,
-                 e.g., ["this" 3]
-
-x                A vector of numeric values. Its length must be such that all the strings in argstrings
-                 can take their corresponding element(s), sequentially, from x
-
-starting_dict    An initial dictionary to work with.  Any key in this starting dictionary matching an argstring
-                 will be replaced by the new value. Keys not matched will remain.
-
-RETURNS:
-========
-
-dict             The symbol dictionary.
-
-
-EXAMPLES:
-=========
-
->> make_dict(["this", "that", ["there", 2]], [10, 20, 3, 4])
-
-Dict{Any,Any} with 3 entries:
-  :this  => 10
-  :that  => 20
-  :there => [3,4]
-
->> make_dict(["doo", "gaa"], [10, 20], Dict(:blob=>100, :gaa=>-44))
-
-Dict{Symbol,Int64} with 3 entries:
-  :gaa  => 20
-  :blob => 100
-  :doo  => 10
-
-"""
-function make_dict(args, x, starting_dict=Dict())
-    kwargs = starting_dict;
-    i = 1; j=1
-    while i<=length(args)
-        if typeof(args[i])==String
-            kwargs = merge(kwargs, Dict(Symbol(args[i]) => x[j]))
-        else
-            if length(args[i]) == 2
-                extra = args[i][2]-1
-                kwargs = merge(kwargs, Dict(Symbol(args[i][1]) => x[j:(j+extra)]))
-                j = j+extra
-            else
-                error("Each element of the args vector must be either a string, or a 2-long vector, first element a string, second integer")
-            end            
-        end
-        i = i+1; j=j+1
-    end
-    return kwargs
-end 
-
-
-
-"""
-function M = ForwardDiffZeros(m, n; nderivs=0, difforder=0)
-
-Use instead of zeros(). Creates a matrix of zeros, of size m rows by n columns, with elements appropriate for 
-differentiation by ForwardDiff. If nderivs==0 or difforder==0 then the elements will be regular
-Float64, not ForwardDiff types.
-
-PARAMETERS:
-===========
-
-m        Integer, number of rows
-
-n        Integer, number of columns
-
-
-OPTIONAL PARAMETERS:
-====================
-
-nderivs=0       The number of variables that we'll be differentiating with respect to. In other
-                words, this number is equal to the length of the gradient. If this is left as zero (the default) then 
-                the data type will be regular Float64
-
-difforder=0     The order of the derivative we will want to take.  Zero means nothing, stick with
-                regular Float64, 1 means gradient, 2 means hessian
-
-RETURNS:
-========
-
-An m-by-n matrix of zeros that can be used with Forward Diff.
-
-"""
-function ForwardDiffZeros(m, n; nderivs=0, difforder=0)
-    if nderivs == 0 || difforder == 0
-        return zeros(m, n)
-    elseif difforder == 1
-        return zeros(ForwardDiff.Dual{nderivs, Float64}, m , n)
-    elseif difforder == 2
-        return zeros(ForwardDiff.Dual{nderivs, ForwardDiff.Dual{nderivs, Float64}}, m, n)
-    else
-        error("Don't know how to do that order of derivatives!", nderivs)
-    end
-end
-      
-
-"""
-function keyword_gradient(func, args, x0)
-
-Same as ForwardDiff.gradient except that func() must be a function taking only optional 
-keyword arguments, and the derivative is taken with respect to an arbitrarily chosen set of 
-those, indicated by a list of strings.
-
-In addition, func *MUST* take optional keyword args nderivs=0 and difforder=0, and within it,
-if matrices or vectors of zeros are declared, use ForwardDiffZeros() instead of zeros().
-
-PARAMETERS:
-===========
-
-func        A scalar function taking only optional keyword arguments, including nderivs=0 and difforder=0
-
-args        A list of strings indicating which keyword arguments to differentiate. These strings must
-            match the keyword names in func()   For example, func(;this=10, that=20) would mean that 
-            "this" and "that" are allowable elements in args.
-
-x0          A vector of floats, same length as args, representing the values of these args at which the
-            derivatives will be taken.
-
-RETURNS:
-========
-
-grad        The gradient of func w.r.t. args
-
-
-EXAMPLE:
-========
-
-function tester(;a=10, b=20, c=30, nderivs=0, difforder=0)
-    M = ForwardDiffZeros(3, 3; nderivs=nderivs, difforder=difforder)
-    M[1,1] = a^2*10
-    M[2,2] = b*20
-    M[3,3] = a*sqrt(c)*30.1
-    return trace(M)
-end
-
-grad_a_c = keyword_gradient((;pars...) -> tester(;pars...), ["a", "c"], [10, 3.1])  # note initial values must be floats
-
-grad_b_c = keyword_gradient((;pars...) -> tester(;pars...), ["b", "c"], [10, 3.1]) 
-
-"""
-function keyword_gradient(func, args, x0)
-    
-    ans = ForwardDiff.gradient(x -> func(;nderivs=length(x0), difforder=1, make_dict(args, x)...), x0)
-    
-    return ans
-end
-
-
-"""
-function keyword_gradient!(out, func, args, x0)
-
-Same as keyword_gradient, but puts the result in mutable out. See keyword_gradient() for documentation.
-
-EXAMPLE:
-========
-
-function tester(;a=10, b=20, c=30, nderivs=0, difforder=0)
-    M = ForwardDiffZeros(3, 3; nderivs=nderivs, difforder=difforder)
-    M[1,1] = a^2*10
-    M[2,2] = b*20
-    M[3,3] = a*sqrt(c)*30.1
-    return trace(M)
-end
-
-out = DiffBase.GradientResult([10, 3.1])  # out must be same length as whatever we will differentiate w.r.t.
-keyword_gradient!(out, (;pars...) -> tester(;pars...), ["a", "c"], [10, 3.1])  # note initial values must be floats
-grad_a_c = DiffBase.gradient(out)
-value    = DiffBase.value(out)
-
-out = DiffBase.GradientResult([10, 3.1, 20])  # out must be same length as whatever we will differentiate w.r.t.
-keyword_gradient!(out, (;pars...) -> tester(;pars...), ["a", "b", "c"], [10, 20, 3.1])  # note initial values must be floats
-grad_a_b_c = DiffBase.gradient(out)
-
-"""
-function keyword_gradient!(out, func, args, x0)
-
-    if length(args) != length(x0)
-        error("Oy! args and x0 must be the same length!")
-    end
-
-    ForwardDiff.gradient!(out, x -> func(;nderivs=length(x0), difforder=1, make_dict(args, x)...), x0)
-    
-    return 
-end
-
-
-"""
-function keyword_hessian(func, args, x0)
-
-Same as ForwardDiff.hessian except that func() must be a function taking only optional 
-keyword arguments, and the derivative is taken with respect to an arbitrarily chosen set of 
-those, indicated by a list of strings.
-
-In addition, func *MUST* take optional keyword args nderivs=0 and difforder=0, and within it,
-if matrices or vectors of zeros are declared, use ForwardDiffZeros() instead of zeros().
-
-PARAMETERS:
-===========
-
-func        A scalar function taking only optional keyword arguments, including nderivs=0 and difforder=0
-
-args        A list of strings indicating which keyword arguments to differentiate. These strings must
-            match the keyword names in func()   For example, func(;this=10, that=20) would mean that 
-            "this" and "that" are allowable elements in args.
-
-x0          A vector of floats, same length as args, representing the values of these args at which the
-            derivatives will be taken.
-
-RETURNS:
-========
-
-grad        The gradient of func w.r.t. args
-
-
-EXAMPLE:
-========
-
-function tester(;a=10, b=20, c=30, nderivs=0, difforder=0)
-    M = ForwardDiffZeros(3, 3; nderivs=nderivs, difforder=difforder)
-    M[1,1] = a^2*10
-    M[2,2] = b*20
-    M[3,3] = a*sqrt(c)*30.1
-    return trace(M)
-end
-
-hess_b_c = keyword_hessian((;pars...) -> tester(;pars...), ["b", "c"], [10, 3.1])  # note initial values must be floats
-
-hess_a_b_c = keyword_hessian((;pars...) -> tester(;pars...), ["a", "b", c"], [10, 2, 3.1]) 
-
-"""
-function keyword_hessian(func, args, x0)
-
-    if length(args) != length(x0)
-        error("Oy! args and x0 must be the same length!")
-    end
-
-    ans = ForwardDiff.hessian(x -> func(;nderivs=length(x0), difforder=2, make_dict(args, x)...), x0)
-    
-    return ans
-end
-
-
-"""
-function keyword_hessian!(out, func, args, x0)
-
-Same as keyword_hessian, but puts the result in mutable out. See keyword_hessian() for documentation.
-
-EXAMPLE:
-========
-
-function tester(;a=10, b=20, c=30, nderivs=0, difforder=0)
-    M = ForwardDiffZeros(3, 3; nderivs=nderivs, difforder=difforder)
-    M[1,1] = a^2*10
-    M[2,2] = b*20
-    M[3,3] = a*sqrt(c)*30.1
-    return trace(M)
-end
-
-out = DiffBase.HessianResult([10, 3.1])  # out must be same length as whatever we will differentiate w.r.t.
-keyword_hessian!(out, (;pars...) -> tester(;pars...), ["a", "c"], [10, 3.1])  # note initial values must be floats
-hess_a_c = DiffBase.hessian(out)
-grad_a_c = DiffBase.gradient(out)
-value    = DiffBase.value(out)
-
-out = DiffBase.HessianResult([10, 3.1, 20])  # out must be same length as whatever we will differentiate w.r.t.
-keyword_hessian!(out, (;pars...) -> tester(;pars...), ["a", "b", "c"], [10, 20, 3.1])  # note initial values must be floats
-hess_a_b_c = DiffBase.hessian(out)
-
-"""
-function keyword_hessian!(out, func, args, x0)
-    nargs = 0
-    for i in [1:length(args);]
-        if typeof(args[i])==String
-            nargs += 1
-        else
-            nargs += args[i][2]
-        end
-    end
-    if nargs != length(x0)
-        error("Oy! args and x0 must be the same length!")
-    end
-
-    ForwardDiff.hessian!(out, x -> func(;nderivs=length(x0), difforder=2, make_dict(args, x)...), x0)
-    
-    return 
-end
-
-
-
-
-"""
-function value, gradient, hessian = keyword_vgh(func, args, x0)
-
-Wrapper for keyword_hessian!() that computes and returns all three of a function's value, gradient, and hessian.
-
-EXAMPLE:
-========
-
-function tester(;a=10, b=20, c=30, nderivs=0, difforder=0)
-    M = ForwardDiffZeros(3, 3; nderivs=nderivs, difforder=difforder)
-    M[1,1] = a^2*10
-    M[2,2] = b*20
-    M[3,3] = a*sqrt(c)*30.1
-    return trace(M)
-end
-
-value, grad, hess = keyword_vgh(tester, ["a", "c"], [10, 3.1])
-"""
-function keyword_vgh(func, args, x0)
-    out = DiffBase.HessianResult(x0)
-    keyword_hessian!(out, func, args, x0)
-    value    = DiffBase.value(out)
-    gradient = DiffBase.gradient(out)
-    hessian  = DiffBase.hessian(out)
-    
-    return value, gradient, hessian    
-end
-
-
 
 
 # DON'T MODIFY THIS FILE -- the source is in file Cost Function Minimization and Hessian Utilities.ipynb
