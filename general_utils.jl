@@ -134,25 +134,31 @@ end
 
 
 """
-new_fname = next_file(basename, ndigits)
+new_fname = next_file(fbasename, ndigits)
 
-Returns a numbered and presumably unused filename starting with the string basename, followed by an integer
-digit. The returned integer will be one higher than the number of existing filenames starting with basename,
-and will be written with ndigits numbers, using leading eros if necessary.
+Returns a numbered and presumably unused filename starting with the string fbasename, followed by an integer
+digit. The returned integer will be one higher than the number of existing filenames starting with fbasename,
+and will be written with ndigits numbers, using leading zeros if necessary.
 
 # EXAMPLE:
 
-If there are already 8 files starting with "model" then
+If there are already 8 files starting with "Mydir/model" then
 
-> next_file("model_", 4)
+> next_file("Mydir/model_", 4)
 
-"model_0009"
+"Mydir/model_0009"
 """
-function next_file(basename, ndigits)
-    fnames = readdir()
+function next_file(fbasename, ndigits)
+    mydir  = dirname(fbasename)
+    myfile = basename(fbasename)
+    if length(mydir)>0
+        fnames = readdir(mydir)
+    else
+        fnames = readdir()
+    end
     matched_filenames = Array{Bool}(length(fnames))
     for i=1:length(fnames)
-        matched_filenames[i] = ismatch(Regex(@sprintf("^%s", basename)), fnames[i])
+        matched_filenames[i] = ismatch(Regex(@sprintf("^%s", myfile)), fnames[i])
     end
     
     mynum = length(find(matched_filenames))+1
@@ -161,8 +167,15 @@ function next_file(basename, ndigits)
         myname = "0" * myname
     end
 
-    return basename * myname
+    if length(mydir)>0
+        return mydir * "/" * myfile * myname
+    else
+        return myfile * myname
+    end
 end
+
+
+# DON'T MODIFY THIS FILE -- the source is in file General Utilities.ipynb
 
 
 
@@ -195,7 +208,5 @@ function symbol_key_ize(d)
     end
     return sd
 end
-
-
 
 
