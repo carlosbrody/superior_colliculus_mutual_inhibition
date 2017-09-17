@@ -10,26 +10,22 @@ If one of the elements of argstrings is *not* a string, but is instead a 2-long 
 list should be a string, and the second element of that list should be a positive integer. This will be 
 interpreted as "don't take only one value, take this number of values and this parameter will be a vector"
 
-PARAMS:
-=======
+# PARAMS:
 
-argstrings       A list of strings. Each element may also be a two-long list of a string, positive integer,
-                 e.g., ["this" 3]
+* argstrings     A list of strings. Each element may also be a two-long list of a string, positive integer, e.g., ["this" 3]
 
-x                A vector of numeric values. Its length must be such that all the strings in argstrings
+* x              A vector of numeric values. Its length must be such that all the strings in argstrings
                  can take their corresponding element(s), sequentially, from x
 
-starting_dict    An initial dictionary to work with.  Any key in this starting dictionary matching an argstring
+* starting_dict  An optional initial dictionary to work with.  Any key in this starting dictionary matching an argstring
                  will be replaced by the new value. Keys not matched will remain.
 
-RETURNS:
-========
+# RETURNS:
 
 dict             The symbol dictionary.
 
 
-EXAMPLES:
-=========
+# EXAMPLES:
 
 >> make_dict(["this", "that", ["there", 2]], [10, 20, 3, 4])
 
@@ -116,6 +112,8 @@ end
 # DON'T MODIFY THIS FILE -- the source is in file Cost Function Minimization and Hessian Utilities.ipynb
 
 
+using ForwardDiff
+
 """
 function value, gradient, hessian = vgh(func, x0)
 
@@ -144,9 +142,73 @@ end
 
 
 
+
+"""
+function value, gradient, hessian = keyword_vgh(func, args, x0)
+
+Wrapper for vgh() that computes and returns all three of a function's value, gradient, and hessian, but now
+for a function that only takes keyword-value pairs. 
+
+*Note that func MUST also take the keyword parameters nderivs and difforder*. If you declare any vectors or 
+matrices inside func() (or inside any function inside func()), use ForwardDiffZeros with these two parameters, 
+do NOT use zeros(). Your gradients will come out as zero is you use zeros().
+
+# PARAMETERS
+
+* func    A function that takes keyword-value pairs only, including nderivs and difforder.  I.e., it must be a function declared as `function func(; nderivs=0, difforder=0, other_kw_value_pairs)` or as `function func(; nderivs=0, difforder=0, other_kw_value_pairs_dict...)`
+* args    A list of strings indicating names of variables to work with
+* x0      A vector with the value of the variables indicates in args.  **See make_dict() for how to pass both scalars and vectors as variables**
+
+# IMPORTANT JULIA BUG
+
+If you modify func, it is possible that keyword_vgh() will still work on the previously defined version. AACK!  
+That's horrible! Alice's tip on the workaround: instead of func(), use (;params...) -> func(; params...) and then
+everything will be fine. Perhaps this bug will be fixed in Julia 0.6
+
+# EXAMPLE:
+
+function tester(;a=10, b=20, c=30, nderivs=0, difforder=0)
+    M = ForwardDiffZeros(3, 3; nderivs=nderivs, difforder=difforder)
+    M[1,1] = a^2*10
+    M[2,2] = b*20
+    M[3,3] = a*sqrt(c)*30.1
+    return trace(M)
+end
+
+value, grad, hess = keyword_vgh(tester, ["a", "c"], [10, 3.1])
+
+value, grad, hess = keyword_vgh((;params...) -> tester(;params...), ["a", "c"], [10, 3.1])
+
+"""
+function keyword_vgh(func, args, x0)
+    # For error diagnostics, check that the length of the param vector specified in args matches the length of x0
+    nargs = 0
+    for i in [1:length(args);]
+        if typeof(args[i])==String # if the entry in args is a string, then there's one corresponding scalar entry in x0
+            nargs += 1
+        else
+            nargs += args[i][2]    # otherwise, the entry in args should be a  [varnamestring, nvals] vector, 
+            # indicating that the next nvals entries in x0 are all a single vector, belonging to variable
+            # with name varnamestring
+        end
+    end
+    if nargs != length(x0)
+        error("Oy! args and x0 must indicate the same total number of variables!")
+    end
+
+    value, gradient, hessian = vgh(x -> func(;nderivs=length(x), difforder=2, make_dict(args, x)...), x0)
+
+    return value, gradient, hessian    
+end
+
+
+# DON'T MODIFY THIS FILE -- the source is in file Cost Function Minimization and Hessian Utilities.ipynb
+
+
+
 #############################################################################
 #                                                                           #
-#                   KEYWORD GRADIENTS AND HESSIANS                          #
+#      OLD AND LARGELY UNUSED KEYWORD GRADIENTS AND HESSIANS                #
 #                                                                           #
 #############################################################################
 
@@ -340,37 +402,6 @@ function keyword_hessian!(out, func, args, x0)
     ForwardDiff.hessian!(out, x -> func(;nderivs=length(x0), difforder=2, make_dict(args, x)...), x0)
     
     return 
-end
-
-
-
-
-"""
-function value, gradient, hessian = keyword_vgh(func, args, x0)
-
-Wrapper for keyword_hessian!() that computes and returns all three of a function's value, gradient, and hessian.
-
-EXAMPLE:
-========
-
-function tester(;a=10, b=20, c=30, nderivs=0, difforder=0)
-    M = ForwardDiffZeros(3, 3; nderivs=nderivs, difforder=difforder)
-    M[1,1] = a^2*10
-    M[2,2] = b*20
-    M[3,3] = a*sqrt(c)*30.1
-    return trace(M)
-end
-
-value, grad, hess = keyword_vgh(tester, ["a", "c"], [10, 3.1])
-"""
-function keyword_vgh(func, args, x0)
-    out = DiffBase.HessianResult(x0)
-    keyword_hessian!(out, func, args, x0)
-    value    = DiffBase.value(out)
-    gradient = DiffBase.gradient(out)
-    hessian  = DiffBase.hessian(out)
-    
-    return value, gradient, hessian    
 end
 
 

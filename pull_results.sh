@@ -9,7 +9,7 @@ if ( $#argv != 2 ) then
     exit
 endif
 
-gcloud compute ssh --zone="us-east1-c" --command="cd superior_colliculus_mutual_inhibition/; git pull; git add farm_$argv[2]_*; git commit -m "'"'"The latest from farm $argv[2]"'"'"  ; git push origin master" carlosbrody@$argv[1] 
+gcloud compute ssh --zone="us-east1-c" --command="cd superior_colliculus_mutual_inhibition/; git pull; git add FarmFields/farm_$argv[2]_*; git commit -m "'"'"The latest from farm $argv[2]"'"'"  ; git push origin master" carlosbrody@$argv[1] 
 
 git pull
  
