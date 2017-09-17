@@ -631,10 +631,12 @@ JJ(2, 10; plot_list=1:5, verbose=true, model_params...)
 """
 cost = standard_cost(args, pars, sr, model_params)
 
-Computes the cost as if cb had been 0.01
+Computes the cost as if cb had been 0.01 and theta1=0.15 and theta2=0.25
 """
 function standard_cost(args, pars, sr, model_params)
     cb = 0.01
+    theta1 = 0.15
+    theta2 = 0.25
     nPro=100; nAnti=100
 
     rule_and_delay_periods = [0.4, 1.2]
@@ -642,6 +644,7 @@ function standard_cost(args, pars, sr, model_params)
 
     func = (;params...) -> JJ(nPro, nAnti; rule_and_delay_periods=rule_and_delay_periods,
             post_target_periods=post_target_periods,
+            theta1=theta1, theta2=theta2, 
             seedrand=sr, cbeta=cb, verbose=false, merge(model_params, Dict(params))...)
     
     return func(;make_dict(args, pars)...)
@@ -650,13 +653,13 @@ end
 """
 cost = standard_cost(filename)
 
-Returns the standard cost (at cb=0.01) and inserts it into the file with key "scost" if it wasn't there
-already
+Returns the standard cost (at cb=0.01, theta1=0.15, theta2=0.25) and inserts it into the file with 
+key "scost2" if it wasn't there already
 """
 function standard_cost(filename; verbose=false)
     A = matread(filename)
-    if !haskey(A, "scost")
-        get!(A, "scost", standard_cost(A["args"], A["pars"], A["sr"], symbol_key_ize(A["model_params"])))
+    if !haskey(A, "scost2")
+        get!(A, "scost2", standard_cost(A["args"], A["pars"], A["sr"], symbol_key_ize(A["model_params"])))
         if verbose
             @printf("File %s did not have scost, adding its value %g\n", filename, A["scost"])
         end
@@ -665,12 +668,68 @@ function standard_cost(filename; verbose=false)
     return A["scost"]
 end
 
+#####################################
+
+"""
+value, grad, hess = standard_vgh(args, pars, sr, model_params)
+
+Computes the value, gradient, and hessian as if cb had been 0.01 and theta1=0.15 and theta2=0.25
+"""
+function standard_vgh(args, pars, sr, model_params)
+    cb = 0.01
+    theta1 = 0.15
+    theta2 = 0.25
+    nPro=100; nAnti=100
+
+    rule_and_delay_periods = [0.4, 1.2]
+    post_target_periods    = [0.5, 1.5]
+
+    func = (;params...) -> JJ(nPro, nAnti; rule_and_delay_periods=rule_and_delay_periods,
+            post_target_periods=post_target_periods,
+            theta1=theta1, theta2=theta2, 
+            seedrand=sr, cbeta=cb, verbose=false, merge(model_params, Dict(params))...)
+
+    value, grad, hess = keyword_vgh(func, args, pars)
+    
+    return value, grad, hess
+end
+
+
+"""
+value, grad, hess = standard_vght(filename)
+
+Returns the standard cost (at cb=0.01, theta1=0.15, theta2=0.25), gradient, and hessian
+and inserts them into the file with key "scost2", "grad" and "hess" if they weren't there already
+"""
+function standard_vgh(filename; verbose=false, force=false)
+    A = matread(filename)
+    if force || !haskey(A, "value") || !haskey(A, "grad")  || !haskey(A, "hess")
+        value, grad, hess = standard_vgh(A["args"], A["pars"], A["sr"], symbol_key_ize(A["model_params"])) 
+        for s in ["value", "grad", "hess"]
+            if !haskey(A, s); get!(A, s, eval(Symbol(s))); else A[s] = eval(Symbol(s)); end;
+        end
+        if verbose
+            @printf("File %s did not have value or grad or hess, adding its value %g\n", filename, A["value"])
+        end
+        matwrite(filename, A)
+    end
+    return A["value"], A["grad"], A["hess"]
+end
+
 
 ######################################################
 #                                                    #
 #          THE ACTION                                #
 #                                                    #
 ######################################################
+
+for f in readdir("FarmFields")
+    if startswith(f, "farm_")
+        standard_vgh("FarmFields/" * f; verbose=true)
+    end
+end
+
+quit()
 
 
 # ======= ARGUMENTS AND SEED VALUES:
@@ -698,7 +757,7 @@ sbox = Dict(:sW=>[0.001 0.5], :vW=>[-0.5 0.5], :hW=>[-0.5 0.5], :dW=>[-0.5 0.5],
 
 cbetas = [0.02, 0.04]
 
-basename = "farm_E_"
+basename = "FarmFields/farm_E_"
 
 while true
     myseed = seed;
