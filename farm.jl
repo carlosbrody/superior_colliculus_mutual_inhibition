@@ -675,10 +675,8 @@ value, grad, hess = standard_vgh(args, pars, sr, model_params)
 
 Computes the value, gradient, and hessian as if cb had been 0.01 and theta1=0.15 and theta2=0.25
 """
-function standard_vgh(args, pars, sr, model_params)
+function standard_vgh(args, pars, sr, model_params; theta1=0.025, theta2=0.035)
     cb = 0.01
-    theta1 = 0.15
-    theta2 = 0.25
     nPro=100; nAnti=100
 
     rule_and_delay_periods = [0.4, 1.2]
@@ -710,9 +708,9 @@ function standard_vgh(filename; verbose=false, force=false)
     if force || !haskey(A, "value") || !haskey(A, "grad")  || !haskey(A, "hess")
         value, grad, hess = standard_vgh(A["args"], A["pars"], A["sr"], 
         symbol_key_ize(A["model_params"]); theta1=A["theta1"], theta2=A["theta2"]) 
-        for s in ["value", "grad", "hess"]
-            if !haskey(A, s); get!(A, s, eval(Symbol(s))); else A[s] = eval(Symbol(s)); end;
-        end
+        if !haskey(A, "value"); get!(A, "value", value); else A["value"] = value; end;
+        if !haskey(A, "grad"); get!(A, "grad", grad); else A["grad"] = grad; end;
+        if !haskey(A, "hess"); get!(A, "hess", hess); else A["hess"] = hess; end;
         if verbose
             @printf("File %s did not have value or grad or hess, adding its value %g\n", filename, A["value"])
         end
@@ -730,7 +728,8 @@ end
 ######################################################
 
 for f in readdir("FarmFields")
-    if startswith(f, "farm_")
+    if startswith(f, @sprintf("farm_%s_", ARGS[1]))
+        @printf("About to try %s\n", f)
         standard_vgh("FarmFields/" * f; verbose=true)
     end
 end
