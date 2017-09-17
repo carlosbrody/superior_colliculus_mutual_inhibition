@@ -800,7 +800,7 @@ while true
         @printf("Came out with cost %g and pars = ", cost); print_vector_g(pars); print("\n\n")
 
         value, grad, hess = keyword_vgh(func, args, pars)
-        scost = standard_func(;make_dict(args, pars, model_params))
+        scost = standard_func(;make_dict(args, pars, model_params)...)
         
         myfilename = next_file(basename, 4)
 
