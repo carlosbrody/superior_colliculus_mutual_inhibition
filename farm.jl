@@ -762,7 +762,7 @@ sbox = Dict(:sW=>[0.001 0.5], :vW=>[-0.5 0.5], :hW=>[-0.5 0.5], :dW=>[-0.5 0.5],
 
 cbetas = [0.02, 0.04]
 
-basename = "FarmFields/farm_F_"
+fbasename = "FarmFields/farm_F_"
 
 while true
     myseed = seed;
@@ -802,7 +802,7 @@ while true
         value, grad, hess = keyword_vgh(func, args, pars)
         scost = standard_func(;make_dict(args, pars, model_params)...)
         
-        myfilename = next_file(basename, 4)
+        myfilename = next_file(fbasename, 4)
 
         matwrite(myfilename, Dict("args"=>args, "myseed"=>myseed, "pars"=>pars, "traj"=>traj,
         "cost"=>cost, "cpm_traj"=>cpm_traj, "nPro"=>nPro, "nAnti"=>nAnti, "sr"=>sr, "cb"=>cb,
