@@ -18,6 +18,7 @@ function convert(::Array{Float64}, x::Array{ForwardDiff.Dual})
 end
 
 include("general_utils.jl")
+include("constrained_parabolic_minimization.jl")
 include("hessian_utils.jl")
 
 
