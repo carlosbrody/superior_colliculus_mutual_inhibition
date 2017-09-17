@@ -696,7 +696,7 @@ end
 
 
 """
-value, grad, hess = standard_vght(filename)
+value, grad, hess = standard_vgh(filename)
 
 Returns the standard cost (at cb=0.01, theta1=0.15, theta2=0.25), gradient, and hessian
 and inserts them into the file with key "scost2", "grad" and "hess" if they weren't there already
@@ -705,9 +705,9 @@ function standard_vgh(filename; verbose=false, force=false)
     A = matread(filename)
     if force || !haskey(A, "value") || !haskey(A, "grad")  || !haskey(A, "hess")
         value, grad, hess = standard_vgh(A["args"], A["pars"], A["sr"], symbol_key_ize(A["model_params"])) 
-        for s in ["value", "grad", "hess"]
-            if !haskey(A, s); get!(A, s, eval(Symbol(s))); else A[s] = eval(Symbol(s)); end;
-        end
+        if !haskey(A, "value"); get!(A, "value", value); else A["value"] = value; end
+        if !haskey(A, "grad"); get!(A, "grad", grad); else A["grad"] = grad; end
+        if !haskey(A, "hess"); get!(A, "hess", hess); else A["hess"] = hess; end
         if verbose
             @printf("File %s did not have value or grad or hess, adding its value %g\n", filename, A["value"])
         end
