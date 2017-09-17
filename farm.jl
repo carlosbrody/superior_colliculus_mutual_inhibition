@@ -727,14 +727,14 @@ end
 #                                                    #
 ######################################################
 
-for f in readdir("FarmFields")
-    if startswith(f, @sprintf("farm_%s_", ARGS[1]))
-        @printf("About to try %s\n", f)
-        standard_vgh("FarmFields/" * f; verbose=true)
-    end
-end
+# for f in readdir("FarmFields")
+#    if startswith(f, @sprintf("farm_%s_", ARGS[1]))
+#        @printf("About to try %s\n", f)
+#        standard_vgh("FarmFields/" * f; verbose=true)
+#    end
+# end
 
-quit()
+# quit()
 
 
 # ======= ARGUMENTS AND SEED VALUES:
@@ -762,7 +762,7 @@ sbox = Dict(:sW=>[0.001 0.5], :vW=>[-0.5 0.5], :hW=>[-0.5 0.5], :dW=>[-0.5 0.5],
 
 cbetas = [0.02, 0.04]
 
-basename = "FarmFields/farm_E_"
+basename = "FarmFields/farm_F_"
 
 while true
     myseed = seed;
@@ -783,23 +783,33 @@ while true
     theta1 = 0.15; theta2 = 0.25
 
     for cb in cbetas
-        @printf("Going with seed = "); print_vector_g(myseed); print("\n")
-        pars, traj, cost, cpm_traj = bbox_Hessian_keyword_minimization(myseed, args, bbox, 
-            (;params...) -> JJ(nPro, nAnti; rule_and_delay_periods=rule_and_delay_periods,
-	    theta1=theta1, theta2=theta2,
+        func =  (;params...) -> JJ(nPro, nAnti; rule_and_delay_periods=rule_and_delay_periods,
+            theta1=theta1, theta2=theta2,
             post_target_periods=post_target_periods,
-            seedrand=sr, cbeta=cb, verbose=false, merge(model_params, Dict(params))...),
+            seedrand=sr, cbeta=cb, verbose=false, merge(model_params, Dict(params))...)[1]
+        
+        # And at the standard cb=0.01 for comparison to other cbs
+        standard_func =  (;params...) -> JJ(nPro, nAnti; rule_and_delay_periods=rule_and_delay_periods,
+            theta1=theta1, theta2=theta2,
+            post_target_periods=post_target_periods,
+            seedrand=sr, cbeta=0.01, verbose=false, merge(model_params, Dict(params))...)[1]        
+                
+        @printf("Going with seed = "); print_vector_g(myseed); print("\n")
+        pars, traj, cost, cpm_traj = bbox_Hessian_keyword_minimization(myseed, args, bbox, func,
             start_eta = 0.01, tol=1e-12, verbose=true, verbose_every=10, maxiter=400)
         @printf("Came out with cost %g and pars = ", cost); print_vector_g(pars); print("\n\n")
 
+        value, grad, hess = keyword_vgh(func, args, pars)
+        scost = standard_func(;make_dict(args, pars, model_params))
+        
         myfilename = next_file(basename, 4)
 
         matwrite(myfilename, Dict("args"=>args, "myseed"=>myseed, "pars"=>pars, "traj"=>traj,
         "cost"=>cost, "cpm_traj"=>cpm_traj, "nPro"=>nPro, "nAnti"=>nAnti, "sr"=>sr, "cb"=>cb,
-	"theta1"=>theta1, "theta2"=>theta2,
+        "theta1"=>theta1, "theta2"=>theta2,
+        "scost"=>scost, "value"=>value, "grad"=>grad, "hess"=>hess,
         "model_params"=>ascii_key_ize(model_params), "bbox"=>ascii_key_ize(bbox), "sbox"=>ascii_key_ize(sbox),
         "rule_and_delay_periods"=>rule_and_delay_periods, "post_target_periods"=>post_target_periods))
 
-        standard_cost(myfilename)  # make sure the cost at cb=0.01 is included, for comparison of results across cb values
     end
 end
