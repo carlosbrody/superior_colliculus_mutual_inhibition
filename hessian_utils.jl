@@ -43,6 +43,24 @@ Dict{Symbol,Int64} with 3 entries:
 
 """
 function make_dict(args, x, starting_dict=Dict())
+    # For error diagnostics, check that the length of the param vector specified in args matches the length of x
+    nargs = 0
+    for i in [1:length(args);]
+        if typeof(args[i])==String # if the entry in args is a string, then there's one corresponding scalar entry in x0
+            nargs += 1
+        else
+            nargs += args[i][2]    # otherwise, the entry in args should be a  [varnamestring, nvals] vector, 
+            # indicating that the next nvals entries in x0 are all a single vector, belonging to variable
+            # with name varnamestring. 
+        end
+    end
+    if nargs != length(x)
+        error("Oy! args and x must indicate the same total number of variables!")
+    end
+
+    
+    # ---- done error-checking, now main function
+    
     kwargs = starting_dict;
     i = 1; j=1
     while i<=length(args)
@@ -147,7 +165,7 @@ end
 function value, gradient, hessian = keyword_vgh(func, args, x0)
 
 Wrapper for vgh() that computes and returns all three of a function's value, gradient, and hessian, but now
-for a function that only takes keyword-value pairs. 
+uses make_dict() to apply it to a function that only takes keyword-value pairs. 
 
 *Note that func MUST also take the keyword parameters nderivs and difforder*. If you declare any vectors or 
 matrices inside func() (or inside any function inside func()), use ForwardDiffZeros with these two parameters, 
@@ -162,7 +180,7 @@ do NOT use zeros(). Your gradients will come out as zero is you use zeros().
 # IMPORTANT JULIA BUG
 
 If you modify func, it is possible that keyword_vgh() will still work on the previously defined version. AACK!  
-That's horrible! Alice's tip on the workaround: instead of func(), use (;params...) -> func(; params...) and then
+That's horrible! Alice Yoon's tip on the workaround: instead of func(), use (;params...) -> func(; params...) and then
 everything will be fine. Perhaps this bug will be fixed in Julia 0.6
 
 # EXAMPLE:
@@ -181,20 +199,6 @@ value, grad, hess = keyword_vgh((;params...) -> tester(;params...), ["a", "c"], 
 
 """
 function keyword_vgh(func, args, x0)
-    # For error diagnostics, check that the length of the param vector specified in args matches the length of x0
-    nargs = 0
-    for i in [1:length(args);]
-        if typeof(args[i])==String # if the entry in args is a string, then there's one corresponding scalar entry in x0
-            nargs += 1
-        else
-            nargs += args[i][2]    # otherwise, the entry in args should be a  [varnamestring, nvals] vector, 
-            # indicating that the next nvals entries in x0 are all a single vector, belonging to variable
-            # with name varnamestring
-        end
-    end
-    if nargs != length(x0)
-        error("Oy! args and x0 must indicate the same total number of variables!")
-    end
 
     value, gradient, hessian = vgh(x -> func(;nderivs=length(x), difforder=2, make_dict(args, x)...), x0)
 
