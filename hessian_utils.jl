@@ -84,14 +84,14 @@ end
 using ForwardDiff
 
 
-"""
-We define functions to convert Duals, the variable types used by ForwardDiff, 
-to Floats. This is useful if we want to print out the value of a variable 
-(since print doesn't know how to Duals). Note that after being converted to a Float, no
-differentiation by ForwardDiff can happen!  e.g. after
-    x = convert(Float64, y)
-ForwardDiff can still differentiate y, but it can't differentiate x
-"""
+# """
+# We define functions to convert Duals, the variable types used by ForwardDiff, 
+# to Floats. This is useful if we want to print out the value of a variable 
+# (since print doesn't know how to Duals). Note that after being converted to a Float, no
+# differentiation by ForwardDiff can happen!  e.g. after
+#     x = convert(Float64, y)
+# ForwardDiff can still differentiate y, but it can't differentiate x
+# """
 
 import Base.convert
 convert(::Type{Float64}, x::ForwardDiff.Dual) = Float64(x.value)
