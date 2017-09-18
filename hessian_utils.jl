@@ -81,6 +81,28 @@ function make_dict(args, x, starting_dict=Dict())
 end 
 
 
+using ForwardDiff
+
+
+"""
+We define functions to convert Duals, the variable types used by ForwardDiff, 
+to Floats. This is useful if we want to print out the value of a variable 
+(since print doesn't know how to Duals). Note that after being converted to a Float, no
+differentiation by ForwardDiff can happen!  e.g. after
+    x = convert(Float64, y)
+ForwardDiff can still differentiate y, but it can't differentiate x
+"""
+
+import Base.convert
+convert(::Type{Float64}, x::ForwardDiff.Dual) = Float64(x.value)
+function convert(::Array{Float64}, x::Array{ForwardDiff.Dual}) 
+    y = zeros(size(x)); 
+    for i in 1:prod(size(x)) 
+        y[i] = convert(Float64, x[i]) 
+    end
+    return y
+end
+
 
 """
 function M = ForwardDiffZeros(m, n; nderivs=0, difforder=0)
