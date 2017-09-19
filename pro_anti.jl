@@ -1,4 +1,4 @@
-# DON'T MODIFY THIS FILE -- the source is in file ProAnti.ipynb
+# DON'T MODIFY THIS FILE -- the source is in file .~ProAnti.ipynb
 
 
 """
@@ -72,7 +72,7 @@ end
 
 
 
-# DON'T MODIFY THIS FILE -- the source is in file ProAnti.ipynb
+# DON'T MODIFY THIS FILE -- the source is in file .~ProAnti.ipynb
 
 
 model_params = Dict(
@@ -186,7 +186,7 @@ proVs, antiVs = @time(run_ntrials(nPro, nAnti; plot_list=[1:5;], model_params...
 
 
 
-# DON'T MODIFY THIS FILE -- the source is in file ProAnti.ipynb
+# DON'T MODIFY THIS FILE -- the source is in file .~ProAnti.ipynb
 
 
 function JJ(nPro, nAnti; pro_target=0.9, anti_target=0.7, 
