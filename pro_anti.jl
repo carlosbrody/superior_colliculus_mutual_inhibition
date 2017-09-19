@@ -1,6 +1,13 @@
 # DON'T MODIFY THIS FILE -- the source is in file ProAnti.ipynb
 
 
+include("rate_networks.jl")  # that will also include genera_utils.jl, constrained_parabolic_minimization.jl, and hessian_utils.jl
+
+
+
+# DON'T MODIFY THIS FILE -- the source is in file ProAnti.ipynb
+
+
 """
     plot_PA(t, U, V; fignum=1, clearfig=true, rule_and_delay_period=1, target_period=1, post_target_period=1,
         other_unused_params...)
