@@ -1,3 +1,13 @@
+// A SCRIPT FOR MAKING JUPYTER NOTEBOOK TABLES OF CONTENTS
+//
+// Put this script in your directory, and then (in Julia) run a cell that has
+// 
+//     macro javascript_str(s) display("text/javascript", s); end
+//
+//     javascript"""
+//     $.getScript('make_table_of_contents.js')
+//     """
+//
 // Carlos Brody got this file from 
 //
 //        https://github.com/kmahelona/ipython_notebook_goodies
