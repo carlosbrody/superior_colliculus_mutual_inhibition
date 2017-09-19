@@ -26,7 +26,14 @@ Returns an array with the written filenames
 function scrape_notebook(notebook_filename; verbose=false, includemagic="#@include_me", update_db=false)
 
     filenames = [];    # List of output files found in this notebook
-    A = JSON.parse(readstring(notebook_filename))
+    try 
+        A = JSON.parse(readstring(notebook_filename))
+    catch y
+        @printf("\n=======\n\n   WARNING!!! Ran into trouble trying to JSON parse file %s\n\n", notebook_filename)
+        @printf("Error was "); print(y); print("\n\n======\n")
+        return filenames
+    end
+    
     
     for mycell in A["cells"]
         if mycell["cell_type"] == "code"   
