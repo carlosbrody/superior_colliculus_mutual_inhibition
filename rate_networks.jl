@@ -7,7 +7,7 @@ using ForwardDiff
 using DiffBase
 using MAT
 
-pygui(true)
+# pygui(true)
 
 include("general_utils.jl")
 include("constrained_parabolic_minimization.jl")
