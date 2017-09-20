@@ -1,4 +1,4 @@
-# DON'T MODIFY THIS FILE -- the source is in file .~ProAnti.ipynb
+# DON'T MODIFY THIS FILE -- the source is in file ProAnti.ipynb
 
 
 include("rate_networks.jl")  # that will also include genera_utils.jl, constrained_parabolic_minimization.jl, and hessian_utils.jl
@@ -79,7 +79,7 @@ end
 
 
 
-# DON'T MODIFY THIS FILE -- the source is in file .~ProAnti.ipynb
+# DON'T MODIFY THIS FILE -- the source is in file ProAnti.ipynb
 
 
 model_params = Dict(
@@ -185,15 +185,9 @@ function run_ntrials(nPro, nAnti; plot_list=[], nderivs=0, difforder=0, model_pa
     return proVs, antiVs
 end
 
-nPro = 10; nAnti = 5;
-proVs, antiVs = @time(run_ntrials(nPro, nAnti; plot_list=[1:5;], model_params...))
-
-@printf("Pro %% correct = %g%%\n", 100*length(find(proVs[1,:].>proVs[4,:]))/nPro)
-@printf("Anti %% correct = %g%% \n", 100*length(find(antiVs[1,:].<antiVs[4,:]))/nAnti)
 
 
-
-# DON'T MODIFY THIS FILE -- the source is in file .~ProAnti.ipynb
+# DON'T MODIFY THIS FILE -- the source is in file ProAnti.ipynb
 
 
 function JJ(nPro, nAnti; pro_target=0.9, anti_target=0.7, 
@@ -267,10 +261,5 @@ function JJ(nPro, nAnti; pro_target=0.9, anti_target=0.7,
     
     return cost1 + cost2
 end
-
-
-
-JJ(2, 10; plot_list=1:5, verbose=true, model_params...)
-
 
 

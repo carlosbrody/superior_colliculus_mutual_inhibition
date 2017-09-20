@@ -7,6 +7,56 @@ using JSON
 # DON'T MODIFY THIS FILE -- the source is in file Scraper.ipynb
 
 
+# Get database of scraped files
+
+"""
+latest = latest_scrapedict(; scrapedir=".scrapedir", scrapefile="scrapelist")
+
+Returns a dictionary that maps filenames to strings representing when they were
+last scraped.  This information is stored in a human-readable text file, scrapedir/scrapefile
+
+"""
+function latest_scrapedict(; scrapedir=".scrapedir", scrapefile="scrapelist")
+    if !isdir(scrapedir); mkdir(scrapedir); end;
+    sfile = scrapedir * "/" * scrapefile
+    if !isfile(sfile);
+        return Dict()
+    end
+    
+    answer = Dict()
+    try
+        A = readdlm(sfile, ',')
+        for i=1:size(A,1)
+            get!(answer, lstrip(A[i,2]), A[i,1])
+        end
+    catch
+        answer = Dict()
+    end
+    return answer
+end
+
+
+"""
+write_scrapedict(latest; scrapedir=".scrapedir", scrapefile="scrapelist")
+
+Writes a dictionary containing filename-latest_scrape_time_string pairs into a file
+
+"""
+function write_scrapedict(latest; scrapedir=".scrapedir", scrapefile="scrapelist")
+
+    sfile = scrapedir * "/" * scrapefile
+    sf = open(sfile, "w")
+    for k in keys(latest)
+        write(sf, @sprintf("%s, %s\n", latest[k], k))
+    end
+    close(sf)
+
+end
+
+
+# DON'T MODIFY THIS FILE -- the source is in file Scraper.ipynb
+
+
 # Scrape a notebook for julia code that should be written into an indicated file
 
 """
@@ -26,6 +76,7 @@ Returns an array with the written filenames
 function scrape_notebook(notebook_filename; verbose=false, includemagic="#@include_me", update_db=false)
 
     filenames = [];    # List of output files found in this notebook
+    A = []  # declare A outside the try/catch so it will be available as a variable outside the try/catch
     try 
         A = JSON.parse(readstring(notebook_filename))
     catch y
@@ -74,56 +125,6 @@ function scrape_notebook(notebook_filename; verbose=false, includemagic="#@inclu
     end
 
     return filenames
-end
-
-
-# DON'T MODIFY THIS FILE -- the source is in file Scraper.ipynb
-
-
-# Get database of scraped files
-
-"""
-latest = latest_scrapedict(; scrapedir=".scrapedir", scrapefile="scrapelist")
-
-Returns a dictionary that maps filenames to strings representing when they were
-last scraped.  This information is stored in a human-readable text file, scrapedir/scrapefile
-
-"""
-function latest_scrapedict(; scrapedir=".scrapedir", scrapefile="scrapelist")
-    if !isdir(scrapedir); mkdir(scrapedir); end;
-    sfile = scrapedir * "/" * scrapefile
-    if !isfile(sfile);
-        return Dict()
-    end
-    
-    answer = Dict()
-    try
-        A = readdlm(sfile, ',')
-        for i=1:size(A,1)
-            get!(answer, lstrip(A[i,2]), A[i,1])
-        end
-    catch
-        answer = Dict()
-    end
-    return answer
-end
-
-
-"""
-write_scrapedict(latest; scrapedir=".scrapedir", scrapefile="scrapelist")
-
-Writes a dictionary containing filename-latest_scrape_time_string pairs into a file
-
-"""
-function write_scrapedict(latest; scrapedir=".scrapedir", scrapefile="scrapelist")
-
-    sfile = scrapedir * "/" * scrapefile
-    sf = open(sfile, "w")
-    for k in keys(latest)
-        write(sf, @sprintf("%s, %s\n", latest[k], k))
-    end
-    close(sf)
-
 end
 
 
