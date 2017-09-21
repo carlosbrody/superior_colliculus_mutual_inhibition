@@ -824,7 +824,7 @@ end
 
 """
 function bbox_Hessian_keyword_minimization(seed, args, bbox, func; wallwidth=NaN, start_eta=10, tol=1e-6, 
-    maxiter=400, verbose=false)
+maxiter=400, verbose=false, report_file="")
 
 Like constrained_Hessian_minimization, but uses keyword_hessian!(). 
 
@@ -878,6 +878,11 @@ Like constrained_Hessian_minimization, but uses keyword_hessian!().
 - wallwidth_factor=0.18   Only relevant if wallwidth is NaN, otherwise ignored. For each arg, the wall width
                 is going to be wall_width_factor*(bbox[i,2] - bbox[i,1])
 
+- report_file   If non-empty, at each iteration timestep will write into this file outputs trajectory, 
+                (which contains eta, cost, and parameters), cpm_traj, and ftraj (which contains gradient, hessian, 
+                and further cost function outputs)
+
+
 
 # RETURNS:
 
@@ -889,8 +894,14 @@ Like constrained_Hessian_minimization, but uses keyword_hessian!().
              The first row is niters (how many iterations cpm's 1-d minimization ran for) and the second row is
              Dlambda, the last change in the parameter being minimized in cpm's internal search
 - ftraj     Further components for the trajectory, will be an Array{Any}(3, nsteps). First row is gradient,
-            second row is Hessian, third row, second-and-further outputs of func, each one at each step of
-            the minimization.
+            second row is Hessian, third row is second-and-further outputs of func, each one at each step of
+            the minimization. Note that if these further outputs contain variables that are being minimized, 
+            they'll come out as ForwardDiff Duals, which you might not want!  So, for example, you might want to
+            convert vectors and matrices into Float64s before returning them in those extra outputs. E.g.,
+            if you want to return sum(err.*err) as the scalar to be minimized, and also return err, in your 
+            cost function you would write   " return sum(err.*err), Array{Float64}(err) ".   That way the first,
+            scalar output can still be differentiated, for minimization, and the second one comes out in readable form.
+
 
 
 # EXAMPLE:  (see also a more complete example in Cost Function Minimization and Hessian Utilities.ipynb)
