@@ -842,7 +842,10 @@ Like constrained_Hessian_minimization, but uses keyword_hessian!().
             with the minima (first column) and maxima (second column), and entries for ALL parameters.
 
 - func        func must take only optional keyword args, and must 
-            take nderivs=0, difforder=0  and declare any new matrices using ForwardDiffZeros() instead of zeros()
+            take nderivs=0, difforder=0  and declare any new matrices using ForwardDiffZeros() instead of zeros().
+            func must either return a scalar, or the first output it returns must be a scalar. 
+            That scalar is what will be minimized. The trajectory across the minimization of 
+            any further outputs that f() returns will be available in ftraj (see RETURNS below)
 
 
 # OPTIONAL PARAMETERS:
@@ -885,9 +888,12 @@ Like constrained_Hessian_minimization, but uses keyword_hessian!().
 - cpm_traj     A 2-by-nsteps matrix, containing reports from the contrained parabolic minimization at each timestep.
              The first row is niters (how many iterations cpm's 1-d minimization ran for) and the second row is
              Dlambda, the last change in the parameter being minimized in cpm's internal search
+- ftraj     Further components for the trajectory, will be an Array{Any}(3, nsteps). First row is gradient,
+            second row is Hessian, third row, second-and-further outputs of func, each one at each step of
+            the minimization.
 
 
-# EXAMPLE:
+# EXAMPLE:  (see also a more complete example in Cost Function Minimization and Hessian Utilities.ipynb)
 
 ```
 function tester(;x=5, y=10, z=20, nderivs=0, difforder=0)
@@ -904,43 +910,10 @@ function bbox_Hessian_keyword_minimization(seed, args, bbox, func; start_eta=0.1
     verbose=false, verbose_level=1, verbose_every=1, 
     softbox=true, hardbox=false, wallwidth=NaN, wallwidth_factor=0.18)
 
-      
-    """
-    Given args, a list of string representing the arguments of interest, a bounding box for each,
-    and a Symbol=>value dictionary with the corresponding parameters, computes and returns a high cost for 
-    being outside the bounding box
-    """
-    function wall_cost(args, bbox; wallwidth=NaN, nderivs=0, difforder=0, pars...) 
-        myparams = ForwardDiffZeros(length(pars), 1, nderivs=nderivs, difforder=difforder)
-        pars2 = Dict()
-        for i in [1:length(pars);]
-            pars2[string(pars[i][1])] = pars[i][2]
-        end
-        for i in [1:length(args);]
-            myparams[i] = pars2[args[i]]
-        end
-        
-        if isnan(wallwidth)
-            # We know that we're going to be taking hessian for params, so declare zeros accordingly:
-            wallwidth = ForwardDiffZeros(length(myparams), 1, nderivs=nderivs, difforder=difforder)
-
-            for i in [1:length(myparams);]
-                wallwidth[i] = wallwidth_factor*(bbox[i,2]-bbox[i,1])
-            end
-        end
-
-        retval = 0
-        for i in [1:length(myparams);]
-            if myparams[i]<bbox[i,1]
-                retval += cosh((bbox[i,1]-myparams[i])/wallwidth[i])-1.0
-            elseif bbox[i,2] < myparams[i]
-                retval += cosh((myparams[i]-bbox[i,2])/wallwidth[i])-1.0                
-            end
-        end
-
-        return 2*retval
-    end
-
+    
+    
+    # --------- Initializing the trajectory trace and function wrapper--------
+ 
     traj_increment = 100
     params = 0  # Make sure to have this here so that params stays defined beyond the try/catch
     if ( !(typeof(bbox)<:Dict) ); error("Currently only supporting softbox=true, bbox must be a Dict"); end;
@@ -951,6 +924,25 @@ function bbox_Hessian_keyword_minimization(seed, args, bbox, func; start_eta=0.1
     end
     eta = start_eta
     trajectory = zeros(2+length(params), traj_increment); cpm_traj = zeros(2, traj_increment)
+    
+    ftraj = Array{Any}(3,0)  # will hold gradient, hessian, and further_out,  per iteration
+
+    further_out =[];  # We define this variable here so it will be available for stashing further outputs from func
+    
+    # Now we define a wrapper around func() to do three things: (a) wallwrap parameters using the softbox method;
+    # (b) return as the desired scalar the first output of func; (c) stash in further_out any further outputs of func
+    internal_func = (;pars...) -> begin
+        fresults = func(;wallwrap(bbox, pars)...)   # note use of bbox external to this begin...end
+        if typeof(fresults)<:Tuple
+            answer = fresults[1]
+            further_out = fresults[2:end]
+        else
+            answer = fresults
+        end
+        return answer  # we assume that the first output of func() will always be a scalar, and that's what we return for ForwardDiff
+    end
+
+    # --------- END Initializing the trajectory trace --------
 
     if verbose
         @printf "%d: eta=%g ps=" 0 eta 
@@ -960,12 +952,11 @@ function bbox_Hessian_keyword_minimization(seed, args, bbox, func; start_eta=0.1
     
     if softbox
         if !(typeof(bbox)<:Dict); error("bhm: If softbox=true, then bbox must eb a Dict"); end
-        cost, grad, hess = keyword_vgh((;pars...)->func(;wallwrap(bbox, pars)...), args, params)
+        cost, grad, hess = keyword_vgh(internal_func, args, params)  # further_out will be mutated
     elseif hardbox
-        cost, grad, hess = keyword_vgh((;pars...) -> func(;pars...), args, params)
+        error("Sorry, no longer supporting hardbox=true")
     else
-        cost, grad, hess = keyword_vgh((;pars...) -> func(;pars...) + wall_cost(args, bbox; wallwidth=wallwidth, pars...),
-            args, params)        
+        error("Sorry, no longer supporting softbox=false")
     end
         
     chessdelta = zeros(size(params))
@@ -978,6 +969,7 @@ function bbox_Hessian_keyword_minimization(seed, args, bbox, func; start_eta=0.1
         end
         trajectory[1:2, i]   = [eta;cost]
         trajectory[3:end, i] = vector_wrap(bbox, args, params)
+        ftraj = [ftraj [grad, hess, further_out]]
         
         hessdelta  = - inv(hess)*grad
         try
@@ -1021,27 +1013,13 @@ function bbox_Hessian_keyword_minimization(seed, args, bbox, func; start_eta=0.1
         end
 
         if jumptype != "failed"
-            if softbox
-                new_cost, new_grad, new_hess = 
-                    keyword_vgh((;pars...) -> func(;wallwrap(bbox, pars)...), args, new_params)
-                if verbose && verbose_level >=2
-                    @printf("bhm: had new_params = : "); print_vector_g(vector_wrap(bbox, args, params)); print("\n");
-                    @printf("bhm: and my bbox was : "); print(bbox); print("\n")
-                    @printf("bhm: and my wallwrap output was : "); print(wallwrap(bbox, make_dict(args, new_params))); print("\n")
-                    @printf("bhm: and this produced new_grad : "); print_vector_g(new_grad); print("\n")
-                    @printf("bhm:   new_hess :"); print_vector_g(new_hess[:]); print("\n");                                        
-                end
-            elseif hardbox
-                for p in [1:length(new_params);]
-                    if new_params[p] < bbox[p,1]; new_params[p] = bbox[p,1]; end
-                    if bbox[p,2] < new_params[p]; new_params[p] = bbox[p,2]; end
-                 end        
-                
-                new_cost, new_grad, new_hess = keyword_vgh((;pars...) -> func(;pars...), args, new_params)
-            else
-                new_cost, new_grad, new_hess = keyword_vgh((;pars...) -> func(;pars...) + 
-                        wall_cost(args, bbox; wallwidth=wallwidth, pars...),
-                    args, new_params)                
+            new_cost, new_grad, new_hess = keyword_vgh(internal_func, args, new_params)   # further_out may mutate
+            if verbose && verbose_level >=2
+                @printf("bhm: had new_params = : "); print_vector_g(vector_wrap(bbox, args, params)); print("\n");
+                @printf("bhm: and my bbox was : "); print(bbox); print("\n")
+                @printf("bhm: and my wallwrap output was : "); print(wallwrap(bbox, make_dict(args, new_params))); print("\n")
+                @printf("bhm: and this produced new_grad : "); print_vector_g(new_grad); print("\n")
+                @printf("bhm:   new_hess :"); print_vector_g(new_hess[:]); print("\n");                                        
             end
             
             if abs(new_cost - cost) < tol || eta < tol
@@ -1097,7 +1075,7 @@ function bbox_Hessian_keyword_minimization(seed, args, bbox, func; start_eta=0.1
     end
 
     trajectory = trajectory[:,1:i]; cpm_traj = cpm_traj[:,1:i]
-    return vector_wrap(bbox, args, params), trajectory, cost, cpm_traj
+    return vector_wrap(bbox, args, params), trajectory, cost, cpm_traj, ftraj
 end
 
 
