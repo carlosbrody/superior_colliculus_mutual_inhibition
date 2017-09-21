@@ -813,6 +813,15 @@ end
 
 
 
+try
+    Pkg.installed("JLD")
+catch
+    Pkg.add("JLD")
+end
+using JLD
+using MAT
+
+
 ######################################################
 #                                                    #
 #         BBOX_HESSIAN_KEYWORD_MINIMIZATION          #
@@ -823,8 +832,8 @@ end
 
 
 """
-function bbox_Hessian_keyword_minimization(seed, args, bbox, func; wallwidth=NaN, start_eta=10, tol=1e-6, 
-    maxiter=400, verbose=false)
+function bbox_Hessian_keyword_minimization(seed, args, bbox, func; start_eta=10, tol=1e-6, 
+maxiter=400, verbose=false, report_file="")
 
 Like constrained_Hessian_minimization, but uses keyword_hessian!(). 
 
@@ -865,18 +874,14 @@ Like constrained_Hessian_minimization, but uses keyword_hessian!().
 
 - verbose_level   If less than 2, regular verbose output, if 2 or greater, very verbose, for debugging.
 
-- softbox         If true, then bbox must be a Dict() and we use the tanh() mechanism for putting a fixed limit
-                on the parameters.
+- softbox       If true, then bbox must be a Dict() and we use the tanh() mechanism for putting a fixed limit
+                on the parameters. NO LONGER SUPPORTING ANYTHING OTHER THAN softbox=true (which is the default)
 
-- hardbox=false   If true, ignores wallwidth, and just rests parameter values to the bounding box if they go outside it.
-                If false, adds cost function "walls" to implement the bounding box.
+- report_file   If non-empty, at each iteration timestep will write into this file outputs trajectory, 
+                (which contains eta, cost, and parameters), cpm_traj, and ftraj (which contains gradient, hessian, 
+                and further cost function outputs).  The file must be a JLD file, and so will end with a .jld extension.
+                To load the saved dictionary, simply do D = load(filename)  (we have already called "using JLD" for you.)
 
-- walldith=NaN     Used for putting up cost function "walls" that implement the bounding box limits. Can be NaN.
-                If it is NaN, then the wallwidth is a constant factor of the range width for each argument. If not NaN, must
-                be an nargs-long vector that indicates the actual wall widths.
-
-- wallwidth_factor=0.18   Only relevant if wallwidth is NaN, otherwise ignored. For each arg, the wall width
-                is going to be wall_width_factor*(bbox[i,2] - bbox[i,1])
 
 
 # RETURNS:
@@ -889,8 +894,14 @@ Like constrained_Hessian_minimization, but uses keyword_hessian!().
              The first row is niters (how many iterations cpm's 1-d minimization ran for) and the second row is
              Dlambda, the last change in the parameter being minimized in cpm's internal search
 - ftraj     Further components for the trajectory, will be an Array{Any}(3, nsteps). First row is gradient,
-            second row is Hessian, third row, second-and-further outputs of func, each one at each step of
-            the minimization.
+            second row is Hessian, third row is second-and-further outputs of func, each one at each step of
+            the minimization. **NOTE** that if these further outputs contain variables that are being minimized, 
+            they'll come out as ForwardDiff Duals, which you might not want!  So, for example, you might want to
+            convert vectors and matrices into Float64s before returning them in those extra outputs. E.g.,
+            if you want to return sum(err.*err) as the scalar to be minimized, and also return err, in your 
+            cost function you would write   " return sum(err.*err), Array{Float64}(err) ".   That way the first,
+            scalar output can still be differentiated, for minimization, and the second one comes out in readable form.
+
 
 
 # EXAMPLE:  (see also a more complete example in Cost Function Minimization and Hessian Utilities.ipynb)
@@ -907,10 +918,17 @@ params, trajectory = bbox_Hessian_keyword_minimization([0.5, 0.5], ["x", "y"], [
 
 """
 function bbox_Hessian_keyword_minimization(seed, args, bbox, func; start_eta=0.1, tol=1e-6, maxiter=400,
-    verbose=false, verbose_level=1, verbose_every=1, 
-    softbox=true, hardbox=false, wallwidth=NaN, wallwidth_factor=0.18)
+    verbose=false, verbose_level=1, verbose_every=1, softbox=true, hardbox=false, report_file="")
 
-    
+    # --- check that saving will be done to a .jld file ---
+    if length(report_file)>0 && splitext(report_file)[2] != ".jld"
+        if splitext(report_file)[2] == ""
+            report_file = resport_file * ".jld"
+        else
+            error("Sorry, report_file can only write to JLD files, the extension has to be .jld")
+        end
+    end
+
     
     # --------- Initializing the trajectory trace and function wrapper--------
  
@@ -970,6 +988,10 @@ function bbox_Hessian_keyword_minimization(seed, args, bbox, func; start_eta=0.1
         trajectory[1:2, i]   = [eta;cost]
         trajectory[3:end, i] = vector_wrap(bbox, args, params)
         ftraj = [ftraj [grad, hess, further_out]]
+
+        if length(report_file)>0
+            save(report_file, Dict("traj"=>trajectory[:,1:i], "cpm_traj"=>cpm_traj[:,1:i], "ftraj"=>ftraj))
+        end
         
         hessdelta  = - inv(hess)*grad
         try
@@ -1075,6 +1097,10 @@ function bbox_Hessian_keyword_minimization(seed, args, bbox, func; start_eta=0.1
     end
 
     trajectory = trajectory[:,1:i]; cpm_traj = cpm_traj[:,1:i]
+    if length(report_file)>0
+        save(report_file, Dict("traj"=>trajectory, "cpm_traj"=>cpm_traj, "ftraj"=>ftraj))
+    end
+    
     return vector_wrap(bbox, args, params), trajectory, cost, cpm_traj, ftraj
 end
 

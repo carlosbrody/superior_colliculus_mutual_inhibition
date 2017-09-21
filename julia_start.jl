@@ -9,3 +9,9 @@ using PyPlot
 Pkg.add("ForwardDiff")
 Pkg.add("HDF5")
 Pkg.add("MAT")
+Pkg.add("JLD")
+
+using ForwardDiff
+using MAT
+using JLD
+
