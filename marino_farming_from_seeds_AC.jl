@@ -34,9 +34,9 @@ for jjj in [1:134;]
 
 
 
-    filename="FarmFields/farm_AC_"*lpad(jjj,4,0)
+    filename="FarmFields/farm_AC_"*lpad(jjj,4,0)*".mat"
 
-    outfile="FarmFields/farm_AD_"*lpad(jjj,4,0)
+    outfile="FarmFields/farm_AD_"*lpad(jjj,4,0)*".mat"
 
     if(lockFile(filename)==0)
         continue;
@@ -46,13 +46,19 @@ for jjj in [1:134;]
     myseed = seed;
     sr = convert(Int64, round(time()))
 
-    myseed = copy(seed);
-    for i=1:length(args)
-        sym = Symbol(args[i])
-        if haskey(sbox, sym)
-            myseed[i] = sbox[sym][1] + diff(sbox[sym],2)[1]*rand()
-        end
-    end
+    # myseed = copy(seed);
+    # for i=1:length(args)
+    #     sym = Symbol(args[i])
+    #     if haskey(sbox, sym)
+    #         myseed[i] = sbox[sym][1] + diff(sbox[sym],2)[1]*rand()
+    #     end
+    # end
+
+    FIT = matread(filename)
+    myseed = FIT[:"pars"];
+
+
+
     nPro=100; nAnti=100
 
     rule_and_delay_periods = [0.4, 1.2]
