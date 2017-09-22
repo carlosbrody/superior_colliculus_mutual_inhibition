@@ -2,6 +2,8 @@
 
 function lockFile(filename)
 
+    sleep 1
+
     lockname=filename*".lock";
     fnames = readdir()
 
