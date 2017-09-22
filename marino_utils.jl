@@ -44,8 +44,7 @@ function releaseFile(filename)
     mynum = length(find(matched_filenames2))
     if mynum>0
         cmd="rm"
-        arg1="-f"
-        Base.run(`$cmd $arg1 $lockname`)
+        Base.run(`$cmd $lockname`)
     else
         println("No lock found")
     end
