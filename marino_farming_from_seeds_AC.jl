@@ -34,12 +34,17 @@ for jjj in [1:134;]
 
 
 
-    filename="FarmFields/farm_AC_"*lpad(jjj,4,0)*".mat"
+    filename="farm_AC_"*lpad(jjj,4,0)*".mat"
 
-    outfile="FarmFields/farm_AD_"*lpad(jjj,4,0)*".mat"
+    outfile="farm_AD_"*lpad(jjj,4,0)*".mat"
 
     if(lockFile(filename)==0)
+    	str="oops, this one is taken:"*filename
+	println(str)
         continue;
+    else
+    	str="ok we are free to go with this one:"*filename
+	println(str)
     end;
 
 
