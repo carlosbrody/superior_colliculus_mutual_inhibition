@@ -1,5 +1,4 @@
-FarmName = "H"
-FarmNum = 222;
+FarmName = "I"
 
 # Incorporate packages
 using ForwardDiff
@@ -14,16 +13,7 @@ include("pro_anti.jl")
 include("rate_networks.jl")
 include("pro_anti_opto.jl")
 
-#function optimize_proanti_opto(FarmName, FarmNum)
-
-# load existing fit
-fbasename = "FarmFields/farm_"*string(FarmName)*lpad(FarmNum,4,0);
-loadname = fbasename*".mat"
-FIT = matread(loadname)
-args = FIT[:"args"];
-pars = FIT[:"pars"];
-
-# If needed include opto parameters
+# Define core model parameters
 model_params = Dict(
 :dt     =>  0.02, 
 :tau    =>  0.1, 
@@ -61,45 +51,84 @@ model_params = Dict(
 :opto_strength  => .7,
 :opto_periods   => [-1  -1 ; 0   20 ;0    1 ; 1  1.5;1.5  20],
 #:opto_targets   => [.75 .73;.77 .58;.75 .74;.72 .66;.73 .75] 
-:opto_targets   => [.9 .7;.9 .5;.9 .7;.9 .5;.9 .7] 
+:opto_targets => [.9 .7; .9 .5; .9 .7; .9 .5; .9 .7]
 );
-model_params = merge(model_params, make_dict(args, pars));
-rule_and_delay_periods = FIT[:"rule_and_delay_periods"];
-post_target_periods    = FIT[:"post_target_periods"];
-cb = FIT[:"cb"];
 
-# Define which parameters to optimize
-opto_args=["opto_strength"];
-opto_bbox = Dict(:opto_strength=>[0 1]);
-opto_sbox = Dict(:opto_strength=>[.1 .9]);
+# ======= ARGUMENTS AND SEED VALUES:
+args = ["sW", "vW", "hW", "dW", "constant_excitation", "right_light_excitation", "target_period_excitation", "const_pro_bias", "sigma"];
+seed = [0.2,   1,   0.2,  1,    0.39,                0.15,                       0.1,                        0.1,              0.1];   
 
-# figure out initial seed
-temp_seed = [.5];
-sr = convert(Int64, round(time()))
-srand(sr);
-opto_seed = ForwardDiffZeros(length(opto_args),1);
-for i=1:length(opto_args)
-    sym = Symbol(opto_args[i])
-    if haskey(opto_sbox, sym)
-        opto_seed[i] = opto_sbox[sym][1] + diff(opto_sbox[sym],2)[1]*rand();
-    else
-        opto_seed[i] = temp_seed[i];
+# ======= BOUNDING BOX:
+bbox = Dict(:sW=>[0 3], :vW=>[-3 3], :hW=>[-3 3], :dW=>[-3 3], :constant_excitation=>[-2 2], :right_light_excitation=>[0.05 4], :target_period_excitation=>[0.05 4], :const_pro_bias=>[-2 2], :sigma=>[0.01 0.2]);
+
+# ======== SEARCH ZONE:
+sbox = Dict(:sW=>[0.1 .5], :vW=>[-.5 .5], :hW=>[-.5 .5], :dW=>[-.5 .5], :constant_excitation=>[-.5 .5], :right_light_excitation=>[0.15 .5], :target_period_excitation=>[0.15 .5],:const_pro_bias=>[-.5 .5], :sigma=>[0.02 0.19]);
+
+# define a few hyper parameters
+cbetas = [0.02];
+rule_and_delay_periods = [1.5];
+post_target_periods    = [0.5];
+
+fbasename = "FarmFields/farm_"*string(FarmName);
+
+# Iterate over beta values, using same initial seed?
+for i=1:100
+for cb in cbetas
+    # figure out initial seed
+    sr = convert(Int64, round(time()))
+    srand(sr);
+    #myseed = copy(seed);
+    myseed = ForwardDiffZeros(length(args),1);
+    for j=1:length(args)
+        sym = Symbol(args[j])
+        if haskey(sbox, sym)
+            myseed[j] = sbox[sym][1] + diff(sbox[sym],2)[1]*rand();
+        else
+            myseed[j] = seed[j];
+        end
     end
+
+    func =  (;params...) -> JJ(model_params[:nPro], model_params[:nAnti]; rule_and_delay_periods=rule_and_delay_periods, theta1=model_params[:theta1], theta2=model_params[:theta2], post_target_periods=post_target_periods, seedrand=sr, cbeta=cb, verbose=false, merge(model_params, Dict(params))...)[1]
+    
+    # run optimization                
+    @printf("Going with seed = "); print_vector_g(myseed); print("\n")
+    pars, traj, cost, cpm_traj = bbox_Hessian_keyword_minimization(myseed, args, bbox, func, start_eta = 1, tol=1e-12, verbose=true, verbose_every=10, maxiter=2000)
+    @printf("Came out with cost %g and pars = ", cost); print_vector_g(pars); print("\n\n")
+
+    # get gradient and hessian at end of optimization (couldn't we get this out of the optimizer???)
+    value, grad, hess = keyword_vgh(func, args, pars)
+    
+    # evaluate to get long form info
+    standard_func =  (;params...) -> JJ(model_params[:nPro], model_params[:nAnti]; rule_and_delay_periods=rule_and_delay_periods, theta1=model_params[:theta1], theta2=model_params[:theta2], post_target_periods=post_target_periods,  seedrand=sr, cbeta=cb, verbose=false, merge(model_params, Dict(params))...)     
+   
+    scost, scost1, scost2, hitsP,hitsA, diffsP, diffsA = standard_func(;make_dict(args, pars, model_params)...)
+
+    # Run second optimization step on optogenetic inactivations
+    opto_args=["opto_strength"];
+    opto_bbox = Dict(:opto_strength=>[0 1]);
+    opto_sbox = Dict(:opto_strength=>[.7 .99]);
+    
+    opto_seed = ForwardDiffZeros(length(opto_args),1);
+    sym = Symbol(opto_args[1])
+    opto_seed[1] = opto_sbox[sym][1] + diff(opto_sbox[sym],2)[1]*rand();
+
+    @printf("Starting optogenetic optimization")
+    opto_func =  (;params...) -> JJ_opto(model_params[:nPro], model_params[:nAnti]; rule_and_delay_periods=rule_and_delay_periods, theta1=model_params[:theta1], theta2=model_params[:theta2], post_target_periods=post_target_periods, seedrand=sr, cbeta=cb, verbose=false, merge(make_dict(args,pars,model_params), Dict(params))...)[1]
+
+    opto_pars, opto_traj, opto_cost, opto_cpm_traj = bbox_Hessian_keyword_minimization(opto_seed, opto_args, opto_bbox, opto_func, start_eta = 1, tol=1e-12, verbose=true, verbose_every=10, maxiter=2000)
+
+    # get gradient and hessian at final point
+    opto_value, opto_grad, opto_hess = keyword_vgh(opto_func, opto_args, opto_pars)
+
+    # evaluate to get long form info
+    standard_opto_func =  (;params...) -> JJ_opto(model_params[:nPro], model_params[:nAnti]; rule_and_delay_periods=rule_and_delay_periods, theta1=model_params[:theta1], theta2=model_params[:theta2], post_target_periods=post_target_periods, seedrand=sr, cbeta=cb, verbose=false, merge(make_dict(args,pars,model_params), Dict(params))...)
+ 
+    opto_scost, opto_scost1, opto_scost2, opto_hitsP,opto_hitsA, opto_diffsP, opto_diffsA = standard_opto_func(;make_dict(opto_args, opto_pars, make_dict(args,pars,model_params))...)
+
+    # Save this run out to a file
+    myfilename = next_file(fbasename, 4)
+    myfilename = myfilename*".mat"
+    matwrite(myfilename, Dict("args"=>args, "myseed"=>myseed, "pars"=>pars, "traj"=>traj, "cost"=>cost, "cpm_traj"=>cpm_traj, "nPro"=>model_params[:nPro], "nAnti"=>model_params[:nAnti], "sr"=>sr, "cb"=>cb, "theta1"=>model_params[:theta1], "theta2"=>model_params[:theta2], "scost"=>scost,"scost1"=>scost1,"scost2"=>scost2, "value"=>value, "grad"=>grad, "hess"=>hess, "hitsP"=>hitsP,"hitsA"=>hitsA, "diffsP"=>diffsP, "diffsA"=>diffsA, "model_params"=>ascii_key_ize(model_params), "bbox"=>ascii_key_ize(bbox), "sbox"=>ascii_key_ize(sbox), "rule_and_delay_periods"=>rule_and_delay_periods, "post_target_periods"=>post_target_periods,"opto_args"=>opto_args, "opto_bbox"=>ascii_key_ize(opto_bbox),"opto_sbox"=>ascii_key_ize(opto_sbox),"opto_seed"=>opto_seed,"opto_pars"=>opto_pars, "opto_traj"=>opto_traj, "opto_cost"=>opto_cost, "opto_cpm_traj"=>opto_cpm_traj,"opto_value"=>opto_value, "opto_grad"=>opto_grad, "opto_hess"=>opto_hess, "opto_scost"=>opto_scost, "opto_scost1"=>opto_scost1, "opto_scost2"=>opto_scost2, "opto_hitsP"=>opto_hitsP, "opto_hitsA"=>opto_hitsA, "opto_diffsP"=>opto_diffsP, "opto_diffsA"=>opto_diffsA ))
 end
-
-# Run second optimization step on optogenetic inactivations
-@printf("Starting optogenetic optimization")
-opto_func =  (;params...) -> JJ_opto(model_params[:nPro], model_params[:nAnti]; opto_targets=model_params[:opto_targets],opto_periods=model_params[:opto_periods],rule_and_delay_periods=rule_and_delay_periods, theta1=model_params[:theta1], theta2=model_params[:theta2], post_target_periods=post_target_periods, seedrand=sr, cbeta=cb, verbose=false, merge(model_params, Dict(params))...)[1]
-
-# actually do the run
-opto_pars, opto_traj, opto_cost, opto_cpm_traj = bbox_Hessian_keyword_minimization(opto_seed, opto_args, opto_bbox, opto_func, start_eta = 1, tol=1e-12, verbose=true, verbose_every=10, maxiter=2000)
-@printf("Came out with opto_cost %g and opto_pars = ", cost); print_vector_g(pars); print("\n\n")  
-
-opto_value, opto_grad, opto_hess = keyword_vgh(opto_func, opto_args, opto_pars)
-
-# Save this run out to a file
-myfilename = fbasename*"_opto.mat"
-
-matwrite(myfilename, Dict("args"=>args, "myseed"=>myseed, "pars"=>pars, "traj"=>traj, "cost"=>cost, "cpm_traj"=>cpm_traj, "nPro"=>model_params[:nPro], "nAnti"=>model_params[:nAnti], "sr"=>sr, "cb"=>cb, "theta1"=>model_params[:theta1], "theta2"=>model_params[:theta2], "scost"=>scost,"scost1"=>scost1,"scost2"=>scost2, "value"=>value, "grad"=>grad, "hess"=>hess, "model_params"=>ascii_key_ize(model_params), "bbox"=>ascii_key_ize(bbox), "sbox"=>ascii_key_ize(sbox), "rule_and_delay_periods"=>rule_and_delay_periods, "post_target_periods"=>post_target_periods,"opto_args"=>opto_args, "opto_bbox"=>opto_bbox,"opto_sbox"=>opto_sbox,"opto_seed"=>opto_seed,"opto_pars"=>opto_pars, "opto_traj"=>opto_traj, "opto_cost"=>opto_cost, "opto_cpm_traj"=>opto_cpm_traj))
-
+end
 

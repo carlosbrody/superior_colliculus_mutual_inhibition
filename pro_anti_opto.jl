@@ -11,6 +11,10 @@ function JJ_opto(nPro, nAnti; opto_targets=[0.9 0.7], theta1=0.025, theta2=0.035
     
     cost1s = ForwardDiffZeros(size(opto_periods)[1], nruns_each, nderivs=nderivs, difforder=difforder)
     cost2s = ForwardDiffZeros(size(opto_periods)[1], nruns_each, nderivs=nderivs, difforder=difforder)
+    hP = zeros(size(opto_periods)[1], nruns_each);
+    hA = zeros(size(opto_periods)[1], nruns_each);
+    dP = zeros(size(opto_periods)[1], nruns_each);
+    dA = zeros(size(opto_periods)[1], nruns_each);
 
     if ~isnan(seedrand); srand(seedrand); end
     
@@ -32,7 +36,12 @@ function JJ_opto(nPro, nAnti; opto_targets=[0.9 0.7], theta1=0.025, theta2=0.035
                 diffsP = tanh.((proVs[1,:,]-proVs[4,:])/theta2).^2
                 hitsA  = 0.5*(1 + tanh.((antiVs[4,:]-antiVs[1,:,])/theta1))
                 diffsA = tanh.((antiVs[4,:,]-antiVs[1,:])/theta2).^2
-
+               
+                # set up storage  
+                hP[kk,nopto] = mean(hitsP);
+                hA[kk,nopto] = mean(hitsA);
+                dP[kk,nopto] = mean(diffsP);
+                dA[kk,nopto] = mean(diffsA);
 
                 if nPro>0 && nAnti>0
                     cost1s[kk,nopto] = (nPro*(mean(hitsP) - opto_targets[kk,1]).^2  + nAnti*(mean(hitsA) - opto_targets[kk,2]).^2)/(nPro+nAnti)
@@ -83,25 +92,28 @@ function JJ_opto(nPro, nAnti; opto_targets=[0.9 0.7], theta1=0.025, theta2=0.035
 #        end        
 #    end 
     
-    return cost1 + cost2
+    return cost1 + cost2, cost1s, cost2s, hP,hA,dP,dA
 end
 
 # returns a vector of the inhibition fraction for each node given the opto period and opto strength
 # right now, it always computes bilateral inactivations
-function make_opto_input(nsteps; dt = 0.02, opto_strength=1, opto_period=[-1 1], other_unused_params...);
-    
+function make_opto_input(nsteps; dt = 0.02, opto_strength=1, opto_period=[-1 1],nderivs=0,difforder=0, other_unused_params...);
+       
+    strength = ForwardDiffZeros(1,1,nderivs=nderivs, difforder=difforder);
+    strength[1] = strength[1] + opto_strength;
+
     if opto_period[2] < 0 # no opto, return all ones
-        opto_fraction = ones(1,nsteps);
+        opto_fraction = 1+ForwardDiffZeros(4,nsteps,nderivs=nderivs, difforder=difforder);
     else # opto, compute fraction vector
         start_step = round(opto_period[1]/dt);
         if start_step < 1; start_step = 1; end
         end_step = round(opto_period[2]/dt);
         if end_step > nsteps; end_step = nsteps; end
-        opto_fraction = ones(1,nsteps);
-        opto_fraction[Int(start_step):Int(end_step)] = opto_strength;
+        opto_fraction = 1+ForwardDiffZeros(4,nsteps,nderivs=nderivs, difforder=difforder);
+        opto_fraction[:,Int(start_step):Int(end_step)] = repeat(strength,outer=[4,Int(end_step)-Int(start_step)+1]);
     end
     
-    return [opto_fraction; opto_fraction;opto_fraction;opto_fraction]
+    return opto_fraction
 end
 
 
@@ -109,8 +121,7 @@ function run_ntrials_opto(nPro, nAnti; plot_list=[], nderivs=0, difforder=0, opt
     pro_input,  t, nsteps = make_input("Pro" ; model_params...);
     anti_input, t, nsteps = make_input("Anti"; model_params...);
     #### make opto fraction vector
-    opto_fraction = make_opto_input(nsteps; model_params...);
-
+    opto_fraction = make_opto_input(nsteps; nderivs=nderivs,difforder=difforder, model_params...);
     model_params = Dict(model_params)
     sW = model_params[:sW]
     hW = model_params[:hW]
@@ -173,7 +184,7 @@ function forwardModel_opto(startU, opto_fraction; dt=0.01, tau=0.1, nsteps=100, 
     my_opto = ForwardDiffZeros(size(opto_fraction,1), size(opto_fraction,2), nderivs=nderivs, difforder=difforder)
     for i=1:prod(size(opto_fraction)); my_opto[i] = opto_fraction[i]; end
     opto_fraction = my_opto;
-#    opto_fraction = opto_fraction.*(1+ForwardDiffZeros(4, nsteps, nderivs=nderivs, difforder=difforder))
+    opto_fraction = opto_fraction.*(1+ForwardDiffZeros(size(opto_fraction,1), nsteps, nderivs=nderivs, difforder=difforder))
  
     nunits = length(startU)
     if size(startU,2) > size(startU,1)
