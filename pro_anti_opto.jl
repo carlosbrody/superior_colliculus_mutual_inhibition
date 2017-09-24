@@ -15,12 +15,16 @@ function JJ_opto(nPro, nAnti; opto_targets=[0.9 0.7], theta1=0.025, theta2=0.035
     hA = zeros(size(opto_periods)[1], nruns_each);
     dP = zeros(size(opto_periods)[1], nruns_each);
     dA = zeros(size(opto_periods)[1], nruns_each);
+    hBP = zeros(size(opto_periods)[1], nruns_each);
+    hBA = zeros(size(opto_periods)[1], nruns_each);
 
-    if ~isnan(seedrand); srand(seedrand); end
-    
     n = totHitsP = totHitsA = totDiffsP = totDiffsA =nopto= 0
     for kk=1:size(opto_periods)[1] # iterate over each opto inactivation period
     nopto = 0;
+
+    # reset random number generator for each opto period, so it cant over fit noise samples
+    if ~isnan(seedrand); srand(seedrand); end
+
     for i in rule_and_delay_periods
         for j in target_periods
             for k = post_target_periods
@@ -42,6 +46,8 @@ function JJ_opto(nPro, nAnti; opto_targets=[0.9 0.7], theta1=0.025, theta2=0.035
                 hA[kk,nopto] = mean(hitsA);
                 dP[kk,nopto] = mean(diffsP);
                 dA[kk,nopto] = mean(diffsA);
+                hBP[kk,nopto] = sum(proVs[1,:] .>= proVs[4,:,])/nPro;
+                hBA[kk,nopto] = sum(proVs[4,:] .>  proVs[1,:,])/nAnti;
 
                 if nPro>0 && nAnti>0
                     cost1s[kk,nopto] = (nPro*(mean(hitsP) - opto_targets[kk,1]).^2  + nAnti*(mean(hitsA) - opto_targets[kk,2]).^2)/(nPro+nAnti)
@@ -92,7 +98,7 @@ function JJ_opto(nPro, nAnti; opto_targets=[0.9 0.7], theta1=0.025, theta2=0.035
 #        end        
 #    end 
     
-    return cost1 + cost2, cost1s, cost2s, hP,hA,dP,dA
+    return cost1 + cost2, cost1s, cost2s, hP,hA,dP,dA,hBP,hBA
 end
 
 # returns a vector of the inhibition fraction for each node given the opto period and opto strength
