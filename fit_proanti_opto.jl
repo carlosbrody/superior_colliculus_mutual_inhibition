@@ -134,7 +134,7 @@ for cb in cbetas                # Iterate over beta values
     opto_value, opto_grad, opto_hess = keyword_vgh(opto_func, opto_args, opto_pars)
 
     # define function to get long form info of opto model, evaluate on training noise
-    t_standard_opto_func =  (;params...) -> JJ_opto(num_eval_runs,num_eval_runs; rule_and_delay_periods=rule_and_delay_periods, theta1=model_params[:theta1], theta2=model_params[:theta2], post_target_periods=post_target_periods, seedrand=sr, cbeta=cb, verbose=false, merge(make_dict(args,pars,model_params), Dict(params))...)
+    t_standard_opto_func =  (;params...) -> JJ_opto(model_params[:nPro], model_params[:nAnti]; rule_and_delay_periods=rule_and_delay_periods, theta1=model_params[:theta1], theta2=model_params[:theta2], post_target_periods=post_target_periods, seedrand=sr, cbeta=cb, verbose=false, merge(make_dict(args,pars,model_params), Dict(params))...)
  
     # run opto-model to get all outputs, evaluate on training noise
     t_opto_scost, t_opto_scost1, t_opto_scost2, t_opto_hitsP,t_opto_hitsA, t_opto_diffsP, t_opto_diffsA,t_opto_bP, t_opto_bA = t_standard_opto_func(;make_dict(opto_args, opto_pars, make_dict(args,pars,model_params))...)
