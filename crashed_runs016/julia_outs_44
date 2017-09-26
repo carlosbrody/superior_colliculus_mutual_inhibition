@@ -1,0 +1,277 @@
+WARNING: Method definition remove_xtick_labels(Any) in module Main at /home/alex.piet/superior_colliculus_mutual_inhibition/general_utils.jl:13 overwritten at /home/alex.piet/superior_colliculus_mutual_inhibition/general_utils.jl:13.
+WARNING: Method definition print_vector(Any) in module Main at /home/alex.piet/superior_colliculus_mutual_inhibition/general_utils.jl:43 overwritten at /home/alex.piet/superior_colliculus_mutual_inhibition/general_utils.jl:43.
+WARNING: Method definition print_vector_g(Any) in module Main at /home/alex.piet/superior_colliculus_mutual_inhibition/general_utils.jl:70 overwritten at /home/alex.piet/superior_colliculus_mutual_inhibition/general_utils.jl:70.
+WARNING: Method definition two_level_copy(Any) in module Main at /home/alex.piet/superior_colliculus_mutual_inhibition/general_utils.jl:114 overwritten at /home/alex.piet/superior_colliculus_mutual_inhibition/general_utils.jl:114.
+WARNING: Method definition next_file(Any, Any) in module Main at /home/alex.piet/superior_colliculus_mutual_inhibition/general_utils.jl:152 overwritten at /home/alex.piet/superior_colliculus_mutual_inhibition/general_utils.jl:152.
+WARNING: Method definition ascii_key_ize(Any) in module Main at /home/alex.piet/superior_colliculus_mutual_inhibition/general_utils.jl:189 overwritten at /home/alex.piet/superior_colliculus_mutual_inhibition/general_utils.jl:189.
+WARNING: Method definition symbol_key_ize(Any) in module Main at /home/alex.piet/superior_colliculus_mutual_inhibition/general_utils.jl:205 overwritten at /home/alex.piet/superior_colliculus_mutual_inhibition/general_utils.jl:205.
+WARNING: Method definition one_d_minimizer(Any, Any) in module Main at /home/alex.piet/superior_colliculus_mutual_inhibition/constrained_parabolic_minimization.jl:47 overwritten at /home/alex.piet/superior_colliculus_mutual_inhibition/constrained_parabolic_minimization.jl:47.
+WARNING: Method definition #one_d_minimizer(Array{Any, 1}, Main.#one_d_minimizer, Any, Any) in module Main overwritten.
+WARNING: Method definition constrained_parabolic_minimization(Any, Any, Any) in module Main at /home/alex.piet/superior_colliculus_mutual_inhibition/constrained_parabolic_minimization.jl:173 overwritten at /home/alex.piet/superior_colliculus_mutual_inhibition/constrained_parabolic_minimization.jl:173.
+WARNING: Method definition #constrained_parabolic_minimization(Array{Any, 1}, Main.#constrained_parabolic_minimization, Any, Any, Any) in module Main overwritten.
+WARNING: Method definition make_dict(Any, Any) in module Main at /home/alex.piet/superior_colliculus_mutual_inhibition/hessian_utils.jl:47 overwritten at /home/alex.piet/superior_colliculus_mutual_inhibition/hessian_utils.jl:47.
+WARNING: Method definition make_dict(Any, Any, Any) in module Main at /home/alex.piet/superior_colliculus_mutual_inhibition/hessian_utils.jl:47 overwritten at /home/alex.piet/superior_colliculus_mutual_inhibition/hessian_utils.jl:47.
+WARNING: Method definition convert(Type{Float64}, ForwardDiff.Dual) in module Main at /home/alex.piet/superior_colliculus_mutual_inhibition/hessian_utils.jl:97 overwritten at /home/alex.piet/superior_colliculus_mutual_inhibition/hessian_utils.jl:97.
+WARNING: Method definition convert(Array{Float64, N<:Any}, Array{ForwardDiff.Dual, N<:Any}) in module Main at /home/alex.piet/superior_colliculus_mutual_inhibition/hessian_utils.jl:99 overwritten at /home/alex.piet/superior_colliculus_mutual_inhibition/hessian_utils.jl:99.
+WARNING: Method definition ForwardDiffZeros(Any, Any) in module Main at /home/alex.piet/superior_colliculus_mutual_inhibition/hessian_utils.jl:139 overwritten at /home/alex.piet/superior_colliculus_mutual_inhibition/hessian_utils.jl:139.
+WARNING: Method definition #ForwardDiffZeros(Array{Any, 1}, Main.#ForwardDiffZeros, Any, Any) in module Main overwritten.
+WARNING: Method definition vgh(Any, Any) in module Main at /home/alex.piet/superior_colliculus_mutual_inhibition/hessian_utils.jl:173 overwritten at /home/alex.piet/superior_colliculus_mutual_inhibition/hessian_utils.jl:173.
+WARNING: Method definition keyword_vgh(Any, Any, Any) in module Main at /home/alex.piet/superior_colliculus_mutual_inhibition/hessian_utils.jl:225 overwritten at /home/alex.piet/superior_colliculus_mutual_inhibition/hessian_utils.jl:225.
+WARNING: Method definition keyword_gradient(Any, Any, Any) in module Main at /home/alex.piet/superior_colliculus_mutual_inhibition/hessian_utils.jl:288 overwritten at /home/alex.piet/superior_colliculus_mutual_inhibition/hessian_utils.jl:288.
+WARNING: Method definition keyword_gradient!(Any, Any, Any, Any) in module Main at /home/alex.piet/superior_colliculus_mutual_inhibition/hessian_utils.jl:322 overwritten at /home/alex.piet/superior_colliculus_mutual_inhibition/hessian_utils.jl:322.
+WARNING: Method definition keyword_hessian(Any, Any, Any) in module Main at /home/alex.piet/superior_colliculus_mutual_inhibition/hessian_utils.jl:378 overwritten at /home/alex.piet/superior_colliculus_mutual_inhibition/hessian_utils.jl:378.
+WARNING: Method definition keyword_hessian!(Any, Any, Any, Any) in module Main at /home/alex.piet/superior_colliculus_mutual_inhibition/hessian_utils.jl:416 overwritten at /home/alex.piet/superior_colliculus_mutual_inhibition/hessian_utils.jl:416.
+WARNING: Method definition constrained_Hessian_minimization(Any, Any) in module Main at /home/alex.piet/superior_colliculus_mutual_inhibition/hessian_utils.jl:490 overwritten at /home/alex.piet/superior_colliculus_mutual_inhibition/hessian_utils.jl:490.
+WARNING: Method definition #constrained_Hessian_minimization(Array{Any, 1}, Main.#constrained_Hessian_minimization, Any, Any) in module Main overwritten.
+WARNING: Method definition adaptive_gradient_minimization(Any, Any) in module Main at /home/alex.piet/superior_colliculus_mutual_inhibition/hessian_utils.jl:557 overwritten at /home/alex.piet/superior_colliculus_mutual_inhibition/hessian_utils.jl:557.
+WARNING: Method definition #adaptive_gradient_minimization(Array{Any, 1}, Main.#adaptive_gradient_minimization, Any, Any) in module Main overwritten.
+WARNING: Method definition trust_region_Hessian_minimization(Any, Any) in module Main at /home/alex.piet/superior_colliculus_mutual_inhibition/hessian_utils.jl:662 overwritten at /home/alex.piet/superior_colliculus_mutual_inhibition/hessian_utils.jl:662.
+WARNING: Method definition #trust_region_Hessian_minimization(Array{Any, 1}, Main.#trust_region_Hessian_minimization, Any, Any) in module Main overwritten.
+WARNING: Method definition wallwrap(Any, Any) in module Main at /home/alex.piet/superior_colliculus_mutual_inhibition/hessian_utils.jl:720 overwritten at /home/alex.piet/superior_colliculus_mutual_inhibition/hessian_utils.jl:720.
+WARNING: Method definition vector_wrap(Any, Any, Any) in module Main at /home/alex.piet/superior_colliculus_mutual_inhibition/hessian_utils.jl:750 overwritten at /home/alex.piet/superior_colliculus_mutual_inhibition/hessian_utils.jl:750.
+WARNING: Method definition inverse_wall(Any, Any, Any) in module Main at /home/alex.piet/superior_colliculus_mutual_inhibition/hessian_utils.jl:774 overwritten at /home/alex.piet/superior_colliculus_mutual_inhibition/hessian_utils.jl:774.
+WARNING: Method definition inverse_wall(Any, Any) in module Main at /home/alex.piet/superior_colliculus_mutual_inhibition/hessian_utils.jl:797 overwritten at /home/alex.piet/superior_colliculus_mutual_inhibition/hessian_utils.jl:797.
+WARNING: Method definition bbox_Hessian_keyword_minimization(Any, Any, Any, Any) in module Main at /home/alex.piet/superior_colliculus_mutual_inhibition/hessian_utils.jl:924 overwritten at /home/alex.piet/superior_colliculus_mutual_inhibition/hessian_utils.jl:924.
+WARNING: Method definition #bbox_Hessian_keyword_minimization(Array{Any, 1}, Main.#bbox_Hessian_keyword_minimization, Any, Any, Any, Any) in module Main overwritten.
+WARNING: Method definition remove_xtick_labels(Any) in module Main at /home/alex.piet/superior_colliculus_mutual_inhibition/general_utils.jl:13 overwritten at /home/alex.piet/superior_colliculus_mutual_inhibition/general_utils.jl:13.
+WARNING: Method definition print_vector(Any) in module Main at /home/alex.piet/superior_colliculus_mutual_inhibition/general_utils.jl:43 overwritten at /home/alex.piet/superior_colliculus_mutual_inhibition/general_utils.jl:43.
+WARNING: Method definition print_vector_g(Any) in module Main at /home/alex.piet/superior_colliculus_mutual_inhibition/general_utils.jl:70 overwritten at /home/alex.piet/superior_colliculus_mutual_inhibition/general_utils.jl:70.
+WARNING: Method definition two_level_copy(Any) in module Main at /home/alex.piet/superior_colliculus_mutual_inhibition/general_utils.jl:114 overwritten at /home/alex.piet/superior_colliculus_mutual_inhibition/general_utils.jl:114.
+WARNING: Method definition next_file(Any, Any) in module Main at /home/alex.piet/superior_colliculus_mutual_inhibition/general_utils.jl:152 overwritten at /home/alex.piet/superior_colliculus_mutual_inhibition/general_utils.jl:152.
+WARNING: Method definition ascii_key_ize(Any) in module Main at /home/alex.piet/superior_colliculus_mutual_inhibition/general_utils.jl:189 overwritten at /home/alex.piet/superior_colliculus_mutual_inhibition/general_utils.jl:189.
+WARNING: Method definition symbol_key_ize(Any) in module Main at /home/alex.piet/superior_colliculus_mutual_inhibition/general_utils.jl:205 overwritten at /home/alex.piet/superior_colliculus_mutual_inhibition/general_utils.jl:205.
+WARNING: Method definition one_d_minimizer(Any, Any) in module Main at /home/alex.piet/superior_colliculus_mutual_inhibition/constrained_parabolic_minimization.jl:47 overwritten at /home/alex.piet/superior_colliculus_mutual_inhibition/constrained_parabolic_minimization.jl:47.
+WARNING: Method definition #one_d_minimizer(Array{Any, 1}, Main.#one_d_minimizer, Any, Any) in module Main overwritten.
+WARNING: Method definition constrained_parabolic_minimization(Any, Any, Any) in module Main at /home/alex.piet/superior_colliculus_mutual_inhibition/constrained_parabolic_minimization.jl:173 overwritten at /home/alex.piet/superior_colliculus_mutual_inhibition/constrained_parabolic_minimization.jl:173.
+WARNING: Method definition #constrained_parabolic_minimization(Array{Any, 1}, Main.#constrained_parabolic_minimization, Any, Any, Any) in module Main overwritten.
+WARNING: Method definition make_dict(Any, Any) in module Main at /home/alex.piet/superior_colliculus_mutual_inhibition/hessian_utils.jl:47 overwritten at /home/alex.piet/superior_colliculus_mutual_inhibition/hessian_utils.jl:47.
+WARNING: Method definition make_dict(Any, Any, Any) in module Main at /home/alex.piet/superior_colliculus_mutual_inhibition/hessian_utils.jl:47 overwritten at /home/alex.piet/superior_colliculus_mutual_inhibition/hessian_utils.jl:47.
+WARNING: Method definition convert(Type{Float64}, ForwardDiff.Dual) in module Main at /home/alex.piet/superior_colliculus_mutual_inhibition/hessian_utils.jl:97 overwritten at /home/alex.piet/superior_colliculus_mutual_inhibition/hessian_utils.jl:97.
+WARNING: Method definition convert(Array{Float64, N<:Any}, Array{ForwardDiff.Dual, N<:Any}) in module Main at /home/alex.piet/superior_colliculus_mutual_inhibition/hessian_utils.jl:99 overwritten at /home/alex.piet/superior_colliculus_mutual_inhibition/hessian_utils.jl:99.
+WARNING: Method definition ForwardDiffZeros(Any, Any) in module Main at /home/alex.piet/superior_colliculus_mutual_inhibition/hessian_utils.jl:139 overwritten at /home/alex.piet/superior_colliculus_mutual_inhibition/hessian_utils.jl:139.
+WARNING: Method definition #ForwardDiffZeros(Array{Any, 1}, Main.#ForwardDiffZeros, Any, Any) in module Main overwritten.
+WARNING: Method definition vgh(Any, Any) in module Main at /home/alex.piet/superior_colliculus_mutual_inhibition/hessian_utils.jl:173 overwritten at /home/alex.piet/superior_colliculus_mutual_inhibition/hessian_utils.jl:173.
+WARNING: Method definition keyword_vgh(Any, Any, Any) in module Main at /home/alex.piet/superior_colliculus_mutual_inhibition/hessian_utils.jl:225 overwritten at /home/alex.piet/superior_colliculus_mutual_inhibition/hessian_utils.jl:225.
+WARNING: Method definition keyword_gradient(Any, Any, Any) in module Main at /home/alex.piet/superior_colliculus_mutual_inhibition/hessian_utils.jl:288 overwritten at /home/alex.piet/superior_colliculus_mutual_inhibition/hessian_utils.jl:288.
+WARNING: Method definition keyword_gradient!(Any, Any, Any, Any) in module Main at /home/alex.piet/superior_colliculus_mutual_inhibition/hessian_utils.jl:322 overwritten at /home/alex.piet/superior_colliculus_mutual_inhibition/hessian_utils.jl:322.
+WARNING: Method definition keyword_hessian(Any, Any, Any) in module Main at /home/alex.piet/superior_colliculus_mutual_inhibition/hessian_utils.jl:378 overwritten at /home/alex.piet/superior_colliculus_mutual_inhibition/hessian_utils.jl:378.
+WARNING: Method definition keyword_hessian!(Any, Any, Any, Any) in module Main at /home/alex.piet/superior_colliculus_mutual_inhibition/hessian_utils.jl:416 overwritten at /home/alex.piet/superior_colliculus_mutual_inhibition/hessian_utils.jl:416.
+WARNING: Method definition constrained_Hessian_minimization(Any, Any) in module Main at /home/alex.piet/superior_colliculus_mutual_inhibition/hessian_utils.jl:490 overwritten at /home/alex.piet/superior_colliculus_mutual_inhibition/hessian_utils.jl:490.
+WARNING: Method definition #constrained_Hessian_minimization(Array{Any, 1}, Main.#constrained_Hessian_minimization, Any, Any) in module Main overwritten.
+WARNING: Method definition adaptive_gradient_minimization(Any, Any) in module Main at /home/alex.piet/superior_colliculus_mutual_inhibition/hessian_utils.jl:557 overwritten at /home/alex.piet/superior_colliculus_mutual_inhibition/hessian_utils.jl:557.
+WARNING: Method definition #adaptive_gradient_minimization(Array{Any, 1}, Main.#adaptive_gradient_minimization, Any, Any) in module Main overwritten.
+WARNING: Method definition trust_region_Hessian_minimization(Any, Any) in module Main at /home/alex.piet/superior_colliculus_mutual_inhibition/hessian_utils.jl:662 overwritten at /home/alex.piet/superior_colliculus_mutual_inhibition/hessian_utils.jl:662.
+WARNING: Method definition #trust_region_Hessian_minimization(Array{Any, 1}, Main.#trust_region_Hessian_minimization, Any, Any) in module Main overwritten.
+WARNING: Method definition wallwrap(Any, Any) in module Main at /home/alex.piet/superior_colliculus_mutual_inhibition/hessian_utils.jl:720 overwritten at /home/alex.piet/superior_colliculus_mutual_inhibition/hessian_utils.jl:720.
+WARNING: Method definition vector_wrap(Any, Any, Any) in module Main at /home/alex.piet/superior_colliculus_mutual_inhibition/hessian_utils.jl:750 overwritten at /home/alex.piet/superior_colliculus_mutual_inhibition/hessian_utils.jl:750.
+WARNING: Method definition inverse_wall(Any, Any, Any) in module Main at /home/alex.piet/superior_colliculus_mutual_inhibition/hessian_utils.jl:774 overwritten at /home/alex.piet/superior_colliculus_mutual_inhibition/hessian_utils.jl:774.
+WARNING: Method definition inverse_wall(Any, Any) in module Main at /home/alex.piet/superior_colliculus_mutual_inhibition/hessian_utils.jl:797 overwritten at /home/alex.piet/superior_colliculus_mutual_inhibition/hessian_utils.jl:797.
+WARNING: Method definition bbox_Hessian_keyword_minimization(Any, Any, Any, Any) in module Main at /home/alex.piet/superior_colliculus_mutual_inhibition/hessian_utils.jl:924 overwritten at /home/alex.piet/superior_colliculus_mutual_inhibition/hessian_utils.jl:924.
+WARNING: Method definition #bbox_Hessian_keyword_minimization(Array{Any, 1}, Main.#bbox_Hessian_keyword_minimization, Any, Any, Any, Any) in module Main overwritten.
+WARNING: Method definition g(Any) in module Main at /home/alex.piet/superior_colliculus_mutual_inhibition/rate_networks.jl:28 overwritten at /home/alex.piet/superior_colliculus_mutual_inhibition/rate_networks.jl:28.
+WARNING: Method definition ginverse(Any) in module Main at /home/alex.piet/superior_colliculus_mutual_inhibition/rate_networks.jl:35 overwritten at /home/alex.piet/superior_colliculus_mutual_inhibition/rate_networks.jl:35.
+WARNING: Method definition forwardModel(Any) in module Main at /home/alex.piet/superior_colliculus_mutual_inhibition/rate_networks.jl:104 overwritten at /home/alex.piet/superior_colliculus_mutual_inhibition/rate_networks.jl:104.
+WARNING: Method definition #forwardModel(Array{Any, 1}, Main.#forwardModel, Any) in module Main overwritten.
+WARNING: Method definition backwardsModel(Any) in module Main at /home/alex.piet/superior_colliculus_mutual_inhibition/rate_networks.jl:250 overwritten at /home/alex.piet/superior_colliculus_mutual_inhibition/rate_networks.jl:250.
+WARNING: Method definition #backwardsModel(Array{Any, 1}, Main.#backwardsModel, Any) in module Main overwritten.
+Going with seed = [0.217319, 0.0539675, 0.36706, 0.450231, -0.328358, 0.396493, 0.183118, 0.442486, 0.0646126, 0.964429]
+0: eta=1 ps=[0.217, 0.054, 0.367, 0.450, -0.328, 0.396, 0.183, 0.442, 0.065, 0.964]
+eta going down: new_cost-cost=0.0311472 and jumptype='constrained'
+eta going down: new_cost-cost=0.0311435 and jumptype='constrained'
+eta going down: new_cost-cost=0.0310518 and jumptype='constrained'
+eta going down: new_cost-cost=0.0553954 and jumptype='constrained'
+eta going down: new_cost-cost=0.019012 and jumptype='constrained'
+10: eta=0.0503284 cost=0.0506903 jtype=constrained costheta=-0.982 ps=[0.257146, 0.0465207, 0.424222, 0.455537, -0.317796, 0.388702, 0.182753, 0.453967, 0.029126, 0.965665]
+20: eta=0.130539 cost=0.0252776 jtype=constrained costheta=-0.952 ps=[0.615597, 0.0268391, 0.560832, 0.478285, -0.36243, 0.343224, 0.179484, 0.40713, 0.014905, 0.974508]
+eta going down: new_cost-cost=0.00628094 and jumptype='constrained'
+eta going down: new_cost-cost=0.000569319 and jumptype='constrained'
+30: eta=0.0699555 cost=0.0140675 jtype=constrained costheta=-0.007 ps=[1.42779, 0.0221821, 0.803038, 0.504926, -0.486861, 0.200916, 0.170563, 0.416196, 0.0111337, 0.994961]
+eta going down: new_cost-cost=0.000518623 and jumptype='constrained'
+40: eta=0.0824757 cost=0.0127046 jtype=constrained costheta=-0.003 ps=[1.96911, 0.0312836, 0.663065, 0.522838, -0.562179, 0.153528, 0.166071, 0.458369, 0.0101557, 0.99692]
+eta going down: new_cost-cost=8.23447e-05 and jumptype='constrained'
+eta going down: new_cost-cost=0.0829215 and jumptype='constrained'
+eta going down: new_cost-cost=3.73166e-05 and jumptype='constrained'
+50: eta=0.0200902 cost=0.012438 jtype=constrained costheta=-0.011 ps=[2.13043, 0.0333088, 0.577243, 0.527079, -0.562836, 0.142565, 0.165243, 0.452986, 0.0101055, 0.99708]
+eta going down: new_cost-cost=2.79546e-05 and jumptype='constrained'
+60: eta=0.0236858 cost=0.0122663 jtype=constrained costheta=-0.028 ps=[2.24321, 0.0354359, 0.505946, 0.531335, -0.562961, 0.13273, 0.164435, 0.449833, 0.0100787, 0.997181]
+70: eta=0.061435 cost=0.0120202 jtype=constrained costheta=-0.007 ps=[2.40831, 0.0406501, 0.374791, 0.541428, -0.560234, 0.11404, 0.162492, 0.444426, 0.0100481, 0.997226]
+eta going down: new_cost-cost=7.60125e-06 and jumptype='constrained'
+80: eta=0.0724302 cost=0.011604 jtype=constrained costheta=-0.002 ps=[2.48575, 0.00595931, 0.092592, 0.515494, -0.589186, 0.0977843, 0.165643, 0.49037, 0.0100236, 0.996671]
+90: eta=0.187865 cost=0.0113889 jtype=constrained costheta=-0.008 ps=[2.53037, -0.28516, 0.0642984, 0.231022, -0.591706, 0.0760945, 0.297205, 0.492462, 0.0100042, 0.995793]
+eta going down: new_cost-cost=0.000356647 and jumptype='constrained'
+eta going down: new_cost-cost=2.00312e-05 and jumptype='constrained'
+100: eta=0.100677 cost=0.0112278 jtype=constrained costheta=-0.003 ps=[2.70233, -0.380876, 0.0355475, 0.139673, -0.632696, 0.0657925, 0.438699, 0.520589, 0.0100028, 0.994175]
+eta going down: new_cost-cost=0.000107927 and jumptype='constrained'
+110: eta=0.118695 cost=0.0111113 jtype=constrained costheta=-0.009 ps=[2.84449, -0.399085, 0.0192087, 0.124161, -0.549686, 0.0582195, 0.544941, 0.426276, 0.0100021, 0.993494]
+eta going down: new_cost-cost=1.04341e-05 and jumptype='constrained'
+120: eta=0.139938 cost=0.0109193 jtype=constrained costheta=-0.005 ps=[2.89973, -0.504743, 0.00851001, 0.103556, -0.178071, 0.056369, 0.574066, 0.0542671, 0.0100018, 0.99338]
+eta going down: new_cost-cost=0.0222511 and jumptype='constrained'
+eta going down: new_cost-cost=0.000794685 and jumptype='constrained'
+eta going down: new_cost-cost=0.000429214 and jumptype='constrained'
+eta going down: new_cost-cost=0.0246621 and jumptype='constrained'
+130: eta=0.0154943 cost=0.00896065 jtype=constrained costheta=NaN ps=[2.89946, -0.519816, -0.134439, -0.0273235, -0.115797, 0.0564182, 0.657379, 0.00281519, 0.0100016, 0.993115]
+eta going down: new_cost-cost=0.00379266 and jumptype='constrained'
+eta going down: new_cost-cost=9.19327e-05 and jumptype='constrained'
+140: eta=0.00830337 cost=0.00651546 jtype=constrained costheta=-1.000 ps=[2.89937, -0.520319, -0.145181, 0.0101529, -0.112029, 0.0564257, 0.662434, -0.000728381, 0.0100016, 0.99315]
+150: eta=0.0215368 cost=0.00445626 jtype=constrained costheta=-0.978 ps=[2.89901, -0.512336, -0.174385, 0.132209, -0.112101, 0.056456, 0.683703, -0.00126972, 0.0100016, 0.993201]
+160: eta=0.0558609 cost=0.00223043 jtype=constrained costheta=-0.267 ps=[2.8977, -0.442626, -0.212334, 0.36201, -0.117659, 0.0565333, 0.747978, 0.000321689, 0.0100016, 0.988048]
+eta going down: new_cost-cost=2.35876e-05 and jumptype='constrained'
+170: eta=0.0658585 cost=0.0020687 jtype=constrained costheta=-0.010 ps=[2.8771, 0.0619614, -0.470002, 0.348527, -0.11592, 0.0564907, 0.863309, 0.00325024, 0.0100016, 0.986985]
+eta going down: new_cost-cost=0.0740493 and jumptype='constrained'
+eta going down: new_cost-cost=0.057788 and jumptype='constrained'
+eta going down: new_cost-cost=0.0103632 and jumptype='constrained'
+eta going down: new_cost-cost=0.00341727 and jumptype='constrained'
+eta going down: new_cost-cost=0.00122309 and jumptype='constrained'
+eta going down: new_cost-cost=0.000305617 and jumptype='constrained'
+eta going down: new_cost-cost=6.05296e-05 and jumptype='constrained'
+eta going down: new_cost-cost=3.51537e-07 and jumptype='constrained'
+180: eta=0.000311285 cost=0.00204516 jtype=constrained costheta=-0.494 ps=[2.87564, 0.123457, -0.489729, 0.345001, -0.115637, 0.056489, 0.867406, 0.00269707, 0.0100016, 0.986995]
+190: eta=0.000807392 cost=0.00204201 jtype=constrained costheta=-1.000 ps=[2.87553, 0.12659, -0.491324, 0.348265, -0.115782, 0.0564887, 0.867867, 0.00282665, 0.0100016, 0.986987]
+200: eta=0.00209417 cost=0.00203566 jtype=constrained costheta=-0.997 ps=[2.87525, 0.135475, -0.496009, 0.355613, -0.116019, 0.0564879, 0.869066, 0.0029201, 0.0100016, 0.987026]
+210: eta=0.00543173 cost=0.00201819 jtype=constrained costheta=-0.994 ps=[2.8745, 0.16077, -0.508631, 0.37079, -0.116471, 0.0564863, 0.872357, 0.00304944, 0.0100016, 0.987233]
+220: eta=0.0140885 cost=0.00195534 jtype=constrained costheta=-0.088 ps=[2.87285, 0.232913, -0.539254, 0.401907, -0.117098, 0.0564825, 0.878334, 0.00271152, 0.0100016, 0.987466]
+230: eta=0.036542 cost=0.0011242 jtype=constrained costheta=-0.163 ps=[2.87153, 0.370159, -0.558604, 0.504747, -0.118335, 0.0564696, 0.861097, -0.000914883, 0.0100016, 0.980649]
+eta going down: new_cost-cost=0.0965208 and jumptype='constrained'
+eta going down: new_cost-cost=0.0352732 and jumptype='constrained'
+eta going down: new_cost-cost=0.00596286 and jumptype='constrained'
+eta going down: new_cost-cost=0.00114306 and jumptype='constrained'
+eta going down: new_cost-cost=0.00015028 and jumptype='constrained'
+eta going down: new_cost-cost=2.18767e-05 and jumptype='constrained'
+240: eta=0.000835954 cost=0.000938532 jtype=constrained costheta=-0.975 ps=[2.87151, 0.382435, -0.560681, 0.524764, -0.118653, 0.056463, 0.853308, -0.00106759, 0.0100016, 0.97849]
+250: eta=0.00216825 cost=0.000874766 jtype=constrained costheta=-1.000 ps=[2.8715, 0.38654, -0.562223, 0.531284, -0.118639, 0.0564606, 0.850085, -0.00129868, 0.0100016, 0.97769]
+260: eta=0.00562388 cost=0.000713189 jtype=constrained costheta=-0.999 ps=[2.87151, 0.396803, -0.566967, 0.546843, -0.11836, 0.0564532, 0.840647, -0.00221841, 0.0100016, 0.975482]
+270: eta=0.0145869 cost=0.000293709 jtype=constrained costheta=-0.476 ps=[2.8718, 0.416106, -0.584798, 0.5752, -0.115902, 0.05643, 0.808416, -0.00640387, 0.0100016, 0.968991]
+280: eta=0.0378347 cost=9.60457e-05 jtype=constrained costheta=-0.038 ps=[2.8727, 0.464797, -0.741562, 0.697261, -0.11515, 0.0564447, 0.843629, -0.00674823, 0.0100016, 0.961814]
+290: eta=0.0981334 cost=5.00381e-05 jtype=constrained costheta=-0.003 ps=[2.93093, 0.531515, -0.883697, 0.861102, -0.122119, 0.0575403, 0.879729, -0.00686645, 0.0100015, 0.958899]
+eta going down: new_cost-cost=0.261837 and jumptype='constrained'
+300: eta=0.115697 cost=2.98348e-05 jtype=constrained costheta=-0.001 ps=[2.97412, 0.562509, -0.903945, 0.93265, -0.127062, 0.0624642, 0.865565, -0.00634288, 0.0100014, 0.960776]
+eta going down: new_cost-cost=0.0803501 and jumptype='constrained'
+310: eta=0.136403 cost=2.6501e-05 jtype=constrained costheta=-0.000 ps=[2.99149, 0.564817, -0.909137, 0.931544, -0.128226, 0.0617763, 0.872857, -0.00635051, 0.0100041, 0.9607]
+eta going down: new_cost-cost=6.79572e-05 and jumptype='constrained'
+eta going down: new_cost-cost=1.62378e-05 and jumptype='constrained'
+eta going down: new_cost-cost=3.98032e-06 and jumptype='constrained'
+eta going down: new_cost-cost=9.64503e-07 and jumptype='constrained'
+eta going down: new_cost-cost=2.17129e-07 and jumptype='constrained'
+eta going down: new_cost-cost=3.35726e-08 and jumptype='constrained'
+320: eta=0.00312044 cost=2.62377e-05 jtype=constrained costheta=-0.085 ps=[2.99272, 0.564818, -0.909274, 0.931127, -0.1283, 0.0617812, 0.873437, -0.00635689, 0.0100206, 0.960666]
+330: eta=0.00809362 cost=2.61453e-05 jtype=constrained costheta=-0.087 ps=[2.99313, 0.564927, -0.909156, 0.931323, -0.128341, 0.0618665, 0.873363, -0.00635537, 0.0100336, 0.960667]
+eta going down: new_cost-cost=6.08176e-07 and jumptype='constrained'
+eta going down: new_cost-cost=1.52269e-07 and jumptype='constrained'
+eta going down: new_cost-cost=3.84353e-08 and jumptype='constrained'
+eta going down: new_cost-cost=9.05527e-09 and jumptype='constrained'
+340: eta=0.000896146 cost=2.60102e-05 jtype=constrained costheta=NaN ps=[2.99352, 0.56481, -0.908698, 0.931023, -0.128383, 0.0620588, 0.873459, -0.00636438, 0.0100799, 0.960614]
+eta going down: new_cost-cost=2.58078e-09 and jumptype='constrained'
+eta going down: new_cost-cost=6.93127e-10 and jumptype='constrained'
+eta going down: new_cost-cost=9.226e-11 and jumptype='constrained'
+350: eta=0.000218292 cost=2.60077e-05 jtype=constrained costheta=-0.999 ps=[2.99352, 0.564797, -0.908683, 0.930988, -0.128384, 0.0620628, 0.873489, -0.00636532, 0.0100809, 0.96061]
+360: eta=0.000566193 cost=2.5999e-05 jtype=constrained costheta=-0.959 ps=[2.99354, 0.564771, -0.908631, 0.930927, -0.128386, 0.0620797, 0.873499, -0.00636638, 0.0100851, 0.960604]
+370: eta=0.00146856 cost=2.59763e-05 jtype=constrained costheta=-0.441 ps=[2.99359, 0.564723, -0.908497, 0.930824, -0.128392, 0.0621282, 0.873516, -0.00636899, 0.0100968, 0.960589]
+380: eta=0.00380906 cost=2.59159e-05 jtype=constrained costheta=-0.079 ps=[2.9937, 0.564635, -0.908099, 0.930679, -0.128413, 0.0622874, 0.873466, -0.00637478, 0.0101305, 0.960554]
+390: eta=0.00987973 cost=2.57631e-05 jtype=constrained costheta=-0.020 ps=[2.99398, 0.564756, -0.906987, 0.93136, -0.128496, 0.0628355, 0.872685, -0.00637796, 0.010219, 0.960506]
+400: eta=0.0256255 cost=2.54571e-05 jtype=constrained costheta=-0.005 ps=[2.99478, 0.565549, -0.904318, 0.934462, -0.12874, 0.064339, 0.869934, -0.00636829, 0.0104303, 0.960456]
+eta going down: new_cost-cost=4.42285e-08 and jumptype='constrained'
+410: eta=0.0302118 cost=2.51249e-05 jtype=constrained costheta=NaN ps=[2.99666, 0.566202, -0.902985, 0.936297, -0.128983, 0.0652719, 0.868663, -0.00636136, 0.0105657, 0.96042]
+420: eta=0.0783615 cost=2.48797e-05 jtype=constrained costheta=-0.001 ps=[2.99824, 0.566367, -0.903534, 0.936022, -0.129079, 0.065143, 0.86941, -0.00636112, 0.0105558, 0.96042]
+eta going down: new_cost-cost=2.60903e-08 and jumptype='constrained'
+430: eta=0.0923862 cost=2.47067e-05 jtype=constrained costheta=-0.001 ps=[2.99937, 0.566479, -0.903932, 0.935803, -0.129146, 0.0650449, 0.869953, -0.00636102, 0.0105479, 0.960419]
+eta going down: new_cost-cost=0.00763315 and jumptype='constrained'
+440: eta=0.108921 cost=2.46292e-05 jtype=constrained costheta=NaN ps=[2.99988, 0.566529, -0.90411, 0.935703, -0.129177, 0.0650015, 0.870198, -0.00636096, 0.0105445, 0.960419]
+eta going down: new_cost-cost=0.000310081 and jumptype='constrained'
+eta going down: new_cost-cost=1.97107e-05 and jumptype='constrained'
+eta going down: new_cost-cost=2.20964e-06 and jumptype='constrained'
+eta going down: new_cost-cost=3.80045e-07 and jumptype='constrained'
+eta going down: new_cost-cost=8.27294e-08 and jumptype='constrained'
+eta going down: new_cost-cost=1.9644e-08 and jumptype='constrained'
+eta going down: new_cost-cost=4.7934e-09 and jumptype='constrained'
+eta going down: new_cost-cost=1.13131e-09 and jumptype='constrained'
+eta going down: new_cost-cost=2.65405e-10 and jumptype='constrained'
+eta going down: new_cost-cost=4.05446e-11 and jumptype='constrained'
+450: eta=0.000106368 cost=2.46292e-05 jtype=constrained costheta=NaN ps=[2.99988, 0.566529, -0.90411, 0.935703, -0.129177, 0.0650015, 0.870198, -0.00636096, 0.0105445, 0.960419]
+460: eta=0.000275891 cost=2.46291e-05 jtype=constrained costheta=-1.000 ps=[2.99988, 0.566528, -0.904108, 0.935703, -0.129177, 0.0650018, 0.870196, -0.00636097, 0.0105445, 0.960419]
+470: eta=0.000715591 cost=2.4629e-05 jtype=constrained costheta=-0.996 ps=[2.99988, 0.566529, -0.904108, 0.935704, -0.129177, 0.0650019, 0.870196, -0.00636096, 0.0105445, 0.960419]
+480: eta=0.00185606 cost=2.46287e-05 jtype=constrained costheta=-0.868 ps=[2.99988, 0.566529, -0.904109, 0.935703, -0.129177, 0.0650018, 0.870197, -0.00636096, 0.0105445, 0.960419]
+490: eta=0.00481414 cost=2.4628e-05 jtype=constrained costheta=-0.251 ps=[2.99989, 0.566529, -0.90411, 0.935703, -0.129177, 0.0650014, 0.870199, -0.00636096, 0.0105445, 0.960419]
+500: eta=0.0124866 cost=2.46264e-05 jtype=constrained costheta=-0.038 ps=[2.9999, 0.56653, -0.904114, 0.9357, -0.129178, 0.0650005, 0.870204, -0.00636096, 0.0105444, 0.960419]
+510: eta=0.0323871 cost=2.46229e-05 jtype=constrained costheta=-0.006 ps=[2.99992, 0.566532, -0.904122, 0.935696, -0.129179, 0.0649986, 0.870215, -0.00636096, 0.0105442, 0.960419]
+520: eta=0.0840039 cost=2.46171e-05 jtype=constrained costheta=-0.001 ps=[2.99996, 0.566536, -0.904135, 0.935688, -0.129181, 0.0649953, 0.870233, -0.00636096, 0.010544, 0.960419]
+eta going down: new_cost-cost=5.40369e-10 and jumptype='constrained'
+530: eta=0.0990384 cost=2.4613e-05 jtype=constrained costheta=-0.001 ps=[2.99999, 0.566539, -0.904144, 0.935683, -0.129183, 0.0649931, 0.870246, -0.00636095, 0.0105438, 0.960419]
+eta going down: new_cost-cost=0.0919754 and jumptype='constrained'
+eta going down: new_cost-cost=0.0910022 and jumptype='constrained'
+eta going down: new_cost-cost=6.66531e-06 and jumptype='constrained'
+540: eta=0.0241247 cost=2.46117e-05 jtype=constrained costheta=NaN ps=[3, 0.56654, -0.904147, 0.935682, -0.129184, 0.0649924, 0.87025, -0.00636095, 0.0105437, 0.960419]
+eta going down: new_cost-cost=1.067e-06 and jumptype='constrained'
+eta going down: new_cost-cost=2.337e-07 and jumptype='constrained'
+eta going down: new_cost-cost=5.76179e-08 and jumptype='constrained'
+eta going down: new_cost-cost=1.45397e-08 and jumptype='constrained'
+eta going down: new_cost-cost=3.66747e-09 and jumptype='constrained'
+eta going down: new_cost-cost=9.21885e-10 and jumptype='constrained'
+eta going down: new_cost-cost=2.31123e-10 and jumptype='constrained'
+eta going down: new_cost-cost=5.78402e-11 and jumptype='constrained'
+eta going down: new_cost-cost=1.44493e-11 and jumptype='constrained'
+eta going down: new_cost-cost=3.59618e-12 and jumptype='constrained'
+550: eta=2.35593e-05 cost=2.46117e-05 jtype=constrained costheta=NaN ps=[3, 0.56654, -0.904147, 0.935682, -0.129184, 0.0649924, 0.87025, -0.00636095, 0.0105437, 0.960419]
+About to break -- tol=1e-12, new_cost-cost=8.84081e-13, eta=2.35593e-05
+Came out with cost 2.46117e-05 and pars = [3, 0.56654, -0.904147, 0.935682, -0.129184, 0.0649924, 0.87025, -0.00636095, 0.0105437, 0.960419]
+
+WARNING: No working GUI backend found for matplotlib
+WARNING: replacing docs for 'remove_xtick_labels :: Tuple{Any}' in module 'Main'.
+WARNING: replacing docs for 'print_vector :: Tuple{Any}' in module 'Main'.
+WARNING: replacing docs for 'print_vector_g :: Tuple{Any}' in module 'Main'.
+WARNING: replacing docs for 'two_level_copy :: Tuple{Any}' in module 'Main'.
+WARNING: replacing docs for 'next_file :: Tuple{Any,Any}' in module 'Main'.
+WARNING: replacing docs for 'ascii_key_ize :: Tuple{Any}' in module 'Main'.
+WARNING: replacing docs for 'symbol_key_ize :: Tuple{Any}' in module 'Main'.
+WARNING: replacing docs for 'one_d_minimizer :: Tuple{Any,Any}' in module 'Main'.
+WARNING: replacing docs for 'constrained_parabolic_minimization :: Tuple{Any,Any,Any}' in module 'Main'.
+WARNING: replacing docs for 'make_dict :: Union{Tuple{Any,Any,Any},Tuple{Any,Any}}' in module 'Main'.
+WARNING: replacing docs for 'ForwardDiffZeros :: Tuple{Any,Any}' in module 'Main'.
+WARNING: replacing docs for 'vgh :: Tuple{Any,Any}' in module 'Main'.
+WARNING: replacing docs for 'keyword_vgh :: Tuple{Any,Any,Any}' in module 'Main'.
+WARNING: replacing docs for 'keyword_gradient :: Tuple{Any,Any,Any}' in module 'Main'.
+WARNING: replacing docs for 'keyword_gradient! :: Tuple{Any,Any,Any,Any}' in module 'Main'.
+WARNING: replacing docs for 'keyword_hessian :: Tuple{Any,Any,Any}' in module 'Main'.
+WARNING: replacing docs for 'keyword_hessian! :: Tuple{Any,Any,Any,Any}' in module 'Main'.
+WARNING: replacing docs for 'constrained_Hessian_minimization :: Tuple{Any,Any}' in module 'Main'.
+WARNING: replacing docs for 'trust_region_Hessian_minimization :: Tuple{Any,Any}' in module 'Main'.
+WARNING: replacing docs for 'wallwrap :: Tuple{Any,Any}' in module 'Main'.
+WARNING: replacing docs for 'vector_wrap :: Tuple{Any,Any,Any}' in module 'Main'.
+WARNING: replacing docs for 'inverse_wall :: Tuple{Any,Any,Any}' in module 'Main'.
+WARNING: replacing docs for 'inverse_wall :: Tuple{Any,Any}' in module 'Main'.
+WARNING: replacing docs for 'bbox_Hessian_keyword_minimization :: Tuple{Any,Any,Any,Any}' in module 'Main'.
+WARNING: replacing docs for 'remove_xtick_labels :: Tuple{Any}' in module 'Main'.
+WARNING: replacing docs for 'print_vector :: Tuple{Any}' in module 'Main'.
+WARNING: replacing docs for 'print_vector_g :: Tuple{Any}' in module 'Main'.
+WARNING: replacing docs for 'two_level_copy :: Tuple{Any}' in module 'Main'.
+WARNING: replacing docs for 'next_file :: Tuple{Any,Any}' in module 'Main'.
+WARNING: replacing docs for 'ascii_key_ize :: Tuple{Any}' in module 'Main'.
+WARNING: replacing docs for 'symbol_key_ize :: Tuple{Any}' in module 'Main'.
+WARNING: replacing docs for 'one_d_minimizer :: Tuple{Any,Any}' in module 'Main'.
+WARNING: replacing docs for 'constrained_parabolic_minimization :: Tuple{Any,Any,Any}' in module 'Main'.
+WARNING: replacing docs for 'make_dict :: Union{Tuple{Any,Any,Any},Tuple{Any,Any}}' in module 'Main'.
+WARNING: replacing docs for 'ForwardDiffZeros :: Tuple{Any,Any}' in module 'Main'.
+WARNING: replacing docs for 'vgh :: Tuple{Any,Any}' in module 'Main'.
+WARNING: replacing docs for 'keyword_vgh :: Tuple{Any,Any,Any}' in module 'Main'.
+WARNING: replacing docs for 'keyword_gradient :: Tuple{Any,Any,Any}' in module 'Main'.
+WARNING: replacing docs for 'keyword_gradient! :: Tuple{Any,Any,Any,Any}' in module 'Main'.
+WARNING: replacing docs for 'keyword_hessian :: Tuple{Any,Any,Any}' in module 'Main'.
+WARNING: replacing docs for 'keyword_hessian! :: Tuple{Any,Any,Any,Any}' in module 'Main'.
+WARNING: replacing docs for 'constrained_Hessian_minimization :: Tuple{Any,Any}' in module 'Main'.
+WARNING: replacing docs for 'trust_region_Hessian_minimization :: Tuple{Any,Any}' in module 'Main'.
+WARNING: replacing docs for 'wallwrap :: Tuple{Any,Any}' in module 'Main'.
+WARNING: replacing docs for 'vector_wrap :: Tuple{Any,Any,Any}' in module 'Main'.
+WARNING: replacing docs for 'inverse_wall :: Tuple{Any,Any,Any}' in module 'Main'.
+WARNING: replacing docs for 'inverse_wall :: Tuple{Any,Any}' in module 'Main'.
+WARNING: replacing docs for 'bbox_Hessian_keyword_minimization :: Tuple{Any,Any,Any,Any}' in module 'Main'.
+WARNING: replacing docs for 'g :: Tuple{Any}' in module 'Main'.
+WARNING: replacing docs for 'ginverse :: Tuple{Any}' in module 'Main'.
+WARNING: replacing docs for 'forwardModel :: Tuple{Any}' in module 'Main'.
+WARNING: replacing docs for 'backwardsModel :: Tuple{Any}' in module 'Main'.
+ERROR: LoadError: BoundsError
+ in indexed_next(::Float64, ::Int64, ::Bool) at ./tuple.jl:35
+ in macro expansion; at /home/alex.piet/superior_colliculus_mutual_inhibition/fit_all.jl:130 [inlined]
+ in anonymous at ./<missing>:?
+ in include_from_node1(::String) at ./loading.jl:488
+ in process_options(::Base.JLOptions) at ./client.jl:265
+ in _start() at ./client.jl:321
+while loading /home/alex.piet/superior_colliculus_mutual_inhibition/fit_all.jl, in expression starting on line 81
