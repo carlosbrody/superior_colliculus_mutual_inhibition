@@ -101,6 +101,79 @@ function JJ_opto(nPro, nAnti; opto_targets=[0.9 0.7], theta1=0.025, theta2=0.035
     return cost1 + cost2, cost1s, cost2s, hP,hA,dP,dA,hBP,hBA
 end
 
+function JJ(nPro, nAnti; pro_target=0.9, anti_target=0.7, 
+    theta1=0.025, theta2=0.035, cbeta=0.003, verbose=false, 
+    pre_string="", zero_last_sigmas=0, seedrand=NaN, 
+    rule_and_delay_periods = [0.4], target_periods = [0.1], post_target_periods = [0.5],
+    nderivs=0, difforder=0, model_params...)
+
+    nruns = length(rule_and_delay_periods)*length(target_periods)*length(post_target_periods)
+    
+    cost1s = ForwardDiffZeros(1, nruns, nderivs=nderivs, difforder=difforder)
+    cost2s = ForwardDiffZeros(1, nruns, nderivs=nderivs, difforder=difforder)
+
+    if ~isnan(seedrand); srand(seedrand); end
+    
+    n = totHitsP = totHitsA = totDiffsP = totDiffsA = 0
+    for i in rule_and_delay_periods
+        for j in target_periods
+            for k = post_target_periods
+                n += 1
+                
+                my_params = make_dict(["rule_and_delay_period", "target_period", "post_target_period"],
+                [i, j, k], Dict(model_params))
+    
+                # print("model params is " ); print(model_params); print("\n")
+                proVs, antiVs = run_ntrials(nPro, nAnti; nderivs=nderivs, difforder=difforder, my_params...)
+
+                hitsP  = 0.5*(1 + tanh.((proVs[1,:]-proVs[4,:,])/theta1))
+                diffsP = tanh.((proVs[1,:,]-proVs[4,:])/theta2).^2
+                hitsA  = 0.5*(1 + tanh.((antiVs[4,:]-antiVs[1,:,])/theta1))
+                diffsA = tanh.((antiVs[4,:,]-antiVs[1,:])/theta2).^2
+
+                if nPro>0 && nAnti>0
+                    cost1s[n] = (nPro*(mean(hitsP) - pro_target).^2  + nAnti*(mean(hitsA) - anti_target).^2)/(nPro+nAnti)
+                    cost2s[n] = -cbeta*(nPro*mean(diffsP) + nAnti*mean(diffsA))/(nPro+nAnti)
+                elseif nPro>0
+                    cost1s[n] = (mean(hitsP) - pro_target).^2
+                    cost2s[n] = -cbeta*mean(diffsP)
+                else
+                    cost1s[n] = (mean(hitsA) - anti_target).^2
+                    cost2s[n] = -cbeta*mean(diffsA)
+                end
+
+                totHitsP  += mean(hitsP);  totHitsA  += mean(hitsA); 
+                totDiffsP += mean(diffsP); totDiffsA += mean(diffsA);
+            end
+        end
+    end
+    
+    cost1 = mean(cost1s)
+    cost2 = mean(cost2s)
+
+    hitsP = totHitsP/n; hitsA = totHitsA/n; diffsP = totDiffsP/n; diffsA = totDiffsA/n
+    
+    if verbose
+        @printf("%s", pre_string)
+        @printf("     -- cost=%g,   cost1=%g, cost2=%g\n", 
+            convert(Float64, cost1+cost2), convert(Float64, cost1), convert(Float64, cost2))
+        if nPro>0 && nAnti>0
+            @printf("     -- mean(hitsP)=%g, mean(diffsP)=%g mean(hitsA)=%g, mean(diffsA)=%g\n", 
+                convert(Float64, mean(hitsP)), convert(Float64, mean(diffsP)),
+                convert(Float64, mean(hitsA)), convert(Float64, mean(diffsA)))
+        elseif nPro>0
+            @printf("     -- mean(hitsP)=%g, mean(diffsP)=%g (nAnti=0)\n", 
+                convert(Float64, mean(hitsP)), convert(Float64, mean(diffsP)))
+        else
+            @printf("     -- (nPro=0) mean(hitsA)=%g, mean(diffsA)=%g\n", 
+                convert(Float64, mean(hitsA)), convert(Float64, mean(diffsA)))
+        end        
+    end
+    
+    return cost1 + cost2, cost1, cost2, hitsP, hitsA, diffsP, diffsA
+end
+
+
 # returns a vector of the inhibition fraction for each node given the opto period and opto strength
 # right now, it always computes bilateral inactivations
 function make_opto_input(nsteps; dt = 0.02, opto_strength=1, opto_period=[-1 1],nderivs=0,difforder=0, other_unused_params...);
