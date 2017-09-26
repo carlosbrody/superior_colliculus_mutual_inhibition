@@ -78,10 +78,11 @@ num_optimize_restarts   = 100;
 # define base filename
 fbasename = "FarmFields/farm_"*string(FarmName);
 cb = cbetas[1];
-recoverfilebase = "crashed_runs012/crashed_run_"
+recoverfilebase = "crashed_runs016/crashed_run_"
 
 for i=1:64   # Iterate this many optimizations
-    try
+    recoverfile = recoverfilebase*string(i)*".jl" 
+    if isfile(recoverfile)
     
     # figure out initial seed for random number generator
     sr = convert(Int64, round(time()))
@@ -91,7 +92,6 @@ for i=1:64   # Iterate this many optimizations
     func =  (;params...) -> JJ_opto(model_params[:nPro], model_params[:nAnti]; rule_and_delay_periods=rule_and_delay_periods, theta1=model_params[:theta1], theta2=model_params[:theta2], post_target_periods=post_target_periods, seedrand=sr, cbeta=cb, verbose=false, merge(model_params, Dict(params))...)[1]
 
     # load the recovered parameters
-    pars=[];   
     recoverfile = recoverfilebase*string(i)*".jl" 
     include(recoverfile)
 
