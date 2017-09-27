@@ -49,9 +49,11 @@ model_params = Dict(
 :theta1                   => 0.05,
 :theta2                   => 0.15,
 :opto_strength  => .7,
-:opto_periods   => [-1  -1 ; 0   20 ;0    1 ; 1  1.5;1.5  20],
+:opto_periods   => [-1  -1 ; 0   20 ;0    1 ; 1  1.5;1.5  20],  # set of opto conditions, in seconds, with 0 the start 
+# of the trial (i.e. start of rule_and_delay_period), anything before 0 or after end of trial gets ignored.
 #:opto_targets   => [.75 .73;.77 .58;.75 .74;.72 .66;.73 .75] 
-:opto_targets => [.9 .7; .9 .5; .9 .7; .9 .5; .9 .7]
+:opto_targets => [.9 .7; .9 .5; .9 .7; .9 .5; .9 .7]  # first column is frachit Pro, next column is Anti, rows are conditions
+# The "conditions" correspond to the rows of opto_periods.
 );
 
 # ======= ARGUMENTS AND SEED VALUES:
