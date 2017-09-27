@@ -183,11 +183,44 @@ function make_opto_input(nsteps; dt = 0.02, opto_strength=1, opto_period=[-1 1],
 
     if opto_period[2] < 0 # no opto, return all ones
         opto_fraction = 1+ForwardDiffZeros(4,nsteps,nderivs=nderivs, difforder=difforder);
+#        print("0 0 out of ")
+#        print(nsteps*dt)
+#        print(" with command ")
+#        print(opto_period)  
+#        println()
     else # opto, compute fraction vector
+        # check for variable inputs
+        other_unused_params = Dict(other_unused_params);
+        end_rd =     other_unused_params[:rule_and_delay_period];
+        end_target = other_unused_params[:rule_and_delay_period]+other_unused_params[:target_period]; 
+        if opto_period[1]==100
+            opto_period[1] = end_rd;
+        elseif opto_period[1]==200
+            opto_period[1] = end_target;
+        end        
+        if opto_period[2]==100
+            opto_period[2] = end_rd;
+        elseif opto_period[2]==200
+            opto_period[2] = end_target;
+        end        
+
+        # check for start and end of trial flags
         start_step = round(opto_period[1]/dt);
         if start_step < 1; start_step = 1; end
         end_step = round(opto_period[2]/dt);
         if end_step > nsteps; end_step = nsteps; end
+        if end_step < 1; end_step = 1; end
+
+#        print(start_step*dt)
+#        print(" ")
+#        print(end_step*dt)
+#        print(" out of ")
+#        print(nsteps*dt)
+#        print(" with command ")
+#        print(opto_period)
+#        println()       
+ 
+        # compute the fraction
         opto_fraction = 1+ForwardDiffZeros(4,nsteps,nderivs=nderivs, difforder=difforder);
         opto_fraction[:,Int(start_step):Int(end_step)] = repeat(strength,outer=[4,Int(end_step)-Int(start_step)+1]);
     end
