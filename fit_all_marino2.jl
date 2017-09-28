@@ -69,7 +69,7 @@ sbox = Dict(:sW=>[0 .5], :vW=>[-.5 .5], :hW=>[-.5 .5], :dW=>[-.5 .5],
 # define a few hyper parameters
 cbetas = [0.04];
 rule_and_delay_periods = [0.2];
-post_target_periods    = [0];
+post_target_periods    = [0.1];
 num_eval_runs           = 1000;
 num_optimize_iter       = 2000;
 num_optimize_restarts   = 100;
