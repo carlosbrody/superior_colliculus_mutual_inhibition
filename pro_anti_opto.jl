@@ -51,19 +51,13 @@ function JJ_opto(nPro, nAnti; opto_targets=[0.9 0.7], theta1=0.025, theta2=0.035
 
                 if nPro>0 && nAnti>0
                     cost1s[kk,nopto] = (nPro*(mean(hitsP) - opto_targets[kk,1]).^2  + nAnti*(mean(hitsA) - opto_targets[kk,2]).^2)/(nPro+nAnti)
-                    if kk ==1
                     cost2s[kk,nopto] = -cbeta*(nPro*mean(diffsP) + nAnti*mean(diffsA))/(nPro+nAnti)
-                    end
                 elseif nPro>0
                     cost1s[kk,nopto] = (mean(hitsP) - opto_targets[kk,1]).^2
-                    if kk == 1
                     cost2s[kk,nopto] = -cbeta*mean(diffsP)
-                    end
                 else
                     cost1s[kk,nopto] = (mean(hitsA) - opto_targets[kk,2]).^2
-                    if kk == 1
                     cost2s[kk,nopto] = -cbeta*mean(diffsA)
-                    end
                 end
 
               #  totHitsP  += mean(hitsP);  totHitsA  += mean(hitsA); 
