@@ -18,15 +18,6 @@ function JJ_opto_nll(nPro, nAnti, data; opto_targets=[0.9 0.7], theta1=0.025, th
     hBP = zeros(size(opto_periods)[1], nruns_each);
     hBA = zeros(size(opto_periods)[1], nruns_each);
 
-#                    Ppro = ForwardDiffZeros(1,1, nderivs=nderivs, difforder=difforder)
-#                    Panti = ForwardDiffZeros(1,1, nderivs=nderivs, difforder=difforder)
-#                    Vpro = ForwardDiffZeros(1,1, nderivs=nderivs, difforder=difforder)
-#                    Vanti = ForwardDiffZeros(1,1, nderivs=nderivs, difforder=difforder)
-#                    PproData = ForwardDiffZeros(1,1, nderivs=nderivs, difforder=difforder)
-#                    PantiData = ForwardDiffZeros(1,1, nderivs=nderivs, difforder=difforder)
-#
-
-
     n = totHitsP = totHitsA = totDiffsP = totDiffsA =nopto= 0
     for kk=1:size(opto_periods)[1] # iterate over each opto inactivation period
     nopto = 0;

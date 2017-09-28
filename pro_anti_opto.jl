@@ -248,7 +248,6 @@ function run_ntrials_opto(nPro, nAnti; plot_list=[], nderivs=0, difforder=0,star
     for i=1:nPro
        # startU = [-0.3, -0.7, -0.7, -0.3]
         startU = start_pro;
-        println(startU)
         Uend, Vend, U, V = forwardModel_opto(startU, opto_fraction, do_plot=false; model_params...)
         proVs[:,i] = Vend
         if any(plot_list.==i) 
@@ -263,7 +262,7 @@ function run_ntrials_opto(nPro, nAnti; plot_list=[], nderivs=0, difforder=0,star
     for i=1:nAnti
         #startU = [-0.7, -0.3, -0.3, -0.7]
         startU = start_anti;
-        println(startU)
+
         Uend, Vend, U, V = forwardModel_opto(startU,opto_fraction, do_plot=false; model_params...)
         antiVs[:,i] = Vend
         if any(plot_list.==i) 
