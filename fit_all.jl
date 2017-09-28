@@ -1,4 +1,4 @@
-FarmName = "J"
+FarmName = "TEST"
 
 # Incorporate packages
 using ForwardDiff
@@ -48,6 +48,8 @@ model_params = Dict(
 :nAnti                    => 100,
 :theta1                   => 0.05,
 :theta2                   => 0.15,
+:start_pro                => [-0.5, -0.5, -0.5, -0.5],
+:start_anti               => [-0.5, -0.5, -0.5, -0.5],
 :opto_strength  => .7,
 :opto_periods   => [-1  -1 ; 0   20 ; 0  100;100  200],  # set of opto conditions, in seconds, with 0 the start 
 # of the trial (i.e. start of rule_and_delay_period), anything before 0 or after end of trial gets ignored.
@@ -75,8 +77,8 @@ cbetas = [0.02];
 rule_and_delay_periods = [0.5 1.5];
 post_target_periods    = [0.5 1.5];
 num_eval_runs           = 1000;
-num_optimize_iter       = 2000;
-num_optimize_restarts   = 100;
+num_optimize_iter       = 1;#2000;
+num_optimize_restarts   = 1;#100;
 
 # define base filename
 fbasename = "FarmFields/farm_"*string(FarmName);
