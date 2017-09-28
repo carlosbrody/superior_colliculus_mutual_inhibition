@@ -131,7 +131,7 @@ test_new_func =  (;params...) -> JJ_opto_nll(model_params[:nPro],model_params[:n
 
 nll_opto_scost, nll_opto_scost1, nll_opto_scost2, nll_opto_hitsP,nll_opto_hitsA, nll_opto_diffsP, nll_opto_diffsA, nll_opto_bP, nll_opto_bA = test_new_func()
 
-test_new_func =  (;params...) -> JJ_opto_nll(model_params[:nPro],model_params[:nAnti],data; rule_and_delay_periods=F["rule_and_delay_periods"], theta1=model_params[:theta1], theta2=model_params[:theta2], post_target_periods=F["post_target_periods"], seedrand=F["test_sr"], cbeta=F["cb"], verbose=true,plot_conditions=[true, false, false,false,false],merge(make_dict(F["args"],F["pars"], merge(model_params, Dict(params))))...)[1]
+test_new_func =  (;params...) -> JJ_opto_nll(model_params[:nPro],model_params[:nAnti],data; rule_and_delay_periods=F["rule_and_delay_periods"], theta1=model_params[:theta1], theta2=model_params[:theta2], post_target_periods=F["post_target_periods"], seedrand=F["test_sr"], cbeta=F["cb"], verbose=true,plot_conditions=[true, false, false,false,false],merge(make_dict(F["args"],F["pars"]), merge(model_params, Dict(params)))...)[1]
 
 value, grad,hess = keyword_vgh(test_new_func,F["args"],F["pars"])
 
