@@ -93,7 +93,7 @@ function JJ_opto_plot(nPro, nAnti; opto_targets=[0.9 0.7], theta1=0.025, theta2=
 end
 
 # find the best run from this farm
-farmName = "L";
+farmName = "M";
 fnames = filter(x -> startswith(x, "farm_"*farmName), readdir("FarmFields/"));
 costs = zeros(size(fnames));
 for i=1:length(fnames)
@@ -101,6 +101,7 @@ for i=1:length(fnames)
     costs[i] = G["cost"];
 end
 farmnum = find(costs .== minimum(costs))
+
 
 # load farm and do a run
 F = matread("FarmFields/farm_"*farmName*lpad(farmnum[1],4,0)*".mat")
@@ -121,20 +122,23 @@ epochs = ["control"; "full"; "rule"; "delay"; "target"]
 
 #### testing new cost function
 
-proData  = [7500;385;375;360;365];
-antiData = [7300;290;370;330;375];
-nProData  = [10000;500;500;500;500];
-nAntiData = [10000;500;500;500;500];
-data = Dict(:proData=>proData,:antiData=>antiData,:nProData=>nProData,:nAntiData=>nAntiData);
 
-test_new_func =  (;params...) -> JJ_opto_nll(model_params[:nPro],model_params[:nAnti],data; rule_and_delay_periods=F["rule_and_delay_periods"], theta1=model_params[:theta1], theta2=model_params[:theta2], post_target_periods=F["post_target_periods"], seedrand=F["test_sr"], cbeta=F["cb"], verbose=true,plot_conditions=[true, false, false,false,false],merge(make_dict(F["args"],F["pars"], merge(model_params, Dict(params))))...)
-
-nll_opto_scost, nll_opto_scost1, nll_opto_scost2, nll_opto_hitsP,nll_opto_hitsA, nll_opto_diffsP, nll_opto_diffsA, nll_opto_bP, nll_opto_bA = test_new_func()
-
-test_new_func =  (;params...) -> JJ_opto_nll(model_params[:nPro],model_params[:nAnti],data; rule_and_delay_periods=F["rule_and_delay_periods"], theta1=model_params[:theta1], theta2=model_params[:theta2], post_target_periods=F["post_target_periods"], seedrand=F["test_sr"], cbeta=F["cb"], verbose=true,plot_conditions=[true, false, false,false,false],merge(make_dict(F["args"],F["pars"]), merge(model_params, Dict(params)))...)[1]
-
-value, grad,hess = keyword_vgh(test_new_func,F["args"],F["pars"])
-
-
-
-
+# include("pro_anti_opto_nll.jl")
+# 
+# proData  = [7500;385;375;360;365];
+# antiData = [7300;290;370;330;375];
+# nProData  = [10000;500;500;500;500];
+# nAntiData = [10000;500;500;500;500];
+# data = Dict(:proData=>proData,:antiData=>antiData,:nProData=>nProData,:nAntiData=>nAntiData);
+# 
+# test_new_func =  (;params...) -> JJ_opto_nll(model_params[:nPro],model_params[:nAnti],data; rule_and_delay_periods=F["rule_and_delay_periods"], theta1=model_params[:theta1], theta2=model_params[:theta2], post_target_periods=F["post_target_periods"], seedrand=F["test_sr"], cbeta=F["cb"], verbose=true,plot_conditions=[true, false, false,false,false],merge(make_dict(F["args"],F["pars"], merge(model_params, Dict(params))))...)
+# 
+# nll_opto_scost, nll_opto_scost1, nll_opto_scost2, nll_opto_hitsP,nll_opto_hitsA, nll_opto_diffsP, nll_opto_diffsA, nll_opto_bP, nll_opto_bA = test_new_func()
+# 
+# test_new_func =  (;params...) -> JJ_opto_nll(model_params[:nPro],model_params[:nAnti],data; rule_and_delay_periods=F["rule_and_delay_periods"], theta1=model_params[:theta1], theta2=model_params[:theta2], post_target_periods=F["post_target_periods"], seedrand=F["test_sr"], cbeta=F["cb"], verbose=true,plot_conditions=[true, false, false,false,false],merge(make_dict(F["args"],F["pars"]), merge(model_params, Dict(params)))...)[1]
+# 
+# value, grad,hess = keyword_vgh(test_new_func,F["args"],F["pars"])
+# 
+# 
+# 
+# 

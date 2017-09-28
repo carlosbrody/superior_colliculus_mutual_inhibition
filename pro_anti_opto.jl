@@ -229,7 +229,7 @@ function make_opto_input(nsteps; dt = 0.02, opto_strength=1, opto_period=[-1 1],
 end
 
 
-function run_ntrials_opto(nPro, nAnti; plot_list=[], nderivs=0, difforder=0, opto_periods=[-1 -1],model_params...)
+function run_ntrials_opto(nPro, nAnti; plot_list=[], nderivs=0, difforder=0,start_pro=[-0.3, -0.7, -0.7, -0.3], start_anti=[-0.7, -0.3, -0.3, -0.7],  opto_periods=[-1 -1],model_params...)
     pro_input,  t, nsteps = make_input("Pro" ; model_params...);
     anti_input, t, nsteps = make_input("Anti"; model_params...);
     #### make opto fraction vector
@@ -252,7 +252,9 @@ function run_ntrials_opto(nPro, nAnti; plot_list=[], nderivs=0, difforder=0, opt
     if length(plot_list)>0; figure(1); clf(); end
     model_params = make_dict(["input"], [pro_input], model_params)
     for i=1:nPro
-        startU = [-0.3, -0.7, -0.7, -0.3]
+       # startU = [-0.3, -0.7, -0.7, -0.3]
+        startU = start_pro;
+        println(startU)
         Uend, Vend, U, V = forwardModel_opto(startU, opto_fraction, do_plot=false; model_params...)
         proVs[:,i] = Vend
         if any(plot_list.==i) 
@@ -265,7 +267,9 @@ function run_ntrials_opto(nPro, nAnti; plot_list=[], nderivs=0, difforder=0, opt
     if length(plot_list)>0; figure(2); clf(); end
     model_params = make_dict(["input"], [anti_input], model_params)
     for i=1:nAnti
-        startU = [-0.7, -0.3, -0.3, -0.7]
+        #startU = [-0.7, -0.3, -0.3, -0.7]
+        startU = start_anti;
+        println(startU)
         Uend, Vend, U, V = forwardModel_opto(startU,opto_fraction, do_plot=false; model_params...)
         antiVs[:,i] = Vend
         if any(plot_list.==i) 
