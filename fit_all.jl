@@ -49,10 +49,11 @@ model_params = Dict(
 :theta1                   => 0.05,
 :theta2                   => 0.15,
 :opto_strength  => .7,
-:opto_periods   => [-1  -1 ; 0   20 ;0    1 ; 1  1.5;1.5  20],  # set of opto conditions, in seconds, with 0 the start 
+:opto_periods   => [-1  -1 ; 0   20 ; 0  100;100  200],  # set of opto conditions, in seconds, with 0 the start 
 # of the trial (i.e. start of rule_and_delay_period), anything before 0 or after end of trial gets ignored.
-#:opto_targets   => [.75 .73;.77 .58;.75 .74;.72 .66;.73 .75] 
-:opto_targets => [.9 .7; .9 .5; .9 .7; .9 .5; .9 .7]  # first column is frachit Pro, next column is Anti, rows are conditions
+# special values for opto_periods: 20 "end of trial", -1 "start of trial", 100 "end of rule and delay period", 200 "end of target period"
+#:opto_targets   => [.75 .73;.77 .58;.72 .66;.73 .75] 
+:opto_targets => [.9 .7; .9 .5; .9 .5; .9 .7]  # first column is frachit Pro, next column is Anti, rows are conditions
 # The "conditions" correspond to the rows of opto_periods.
 );
 
@@ -63,16 +64,16 @@ seed = [0.2,   1,   0.2,  1,    0.39,                0.15,                      
 # ======= BOUNDING BOX:
 bbox = Dict(:sW=>[0 3], :vW=>[-3 3], :hW=>[-3 3], :dW=>[-3 3], :constant_excitation=>[-2 2],
 :right_light_excitation=>[0.05 4], :target_period_excitation=>[0.05 4], :const_pro_bias=>[-2 2],
-:sigma=>[0.01 0.2],:opto_strength=>[0 1]);
+:sigma=>[0.01 2],:opto_strength=>[0 1]);
 
 # ======== SEARCH ZONE:
 sbox = Dict(:sW=>[0.1 .5], :vW=>[-.5 .5], :hW=>[-.5 .5], :dW=>[-.5 .5],
-:constant_excitation=>[-.5 .5], :right_light_excitation=>[0.15 .5], :target_period_excitation=>[0.15 .5],:const_pro_bias=>[-.5 .5], :sigma=>[0.02 0.19],:opto_strength=>[.7 .99]);
+:constant_excitation=>[-.5 .5], :right_light_excitation=>[0.15 .5], :target_period_excitation=>[0.15 .5],:const_pro_bias=>[-.5 .5], :sigma=>[0.02 1],:opto_strength=>[.7 .99]);
 
 # define a few hyper parameters
 cbetas = [0.02];
-rule_and_delay_periods = [1.5];
-post_target_periods    = [0.5];
+rule_and_delay_periods = [0.5 1.5];
+post_target_periods    = [0.5 1.5];
 num_eval_runs           = 1000;
 num_optimize_iter       = 2000;
 num_optimize_restarts   = 100;
