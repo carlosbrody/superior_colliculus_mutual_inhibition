@@ -9,6 +9,9 @@ sudo apt-get -y install build-essential
 sudo apt-get update
 sudo apt-get -y upgrade
 sudo apt-get -y install git-core
+#
+#  PUT YOUR OWN NAME AND EMAIL HERE !!!!
+#
 git config --global user.email "YOUR@EMAIL"
 git config --global user.name "YOUR NAME"
 sudo apt-get -y install emacs
@@ -22,10 +25,13 @@ tar xvfz julia-0.5.2-linux-x86_64.tar.gz
 sudo ln -s /home/carlosbrody/julia-f4c6c9d4bb/bin/julia /usr/bin/julia
 
 
+#
+#  PUT YOUR OWN GITHUB USERNAME AND PASSWORD HERE !!!!
+#
 git clone "http://your_github_usernam:your_github_password@github.com/carlosbrody/superior_colliculus_mutual_inhibition.git"
 
-# THEN START JULIA AND RUN THIS FILE:
 
+# Final step is to run julia to install its packages:
 julia julia_start.jl
 
 
