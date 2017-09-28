@@ -68,8 +68,8 @@ function JJ_opto_nll(nPro, nAnti, data; opto_targets=[0.9 0.7], theta1=0.025, th
                     Panti = (1/(nAnti + data[:nAntiData][kk]))*(nAnti*mean(hitsA) + data[:antiData][kk]);
 
                     # compute the cost functions
-                    Vpro = (mean(hitsP)-Ppro)^2/(Ppro*(1-Ppro))    + data[:nProData][kk]*(PproData[kk] - Ppro)^2/Ppro      + data[:nProData][kk]*(PproData[kk] - Ppro)^2/(1-Ppro);
-                    Vanti= (mean(hitsA)-Panti)^2/(Panti*(1-Panti)) + data[:nAntiData][kk]*(PantiData[kk] - Panti)^2/Panti  + data[:nAntiData][kk]*(PantiData[kk] - Panti)^2/(1-Panti);
+                    Vpro = nPro*(mean(hitsP)-Ppro)^2/(Ppro*(1-Ppro))     + data[:nProData][kk]*(PproData[kk] - Ppro)^2/Ppro      + data[:nProData][kk]*(PproData[kk] - Ppro)^2/(1-Ppro);
+                    Vanti= nAnti*(mean(hitsA)-Panti)^2/(Panti*(1-Panti)) + data[:nAntiData][kk]*(PantiData[kk] - Panti)^2/Panti  + data[:nAntiData][kk]*(PantiData[kk] - Panti)^2/(1-Panti);
 
                     cost1s[kk,nopto] = Vpro + log(Vpro) + Vanti + log(Vanti);
                     if kk ==1
