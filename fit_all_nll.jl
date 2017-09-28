@@ -95,8 +95,8 @@ cbetas = [0.02];
 rule_and_delay_periods = [0.5 1.5];
 post_target_periods    = [0.5 1.5];
 num_eval_runs           = 1000;
-num_optimize_iter       = 1;#2000;
-num_optimize_restarts   = 1;#100;
+num_optimize_iter       = 2000;
+num_optimize_restarts   = 100;
 
 # define base filename
 fbasename = "FarmFields/farm_"*string(FarmName);
