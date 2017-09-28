@@ -64,12 +64,12 @@ bbox = Dict(:sW=>[0 3], :vW=>[-3 3], :hW=>[-3 3], :dW=>[-3 3], :constant_excitat
 
 # ======== SEARCH ZONE:
 sbox = Dict(:sW=>[0 .5], :vW=>[-.5 .5], :hW=>[-.5 .5], :dW=>[-.5 .5],
-:constant_excitation=>[-.5 .5], :right_light_excitation=>[0.15 .5], :target_period_excitation=>[0.15 .5],:const_pro_bias=>[-.5 .5], :sigma=>[0.02 0.19],:opto_strength=>[.7 .99]);
+:constant_excitation=>[-.5 .5], :right_light_excitation=>[0.05 .5], :target_period_excitation=>[0.001 .5],:const_pro_bias=>[-.5 .5], :sigma=>[0.02 0.19],:opto_strength=>[.7 .99]);
 
 # define a few hyper parameters
-cbetas = [0.02];
-rule_and_delay_periods = [1.5];
-post_target_periods    = [0.5];
+cbetas = [0.04];
+rule_and_delay_periods = [0.2];
+post_target_periods    = [0];
 num_eval_runs           = 1000;
 num_optimize_iter       = 2000;
 num_optimize_restarts   = 100;
