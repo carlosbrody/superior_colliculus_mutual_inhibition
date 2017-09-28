@@ -51,12 +51,22 @@ model_params = Dict(
 :start_pro                => [-0.5, -0.5, -0.5, -0.5],
 :start_anti               => [-0.5, -0.5, -0.5, -0.5],
 :opto_strength  => .7,
-:opto_periods   => [-1  -1 ; 0   20 ; 0  100;100  200],  # set of opto conditions, in seconds, with 0 the start 
-# of the trial (i.e. start of rule_and_delay_period), anything before 0 or after end of trial gets ignored.
-# special values for opto_periods: 20 "end of trial", -1 "start of trial", 100 "end of rule and delay period", 200 "end of target period"
+:opto_periods   => [-1 -1; 0 20; 0 100; 100 20],  
+# The opto "conditions" correspond to the rows of opto_periods.
+# all conditions are in seconds relative to start of the trial
+# any value before 0 gets changed to 0
+# any value after the end of trial gets changed to end of trial
+# Special values allow for variable durations
+#  20 codes for "end of trial"
+#  -1 codes for "start of trial"
+# 100 codes for "end of rule and delay period"
+# 200 codes for "end of target period"
+# -------------------------------------------------------------
+# first column is frachit Pro, next column is Anti, rows are conditions
+# Actual Opto targets
 #:opto_targets   => [.75 .73;.77 .58;.72 .66;.73 .75] 
-:opto_targets => [.9 .7; .9 .5; .9 .5; .9 .7]  # first column is frachit Pro, next column is Anti, rows are conditions
-# The "conditions" correspond to the rows of opto_periods.
+# Fake Targets
+:opto_targets => [.9 .7; .9 .5; .9 .5; .9 .7]  
 );
 
 # ======= ARGUMENTS AND SEED VALUES:
@@ -88,7 +98,7 @@ for cb in cbetas                # Iterate over beta values, if there are multipl
     # figure out initial seed for random number generator
     sr = convert(Int64, round(time()))
     srand(sr);
-    #myseed = copy(seed);
+
     # get initial parameter values by sampling from sbox
     myseed = ForwardDiffZeros(length(args),1);
     for j=1:length(args)
