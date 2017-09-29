@@ -55,6 +55,7 @@ model_params = Dict(
 # Special values allow for variable durations
 #  20 codes for "end of trial"
 #  -1 codes for "start of trial"
+# 50 codes for "end of rule period" which is 1/2 of rule and delay period
 # 100 codes for "end of rule and delay period"
 # 200 codes for "end of target period"
 # -------------------------------------------------------------
