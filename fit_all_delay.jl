@@ -11,7 +11,9 @@ using MAT
 #include("hessian_utils.jl")
 include("pro_anti.jl")
 #include("rate_networks.jl")
-include("pro_anti_opto.jl")
+#include("pro_anti_opto.jl")
+include("pro_anti_opto_delay.jl")
+
 
 # Define core model parameters
 model_params = Dict(
@@ -51,7 +53,7 @@ model_params = Dict(
 :start_pro                => [-0.5, -0.5, -0.5, -0.5],
 :start_anti               => [-0.5, -0.5, -0.5, -0.5],
 :opto_strength  => .7,             #FIT
-:opto_periods   => [-1.1 -1; 0 20; 0 100; 100 20],  
+:opto_periods   => [-1.1 -1; 0 20; 0 100; 100 300; 300 20],  
 # The opto "conditions" correspond to the rows of opto_periods.
 # all conditions are in seconds relative to start of the trial
 # any value before 0 gets changed to 0
@@ -61,12 +63,13 @@ model_params = Dict(
 #  -1 codes for "start of trial"
 # 100 codes for "end of rule and delay period"
 # 200 codes for "end of target period"
+# 300 codes for "end of delay period"
 # -------------------------------------------------------------
 # first column is frachit Pro, next column is Anti, rows are conditions
 # Actual Opto targets
 #:opto_targets   => [.75 .73;.77 .58;.72 .66;.73 .75] 
 # Fake Targets
-:opto_targets => [.9 .7; .9 .5; .9 .5; .9 .7]  
+:opto_targets => [.9 .7; .9 .5;.9 .7; .9 .5; .9 .7]  
 );
 
 # ======= ARGUMENTS AND SEED VALUES:
@@ -86,9 +89,10 @@ sbox = Dict(:sW=>[0.1 .5], :vW=>[-.5 .5], :hW=>[-.5 .5], :dW=>[-.5 .5],
 cbetas = [0.02];
 rule_and_delay_periods = [0.5 1.5];
 post_target_periods    = [0.5 1.5];
+delay_period          = .5;
 num_eval_runs           = 1000;
-num_optimize_iter       = 2000;
-num_optimize_restarts   = 100;
+num_optimize_iter       = 1;#2000;
+num_optimize_restarts   = 1;#100;
 
 # define base filename
 fbasename = "FarmFields/farm_"*string(FarmName);
@@ -111,7 +115,7 @@ for cb in cbetas                # Iterate over beta values, if there are multipl
     end
 
     # define opto function with just value output
-    func =  (;params...) -> JJ_opto(model_params[:nPro], model_params[:nAnti]; rule_and_delay_periods=rule_and_delay_periods, theta1=model_params[:theta1], theta2=model_params[:theta2], post_target_periods=post_target_periods, seedrand=sr, cbeta=cb, verbose=false, merge(model_params, Dict(params))...)[1]
+    func =  (;params...) -> JJ_opto_delay(model_params[:nPro], model_params[:nAnti]; rule_and_delay_periods=rule_and_delay_periods, theta1=model_params[:theta1], theta2=model_params[:theta2], post_target_periods=post_target_periods,delay_period=delay_period, seedrand=sr, cbeta=cb, verbose=false, merge(model_params, Dict(params))...)[1]
     
     # run optimization with all parameters
     @printf("Going with seed = "); print_vector_g(myseed); print("\n")
@@ -122,7 +126,7 @@ for cb in cbetas                # Iterate over beta values, if there are multipl
     value, grad, hess = keyword_vgh(func, args, pars)
 
     # define function with all outputs, evaluate on training noise
-    t_standard_func =  (;params...) -> JJ_opto(model_params[:nPro], model_params[:nAnti]; rule_and_delay_periods=rule_and_delay_periods, theta1=model_params[:theta1], theta2=model_params[:theta2], post_target_periods=post_target_periods, seedrand=sr, cbeta=cb, verbose=false, merge(model_params, Dict(params))...)
+    t_standard_func =  (;params...) -> JJ_opto_delay(model_params[:nPro], model_params[:nAnti]; rule_and_delay_periods=rule_and_delay_periods, theta1=model_params[:theta1], theta2=model_params[:theta2], post_target_periods=post_target_periods,delay_period=delay_period, seedrand=sr, cbeta=cb, verbose=false, merge(model_params, Dict(params))...)
 
     # run opto model with all outputs, evaluate on training noise
     t_opto_scost, t_opto_scost1, t_opto_scost2, t_opto_hitsP,t_opto_hitsA, t_opto_diffsP, t_opto_diffsA, t_opto_bP, t_opto_bA = t_standard_func(;make_dict(args, pars, model_params)...)
@@ -133,7 +137,7 @@ for cb in cbetas                # Iterate over beta values, if there are multipl
     srand(test_sr); 
 
     # define function with all outputs, evaluate on test noise
-    standard_func =  (;params...) -> JJ_opto(num_eval_runs, num_eval_runs; rule_and_delay_periods=rule_and_delay_periods, theta1=model_params[:theta1], theta2=model_params[:theta2], post_target_periods=post_target_periods, seedrand=test_sr, cbeta=cb, verbose=false, merge(model_params, Dict(params))...)
+    standard_func =  (;params...) -> JJ_opto_delay(num_eval_runs, num_eval_runs; rule_and_delay_periods=rule_and_delay_periods, theta1=model_params[:theta1], theta2=model_params[:theta2], post_target_periods=post_target_periods, delay_period=delay_period,seedrand=test_sr, cbeta=cb, verbose=false, merge(model_params, Dict(params))...)
 
     # run opto model with all outputs, evaluate on test noise
     opto_scost, opto_scost1, opto_scost2, opto_hitsP,opto_hitsA, opto_diffsP, opto_diffsA, opto_bP, opto_bA = standard_func(;make_dict(args, pars, model_params)...)
