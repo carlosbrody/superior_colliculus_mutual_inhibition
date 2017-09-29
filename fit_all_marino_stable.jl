@@ -11,8 +11,8 @@ include("pro_anti_opto.jl")
 
 # Define core model parameters
 model_params = Dict(
-:dt     =>  0.02, 
-:tau    =>  0.1, 
+:dt     =>  0.002,      # Changed hyper-parameter
+:tau    =>  0.02,       # Changed hyper-parameter
 :vW     =>  -1.7, #FIT parameter
 :hW     =>  -1.7, #FIT parameter
 :sW     =>  0.2,  #FIT parameter
@@ -21,16 +21,16 @@ model_params = Dict(
 :noise  =>  [], 
 :sigma  =>  0.08, #FIT parameter
 :input  =>  0,    #### Alex thinks this is out-dated 
-:g_leak =>  0.25, 
-:U_rest =>  -1,
-:theta  =>  1, 
-:beta   =>  1, 
+:g_leak =>  1,          # Changed hyper-parameter
+:U_rest =>  0,          # Changed hyper-parameter
+:theta  =>  0.05,       # Changed hyper-parameter
+:beta   =>  0.5,        # Changed hyper-parameter 
 :sw     =>  0.2,  #### Alex thinks this is out-dated
 :hw     =>  -1.7, #### Alex thinks this is out-dated
 :vw     =>  -1.7, #### Alex thinks this is out-dated
 :constant_excitation      => 0.19, #FIT  parameter
-:anti_rule_strength       => 0.1,
-:pro_rule_strength        => 0.1, 
+:anti_rule_strength       => 0.05,      # Changed hyper-parameter
+:pro_rule_strength        => 0.05,      # Changed hyper-parameter
 :target_period_excitation => 1,    #FIT  parameter
 :right_light_excitation   => 0.5,  #FIT parameter
 :right_light_pro_extra    => 0,
@@ -47,7 +47,7 @@ model_params = Dict(
 :start_pro                => [-0.5, -0.5, -0.5, -0.5],
 :start_anti               => [-0.5, -0.5, -0.5, -0.5],
 :opto_strength  => .7,             #FIT parameter
-:opto_periods   => [-1.1 -1; 0 20; 0 100; 100 20],  
+:opto_periods   => [-1.1 -1; 0 20;0 50; 50 100; 100 20],  
 # The opto "conditions" correspond to the rows of opto_periods.
 # all conditions are in seconds relative to start of the trial
 # any value before 0 gets changed to 0
@@ -55,15 +55,14 @@ model_params = Dict(
 # Special values allow for variable durations
 #  20 codes for "end of trial"
 #  -1 codes for "start of trial"
-# 50 codes for "end of rule period" which is 1/2 of rule and delay period
 # 100 codes for "end of rule and delay period"
 # 200 codes for "end of target period"
 # -------------------------------------------------------------
 # first column is frachit Pro, next column is Anti, rows are conditions
 # Actual Opto targets
-#:opto_targets   => [.75 .73;.77 .58;.72 .66;.73 .75] 
+#:opto_targets   => [.75 .73;.77 .58;.75 .74; .72 .66;.73 .75] 
 # Fake Targets
-:opto_targets => [.9 .7; .9 .5; .9 .5; .9 .7]  
+:opto_targets => [.9 .7; .9 .5;.9 .7; .9 .5; .9 .7]  
 );
 
 # ======= ARGUMENTS AND SEED VALUES:
