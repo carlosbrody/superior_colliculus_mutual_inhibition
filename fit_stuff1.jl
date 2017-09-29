@@ -1,4 +1,4 @@
-FarmName = "TEST"
+FarmName = "MA"
 
 # Incorporate packages
 using ForwardDiff
@@ -6,86 +6,70 @@ using DiffBase
 using MAT
 
 # Include helper functions
-#include("general_utils.jl")
-#include("constrained_parabolic_minimization.jl")
-#include("hessian_utils.jl")
+include("general_utils.jl")
+include("constrained_parabolic_minimization.jl")
+include("hessian_utils.jl")
 include("pro_anti.jl")
-#include("rate_networks.jl")
+include("rate_networks.jl")
 include("pro_anti_opto.jl")
 
 # Define core model parameters
 model_params = Dict(
-:dt     =>  0.02, 
-:tau    =>  0.1, 
-:vW     =>  -1.7, #FIT
-:hW     =>  -1.7, #FIT
-:sW     =>  0.2,  #FIT
-:dW     =>  0,    #FIT
-:nsteps =>  2, 
+:dt     =>  0.002, 
+:tau    =>  0.02, 
+:vW     =>  -1.58,
+:hW     =>  -0.05,
+:sW     =>  0,
+:dW     =>  0,
+:nsteps =>  301, 
 :noise  =>  [], 
-:sigma  =>  0.08, #FIT
-:input  =>  0,    #### 
-:g_leak =>  0.25, 
-:U_rest =>  -1,
-:theta  =>  1, 
-:beta   =>  1, 
-:sw     =>  0.2,  ####
-:hw     =>  -1.7, ####
-:vw     =>  -1.7, ####
-:constant_excitation      => 0.19, #FIT
-:anti_rule_strength       => 0.1,
-:pro_rule_strength        => 0.1, 
-:target_period_excitation => 1,    #FIT
-:right_light_excitation   => 0.5,  #FIT
+:sigma  =>  0.08, 
+:input  =>  0, 
+:g_leak =>  1, 
+:U_rest =>  0,
+:theta  =>  0.05, 
+:beta   =>  0.5, 
+:constant_excitation      => 0, 
+:anti_rule_strength       => 0.05,
+:pro_rule_strength        => 0.05, 
+:target_period_excitation => 0,
+:right_light_excitation   => 0.6, 
 :right_light_pro_extra    => 0,
 :const_add                => 0, 
 :init_add                 => 0, 
 :rule_and_delay_period    => 0.4,
-:target_period            => 0.1,
-:post_target_period       => 0.5,
-:const_pro_bias           => 0,    #FIT
+:target_period            => 0.2,
+:post_target_period       => 0.1,
+:const_pro_bias           => 0.0427,
 :nPro                     => 100,
 :nAnti                    => 100,
 :theta1                   => 0.05,
 :theta2                   => 0.15,
-:start_pro                => [-0.5, -0.5, -0.5, -0.5],
-:start_anti               => [-0.5, -0.5, -0.5, -0.5],
-:opto_strength  => .7,             #FIT
-:opto_periods   => [-1.1 -1; 0 20; 0 100; 100 20],  
-# The opto "conditions" correspond to the rows of opto_periods.
-# all conditions are in seconds relative to start of the trial
-# any value before 0 gets changed to 0
-# any value after the end of trial gets changed to end of trial
-# Special values allow for variable durations
-#  20 codes for "end of trial"
-#  -1 codes for "start of trial"
-# 100 codes for "end of rule and delay period"
-# 200 codes for "end of target period"
-# -------------------------------------------------------------
-# first column is frachit Pro, next column is Anti, rows are conditions
-# Actual Opto targets
-#:opto_targets   => [.75 .73;.77 .58;.72 .66;.73 .75] 
-# Fake Targets
-:opto_targets => [.9 .7; .9 .5; .9 .5; .9 .7]  
+:opto_strength  => .9,
+:opto_periods   => [-1  -1 ; 0   20 ;0    0.2 ; 0.2  0.4;0.4  20],  # set of opto conditions, in seconds, with 0 the start 
+# of the trial (i.e. start of rule_and_delay_period), anything before 0 or after end of trial gets ignored.
+# :opto_targets   => [.75 .73;.77 .58;.75 .74;.72 .66;.73 .75] 
+:opto_targets => [.9 .7; .9 .5; .9 .7; .9 .5; .9 .7]  # first column is frachit Pro, next column is Anti, rows are conditions
+# The "conditions" correspond to the rows of opto_periods.
 );
 
 # ======= ARGUMENTS AND SEED VALUES:
-args = ["sW", "vW", "hW", "dW", "constant_excitation", "right_light_excitation", "target_period_excitation", "const_pro_bias", "sigma","opto_strength"];
-seed = [0.2,   1,   0.2,  1,    0.39,                0.15,                       0.1,                        0.1,              0.1, .8];   
+args = ["vW", "hW", "dW",  "right_light_excitation", "const_pro_bias", "sigma","opto_strength"];
+seed = [-1.58,   -0.05,    0.001,     0.6,                 0.0427,          0.05, .9];   
 
 # ======= BOUNDING BOX:
-bbox = Dict(:sW=>[0 3], :vW=>[-3 3], :hW=>[-3 3], :dW=>[-3 3], :constant_excitation=>[-2 2],
-:right_light_excitation=>[0.05 4], :target_period_excitation=>[0.05 4], :const_pro_bias=>[-2 2],
-:sigma=>[0.01 2],:opto_strength=>[0 1]);
+bbox = Dict(:vW=>[-3 3], :hW=>[-3 3], :dW=>[-3 3], 
+:right_light_excitation=>[0.05 4], :const_pro_bias=>[-2 2],
+:sigma=>[0.01 0.2],:opto_strength=>[0 1]);
 
 # ======== SEARCH ZONE:
-sbox = Dict(:sW=>[0.1 .5], :vW=>[-.5 .5], :hW=>[-.5 .5], :dW=>[-.5 .5],
-:constant_excitation=>[-.5 .5], :right_light_excitation=>[0.15 .5], :target_period_excitation=>[0.15 .5],:const_pro_bias=>[-.5 .5], :sigma=>[0.02 1],:opto_strength=>[.7 .99]);
+sbox = Dict(:vW=>[-.5 .5], :hW=>[-.5 .5], :dW=>[-.5 .5],
+:right_light_excitation=>[0.15 .5], :const_pro_bias=>[-.5 .5], :sigma=>[0.02 0.19],:opto_strength=>[.7 .99]);
 
 # define a few hyper parameters
-cbetas = [0.02];
-rule_and_delay_periods = [0.5 1.5];
-post_target_periods    = [0.5 1.5];
+cbetas = [0.04];
+rule_and_delay_periods = [0.4];
+post_target_periods    = [0.1];
 num_eval_runs           = 1000;
 num_optimize_iter       = 2000;
 num_optimize_restarts   = 100;
@@ -98,24 +82,24 @@ for cb in cbetas                # Iterate over beta values, if there are multipl
     # figure out initial seed for random number generator
     sr = convert(Int64, round(time()))
     srand(sr);
-
+    myseed = copy(seed);
     # get initial parameter values by sampling from sbox
-    myseed = ForwardDiffZeros(length(args),1);
-    for j=1:length(args)
-        sym = Symbol(args[j])
-        if haskey(sbox, sym)
-            myseed[j] = sbox[sym][1] + diff(sbox[sym],2)[1]*rand();
-        else
-            myseed[j] = seed[j];
-        end
-    end
+    #myseed = ForwardDiffZeros(length(args),1);
+    #for j=1:length(args)
+    #    sym = Symbol(args[j])
+    #    if haskey(sbox, sym)
+    #        myseed[j] = sbox[sym][1] + diff(sbox[sym],2)[1]*rand();
+    #    else
+    #        myseed[j] = seed[j];
+    #    end
+    #end
 
     # define opto function with just value output
     func =  (;params...) -> JJ_opto(model_params[:nPro], model_params[:nAnti]; rule_and_delay_periods=rule_and_delay_periods, theta1=model_params[:theta1], theta2=model_params[:theta2], post_target_periods=post_target_periods, seedrand=sr, cbeta=cb, verbose=false, merge(model_params, Dict(params))...)[1]
     
     # run optimization with all parameters
     @printf("Going with seed = "); print_vector_g(myseed); print("\n")
-    pars, traj, cost, cpm_traj = bbox_Hessian_keyword_minimization(myseed, args, bbox, func, start_eta = 1, tol=1e-12, verbose=true, verbose_every=10, maxiter=num_optimize_iter)
+    pars, traj, cost, cpm_traj = bbox_Hessian_keyword_minimization(myseed, args, bbox, func, start_eta = 1, tol=1e-12, verbose=true, verbose_every=2, maxiter=num_optimize_iter)
     @printf("Came out with cost %g and pars = ", cost); print_vector_g(pars); print("\n\n")
 
     # get gradient and hessian at end of optimization 
