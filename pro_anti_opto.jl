@@ -1,8 +1,24 @@
-# include opto inactivation functionality
-#opto_periods: a matrix with start and stop times of each opto inactivation to sample, defaults to [-1 -1], which is no inactivation
-#opto_strength: the inactivation fraction (default = 1 is no inactivation), 0 would be complete inactivation
+# Same as normal JJ cost function, except it includes opto inactivation functionality
+#
+# Additional optional parameters:
+# Also takes the starting conditions "start_pro" and "start_anti" as optional parameters
+# opto_periods: a matrix with start and stop times of each opto inactivation defaults to [-1 -1], which is no inactivation
+#               Special characters 20 end of trial, 100 end of rule and delay, 200 end of target
+# opto_strength: the inactivation fraction (default = 1 is no inactivation), 0 would be complete inactivation
+# opto_targets: a matrix with hit% targets for Pro (column 1) and Anti (column 2). Each row is one opto period
+#
+# Outputs:
+# total cost
+# cost1
+# cost2 (just beta terms)
+# hP: matrix of hit% on Pro trials. rows correspond to each opto condition. Columns correspond to combinations of rule_and_delay_periods and post_target_periods 
+# hA: same as hP but for pro trials
+# dP: tanh^2 of the differences in final node activation on pro trials
+# dA: tanh^2 of the differences in final node activation on pro trials
+# hBP: matrix of hit%, but evaluated using a step function on the node activations
+# hBA: matrix of hit%, but evaluated using a step function on the node activations 
 
-function JJ_opto(nPro, nAnti; opto_targets=[0.9 0.7], theta1=0.025, theta2=0.035, cbeta=0.003, verbose=false, pre_string="", zero_last_sigmas=0, seedrand=NaN, rule_and_delay_periods = [0.4], target_periods = [0.1], post_target_periods = [0.5], opto_periods = [-1 -1],opto_strength=1, nderivs=0, difforder=0, model_params...) #set opto defaults!
+function JJ_opto(nPro, nAnti; opto_targets=[0.9 0.7], theta1=0.025, theta2=0.035, cbeta=0.003, verbose=false, pre_string="", zero_last_sigmas=0, seedrand=NaN, rule_and_delay_periods = [0.4], target_periods = [0.1], post_target_periods = [0.5], opto_periods = [-1.1 -1],opto_strength=1, nderivs=0, difforder=0, model_params...) #set opto defaults!
 
     if ~(size(opto_targets) == size(opto_periods)); error("opto parameters are bad"); end
 
@@ -95,6 +111,17 @@ function JJ_opto(nPro, nAnti; opto_targets=[0.9 0.7], theta1=0.025, theta2=0.035
     return cost1 + cost2, cost1s, cost2s, hP,hA,dP,dA,hBP,hBA
 end
 
+# Same as normal JJ, but with extra outputs
+# Outputs:
+# total cost
+# cost1
+# cost2 (just beta terms)
+# hP: matrix of hit% on Pro trials. Columns correspond to combinations of rule_and_delay_periods and post_target_periods 
+# hA: same as hP but for pro trials
+# dP: tanh^2 of the differences in final node activation on pro trials
+# dA: tanh^2 of the differences in final node activation on pro trials
+# hBP: matrix of hit%, but evaluated using a step function on the node activations
+# hBA: matrix of hit%, but evaluated using a step function on the node activations 
 function JJ(nPro, nAnti; pro_target=0.9, anti_target=0.7, 
     theta1=0.025, theta2=0.035, cbeta=0.003, verbose=false, 
     pre_string="", zero_last_sigmas=0, seedrand=NaN, 
@@ -167,7 +194,6 @@ function JJ(nPro, nAnti; pro_target=0.9, anti_target=0.7,
     return cost1 + cost2, cost1, cost2, hitsP, hitsA, diffsP, diffsA
 end
 
-
 # returns a vector of the inhibition fraction for each node given the opto period and opto strength
 # right now, it always computes bilateral inactivations
 function make_opto_input(nsteps; dt = 0.02, opto_strength=1, opto_period=[-1 1],nderivs=0,difforder=0, other_unused_params...);
@@ -222,7 +248,8 @@ function make_opto_input(nsteps; dt = 0.02, opto_strength=1, opto_period=[-1 1],
     return opto_fraction
 end
 
-
+# same as normal run_ntrials_opto, but passes opto parameters through, and computes the opto_fraction using make_opto_input
+# Also takes the starting conditions "start_pro" and "start_anti" as optional parameters
 function run_ntrials_opto(nPro, nAnti; plot_list=[], nderivs=0, difforder=0,start_pro=[-0.3, -0.7, -0.7, -0.3], start_anti=[-0.7, -0.3, -0.3, -0.7],  opto_periods=[-1 -1],model_params...)
     pro_input,  t, nsteps = make_input("Pro" ; nderivs=nderivs, difforder=difforder, model_params...);
     anti_input, t, nsteps = make_input("Anti"; nderivs=nderivs, difforder=difforder, model_params...);
@@ -274,6 +301,7 @@ function run_ntrials_opto(nPro, nAnti; plot_list=[], nderivs=0, difforder=0,star
     return proVs, antiVs
 end
 
+# same as forwardModel, except it takes the opto_Fraction vector as an input, and the starting conditions as input. 
 function forwardModel_opto(startU, opto_fraction; dt=0.01, tau=0.1, nsteps=100, input=[], noise=[], W=[0 -5;-5 0], 
     init_add=0, start_add=0, const_add=0, do_plot=false, nderivs=0, difforder=0, clearfig=true, fignum=1,
     dUdt_mag_only=false, sigma=0, g_leak=1, U_rest=0, theta=0, beta=1, 
