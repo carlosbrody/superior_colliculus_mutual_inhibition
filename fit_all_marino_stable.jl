@@ -60,7 +60,7 @@ model_params = Dict(
 # -------------------------------------------------------------
 # first column is frachit Pro, next column is Anti, rows are conditions
 # Actual Opto targets
-#:opto_targets   => [.75 .73;.77 .58;.72 .66;.73 .75] 
+#:opto_targets   => [.75 .73;.77 .58;.75 .74; .72 .66;.73 .75] 
 # Fake Targets
 :opto_targets => [.9 .7; .9 .5;.9 .7; .9 .5; .9 .7]  
 );
