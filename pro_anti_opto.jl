@@ -224,8 +224,8 @@ end
 
 
 function run_ntrials_opto(nPro, nAnti; plot_list=[], nderivs=0, difforder=0,start_pro=[-0.3, -0.7, -0.7, -0.3], start_anti=[-0.7, -0.3, -0.3, -0.7],  opto_periods=[-1 -1],model_params...)
-    pro_input,  t, nsteps = make_input("Pro" ; model_params...);
-    anti_input, t, nsteps = make_input("Anti"; model_params...);
+    pro_input,  t, nsteps = make_input("Pro" ; nderivs=nderivs, difforder=difforder, model_params...);
+    anti_input, t, nsteps = make_input("Anti"; nderivs=nderivs, difforder=difforder, model_params...);
     #### make opto fraction vector
     opto_fraction = make_opto_input(nsteps; nderivs=nderivs,difforder=difforder, model_params...);
     model_params = Dict(model_params)
