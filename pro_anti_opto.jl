@@ -3,7 +3,7 @@
 # Additional optional parameters:
 # Also takes the starting conditions "start_pro" and "start_anti" as optional parameters
 # opto_periods: a matrix with start and stop times of each opto inactivation defaults to [-1 -1], which is no inactivation
-#               Special characters 20 end of trial, 100 end of rule and delay, 200 end of target
+#               Special characters 20 end of trial, 100 end of rule and delay, 200 end of target, 50 end of rule (1/2 of 100)
 # opto_strength: the inactivation fraction (default = 1 is no inactivation), 0 would be complete inactivation
 # opto_targets: a matrix with hit% targets for Pro (column 1) and Anti (column 2). Each row is one opto period
 #
@@ -196,14 +196,19 @@ function make_opto_input(nsteps; dt = 0.02, opto_strength=1, opto_period=[-1 1],
         # check for variable inputs
         other_unused_params = Dict(other_unused_params);
         end_rd =     other_unused_params[:rule_and_delay_period];
+        end_rule =   other_unused_params[:rule_and_delay_period]/2;
         end_target = other_unused_params[:rule_and_delay_period]+other_unused_params[:target_period]; 
         if opto_period[1]==100
             opto_period[1] = end_rd;
+        elseif opto_period[1]==50
+            opto_period[1] = end_rule;
         elseif opto_period[1]==200
             opto_period[1] = end_target;
         end        
         if opto_period[2]==100
             opto_period[2] = end_rd;
+        elseif opto_period[2]==50
+            opto_period[2] = end_rule;
         elseif opto_period[2]==200
             opto_period[2] = end_target;
         end        

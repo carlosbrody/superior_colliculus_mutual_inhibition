@@ -47,7 +47,7 @@ model_params = Dict(
 :start_pro                => [-0.5, -0.5, -0.5, -0.5],
 :start_anti               => [-0.5, -0.5, -0.5, -0.5],
 :opto_strength  => .7,             #FIT parameter
-:opto_periods   => [-1.1 -1; 0 20; 0 100; 100 20],  
+:opto_periods   => [-1.1 -1; 0 20;0 50; 50 100; 100 20],  
 # The opto "conditions" correspond to the rows of opto_periods.
 # all conditions are in seconds relative to start of the trial
 # any value before 0 gets changed to 0
@@ -60,9 +60,9 @@ model_params = Dict(
 # -------------------------------------------------------------
 # first column is frachit Pro, next column is Anti, rows are conditions
 # Actual Opto targets
-#:opto_targets   => [.75 .73;.77 .58;.72 .66;.73 .75] 
+#:opto_targets   => [.75 .73;.77 .58;.75 .74; .72 .66;.73 .75] 
 # Fake Targets
-:opto_targets => [.9 .7; .9 .5; .9 .5; .9 .7]  
+:opto_targets => [.9 .7; .9 .5;.9 .7; .9 .5; .9 .7]  
 );
 
 # ======= ARGUMENTS AND SEED VALUES:
