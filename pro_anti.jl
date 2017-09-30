@@ -12,7 +12,12 @@ include("rate_networks.jl")  # that will also include genera_utils.jl, constrain
     plot_PA(t, U, V; fignum=1, clearfig=true, rule_and_delay_period=1, target_period=1, post_target_period=1,
         other_unused_params...)
 
-Helper function for plotting ProAnti results
+Helper function for plotting ProAnti results. Given a time axia and nunits-by-nsteps U and V matrices, will 
+plot them (first clearing the figure if clearfig=true but overlaying if clearfig=false) in three vertically-
+arranged subplots. The top one has V as a function of time, with the two Pro units in blues and the two Anti 
+units in reds, dark colors for the left side of the brain, light colors for the right.  The middle subplot
+has Us. And the bottom subplot shows the difference between the two Pro units as a function of time.
+
 """
 function plot_PA(t, U, V; fignum=1, clearfig=true, rule_and_delay_period=1, target_period=1, post_target_period=1,
     other_unused_params...)
@@ -195,8 +200,8 @@ model_params = Dict(
 :anti_rule_strength       => 0.1,    # input added only to anti units during rule_and_delay_period in Anti trials
 :pro_rule_strength        => 0.1,    # input added only to pro units during rule_and_delay_period in Pro trials
 :const_pro_bias           => 0,      # input added only to pro units during all times in all trial types
-:target_period_excitation => 1,      # input added to all units during target_period
-:right_light_excitation   => 0.5,    # input added to the Anti and the Pro unit on one side during the target_period
+:target_period_excitation => 0.2,      # input added to all units during target_period
+:right_light_excitation   => 0.3,    # input added to the Anti and the Pro unit on one side during the target_period
 :right_light_pro_extra    => 0,      # input added to the right side Pro unit alone during the target_period
 :rule_and_delay_period    => 0.4,    # duration of rule_and_delay_period, in secs
 :target_period            => 0.1,    # duration of target_period, in secs
@@ -207,6 +212,7 @@ model_params = Dict(
 :opto_times               => [],     # n-by-2 matrix, indicating start and stop times for opto_strength effect, all within the same trial
 :opto_units               => 1:4,    # ids of the units that will be affected by opto_strength effect
 )
+
 
 """
 input, t, nsteps = make_input(trial_type; dt=0.02, nderivs=0, difforder=0, constant_excitation=0.19, anti_rule_strength=0.1, 
@@ -241,8 +247,11 @@ function make_input(trial_type; dt=0.02, nderivs=0, difforder=0, constant_excita
     return input, t, nsteps
 end
 
+
+
 """
-proVs, antiVs, pro_fullV, anti_fullV = run_ntrials(nPro, nAnti; plot_list=[], nderivs=0, difforder=0, model_params...)
+proVs, antiVs, pro_fullV, anti_fullV = run_ntrials(nPro, nAnti; plot_list=[], nderivs=0, difforder=0, 
+    model_params...)
 
 Runs a set of proAnti model trials.  See model_params above for definition of all the parameters. In addition,
 
@@ -254,7 +263,13 @@ Runs a set of proAnti model trials.  See model_params above for definition of al
 
 # OPTIONAL PARAMETERS
 
-- plot_list    A list of trials to plot on the figures
+- plot_list    A list of trials to plot on the figures. If empty nothing is plotted
+
+- nderivs      For ForwardDiff
+
+- difforder    For ForwardDiff
+
+- model_params   Further optional params, will be passed onto forwardModel() (e.g., opto times)
 
 # RETURNS
 
