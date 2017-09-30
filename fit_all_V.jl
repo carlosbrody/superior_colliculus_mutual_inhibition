@@ -66,22 +66,21 @@ model_params = Dict(
 );
 
 # ======= ARGUMENTS AND SEED VALUES:
-args = ["sW", "vW", "hW", "dW", "constant_excitation", "right_light_excitation", "target_period_excitation", "const_pro_bias", "sigma","opto_strength","pro_rule_strength"];
-seed = [0.2,   1,   0.2,  1,    0.39,                0.15,                       0.1,                        0.1,              0.1, .8,1];   
-
+args = ["sW", "vW", "hW", "dW", "constant_excitation", "right_light_excitation", "target_period_excitation", "const_pro_bias", "sigma","opto_strength","pro_rule_strength","anti_rule_strength"];
+seed = [0.001,  -1.58,   -0.05,  0.001,    0.001,                0.6,                       0.001,                        0.0427,              0.05, .9,0.05,0.05];   
 # ======= BOUNDING BOX:
 bbox = Dict(:sW=>[0 3], :vW=>[-3 3], :hW=>[-3 3], :dW=>[-3 3], :constant_excitation=>[-2 2],
 :right_light_excitation=>[0.05 4], :target_period_excitation=>[0.05 4], :const_pro_bias=>[-2 2],
-:sigma=>[0.01 2],:opto_strength=>[0 1],:pro_rule_strength=>[0 1]);
+:sigma=>[0.01 2],:opto_strength=>[0 1],:pro_rule_strength=>[0 1], :anti_rule_strength=>[0 1]);
 
 # ======== SEARCH ZONE:
 sbox = Dict(:sW=>[0.1 .5], :vW=>[-.5 .5], :hW=>[-.5 .5], :dW=>[-.5 .5],
-:constant_excitation=>[-.5 .5], :right_light_excitation=>[0.15 .5], :target_period_excitation=>[0.15 .5],:const_pro_bias=>[-.5 .5], :sigma=>[0.02 1],:opto_strength=>[.7 .99],:pro_rule_strength=>[.04 .06]);
+:constant_excitation=>[-.5 .5], :right_light_excitation=>[0.15 .5], :target_period_excitation=>[0.15 .5],:const_pro_bias=>[-.5 .5], :sigma=>[0.02 1],:opto_strength=>[.7 .99],:pro_rule_strength=>[0.01 .1], :anti_rule_strength=>[0.01 .1]);
 
 # define a few hyper parameters
 cbetas = [0.02];
-rule_and_delay_periods = [0.5 1.5];
-post_target_periods    = [0.5 1.5];
+rule_and_delay_periods = [0.2];
+post_target_periods    = [0.05];
 num_eval_runs           = 1000;
 num_optimize_iter       = 2000;
 num_optimize_restarts   = 100;
@@ -95,12 +94,19 @@ for cb in cbetas                # Iterate over beta values, if there are multipl
     sr = convert(Int64, round(time()))
     srand(sr);
 
+    dista=rand();
+    println("dista")
+    println(dista)
+    myseed1 = copy(seed);
+
     # get initial parameter values by sampling from sbox
     myseed = ForwardDiffZeros(length(args),1);
     for j=1:length(args)
         sym = Symbol(args[j])
         if haskey(sbox, sym)
-            myseed[j] = sbox[sym][1] + diff(sbox[sym],2)[1]*rand();
+#            myseed[j] = sbox[sym][1] + diff(sbox[sym],2)[1]*rand();
+            myseed[j] = dista*(sbox[sym][1] + diff(sbox[sym],2)[1]*rand())+(1-dista)*myseed1[j];
+
         else
             myseed[j] = seed[j];
         end
@@ -139,7 +145,7 @@ for cb in cbetas                # Iterate over beta values, if there are multipl
     myfilename = next_file(fbasename, 4)
     myfilename = myfilename*".mat"
     # write file
-    matwrite(myfilename, Dict("args"=>args, "myseed"=>myseed, "pars"=>pars, "traj"=>traj, "cost"=>cost, "cpm_traj"=>cpm_traj, "nPro"=>model_params[:nPro], "nAnti"=>model_params[:nAnti], "sr"=>sr, "cb"=>cb, "theta1"=>model_params[:theta1], "theta2"=>model_params[:theta2],"value"=>value,"grad"=>grad, "hess"=>hess, "model_params"=>ascii_key_ize(model_params), "bbox"=>ascii_key_ize(bbox), "sbox"=>ascii_key_ize(sbox), "rule_and_delay_periods"=>rule_and_delay_periods, "post_target_periods"=>post_target_periods, "opto_scost"=>opto_scost, "opto_scost1"=>opto_scost1, "opto_scost2"=>opto_scost2, "opto_hitsP"=>opto_hitsP, "opto_hitsA"=>opto_hitsA, "opto_diffsP"=>opto_diffsP, "opto_diffsA"=>opto_diffsA,"test_sr"=>test_sr,"opto_bP"=>opto_bP, "opto_bA"=>opto_bA, "t_opto_scost"=>t_opto_scost, "t_opto_scost1"=>t_opto_scost1, "t_opto_scost2"=>t_opto_scost2, "t_opto_hitsP"=>t_opto_hitsP, "t_opto_hitsA"=>t_opto_hitsA, "t_opto_diffsP"=>t_opto_diffsP, "t_opto_diffsA"=>t_opto_diffsA,"t_opto_bP"=>t_opto_bP, "t_opto_bA"=>t_opto_bA  ))
+    matwrite(myfilename, Dict("args"=>args, "myseed"=>myseed, "pars"=>pars, "traj"=>traj, "cost"=>cost, "cpm_traj"=>cpm_traj, "nPro"=>model_params[:nPro], "nAnti"=>model_params[:nAnti], "sr"=>sr, "cb"=>cb, "theta1"=>model_params[:theta1], "theta2"=>model_params[:theta2],"value"=>value,"grad"=>grad, "hess"=>hess, "model_params"=>ascii_key_ize(model_params), "bbox"=>ascii_key_ize(bbox), "sbox"=>ascii_key_ize(sbox), "rule_and_delay_periods"=>rule_and_delay_periods, "post_target_periods"=>post_target_periods, "opto_scost"=>opto_scost, "opto_scost1"=>opto_scost1, "opto_scost2"=>opto_scost2, "opto_hitsP"=>opto_hitsP, "opto_hitsA"=>opto_hitsA, "opto_diffsP"=>opto_diffsP, "opto_diffsA"=>opto_diffsA,"test_sr"=>test_sr,"opto_bP"=>opto_bP, "opto_bA"=>opto_bA, "t_opto_scost"=>t_opto_scost, "t_opto_scost1"=>t_opto_scost1, "t_opto_scost2"=>t_opto_scost2, "t_opto_hitsP"=>t_opto_hitsP, "t_opto_hitsA"=>t_opto_hitsA, "t_opto_diffsP"=>t_opto_diffsP, "t_opto_diffsA"=>t_opto_diffsA,"t_opto_bP"=>t_opto_bP, "t_opto_bA"=>t_opto_bA,"dista"=>dista  ))
 end
 end
 
