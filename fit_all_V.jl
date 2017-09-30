@@ -1,4 +1,4 @@
-FarmName = "TEST"
+FarmName = "V"
 
 # Incorporate packages
 using ForwardDiff
@@ -104,9 +104,13 @@ for cb in cbetas                # Iterate over beta values, if there are multipl
     for j=1:length(args)
         sym = Symbol(args[j])
         if haskey(sbox, sym)
-#            myseed[j] = sbox[sym][1] + diff(sbox[sym],2)[1]*rand();
+#           myseed[j] = sbox[sym][1] + diff(sbox[sym],2)[1]*rand();
             myseed[j] = dista*(sbox[sym][1] + diff(sbox[sym],2)[1]*rand())+(1-dista)*myseed1[j];
-
+	    if myseed[j] > sbox[sym][2]
+	    	myseed[j] =sbox[sym][2];
+	    elseif myseed[j] < sbox[sym][1]
+	        myseed[j] =sbox[sym][1]
+	    end
         else
             myseed[j] = seed[j];
         end
