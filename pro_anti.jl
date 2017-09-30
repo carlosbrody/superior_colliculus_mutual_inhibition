@@ -109,9 +109,17 @@ model_params = Dict(
 :post_target_period       => 0.5,    # duration of post_target_period, in secs
 :const_add => 0,  # from rate_networks.jl, unused here
 :init_add  => 0,  # from rate_networks.jl, unused here 
+:opto_strength            => 1,      # fraction by which to scale V outputs
+:opto_times               => [],     # n-by-2 matrix, indicating start and stop times for opto_strength effect, all within the same trial
+:opto_units               => 1:4,    # ids of the units that will be affected by opto_strength effect
 )
 
-
+"""
+input, t, nsteps = make_input(trial_type; dt=0.02, nderivs=0, difforder=0, constant_excitation=0.19, anti_rule_strength=0.1, 
+    pro_rule_strength=0.1, target_period_excitation=1, right_light_excitation=0.5, right_light_pro_extra=0, 
+    rule_and_delay_period=0.4, target_period=0.1, post_target_period=0.4, const_pro_bias=0,
+    other_unused_params...)
+"""
 function make_input(trial_type; dt=0.02, nderivs=0, difforder=0, constant_excitation=0.19, anti_rule_strength=0.1, 
     pro_rule_strength=0.1, target_period_excitation=1, right_light_excitation=0.5, right_light_pro_extra=0, 
     rule_and_delay_period=0.4, target_period=0.1, post_target_period=0.4, const_pro_bias=0,
@@ -139,8 +147,34 @@ function make_input(trial_type; dt=0.02, nderivs=0, difforder=0, constant_excita
     return input, t, nsteps
 end
 
+"""
+proVs, antiVs, pro_fullV, anti_fullV = run_ntrials(nPro, nAnti; plot_list=[], nderivs=0, difforder=0, model_params...)
 
+Runs a set of proAnti model trials.  See model_params above for definition of all the parameters. In addition,
+
+# PARAMETERS
+
+- nPro    number of Pro tials to run
+
+- nAnti   number of Anti trials to run
+
+# OPTIONAL PARAMETERS
+
+- plot_list    A list of trials to plot on the figures
+
+# RETURNS
+
+- proVs    final V for the four units on Pro trials
+
+- antiVs   final V for the four units on Anti trials
+
+- pro_fullVs   all Vs, across all times, for all Pro trials
+
+- anti_fullVs  all Vs, across all times, for all Anti trials
+
+"""
 function run_ntrials(nPro, nAnti; plot_list=[], nderivs=0, difforder=0, model_params...)
+    
     pro_input,  t, nsteps = make_input("Pro" ; nderivs=nderivs, difforder=difforder, model_params...)
     anti_input, t, nsteps = make_input("Anti"; nderivs=nderivs, difforder=difforder, model_params...)
     
@@ -152,19 +186,22 @@ function run_ntrials(nPro, nAnti; plot_list=[], nderivs=0, difforder=0, model_pa
     model_params = make_dict(["nsteps", "W"], [nsteps, [sW vW dW hW; vW sW hW dW; dW hW sW vW; hW dW vW sW]], 
         model_params)
     model_params = make_dict(["nderivs", "difforder"], [nderivs, difforder], model_params)
+    model_params[:opto_times] = parse_opto_times(model_params[:opto_times], model_params)
     
     proVs  = ForwardDiffZeros(4, nPro, nderivs=nderivs, difforder=difforder)
     antiVs = ForwardDiffZeros(4, nAnti, nderivs=nderivs, difforder=difforder)
-
+    pro_fullV  = Array{Any}(nPro,1)
+    anti_fullV = Array{Any}(nAnti,1)
+    
     # --- PRO ---
     if length(plot_list)>0; figure(1); clf(); end
     model_params = make_dict(["input"], [pro_input], model_params)
     for i=1:nPro
         startU = [-0.3, -0.7, -0.7, -0.3]
-        Uend, Vend, U, V = forwardModel(startU, do_plot=false; model_params...)
+        Uend, Vend, pro_fullU, pro_fullV[i] = forwardModel(startU, do_plot=false; model_params...)
         proVs[:,i] = Vend
         if any(plot_list.==i) 
-            plot_PA(t, U, V; fignum=1, clearfig=false, model_params...)
+            plot_PA(t, pro_fullU, pro_fullV[i]; fignum=1, clearfig=false, model_params...)
             subplot(3,1,1); title("PRO")
         end
     end
@@ -174,17 +211,16 @@ function run_ntrials(nPro, nAnti; plot_list=[], nderivs=0, difforder=0, model_pa
     model_params = make_dict(["input"], [anti_input], model_params)
     for i=1:nAnti
         startU = [-0.7, -0.3, -0.3, -0.7]
-        Uend, Vend, U, V = forwardModel(startU, do_plot=false; model_params...)
+        Uend, Vend, anti_fullU, anti_fullV[i] = forwardModel(startU, do_plot=false; model_params...)
         antiVs[:,i] = Vend
         if any(plot_list.==i) 
-            plot_PA(t, U, V; fignum=2, clearfig=false, model_params...)
+            plot_PA(t, anti_fullU, anti_fullV[i]; fignum=2, clearfig=false, model_params...)
             subplot(3,1,1); title("ANTI")
         end
     end
     
-    return proVs, antiVs
+    return proVs, antiVs, pro_fullV, anti_fullV
 end
-
 
 
 # DON'T MODIFY THIS FILE -- the source is in file ProAnti.ipynb
