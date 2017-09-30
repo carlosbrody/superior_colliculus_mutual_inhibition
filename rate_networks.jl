@@ -20,87 +20,96 @@ include("hessian_utils.jl")
 # DON'T MODIFY THIS FILE -- the source is in file Rate Networks.ipynb
 
 
-
-"""
-o = g(z)    squashing tanh function, running from 0 to 1, is equal to 0.5 when input is 0.
-"""
-function g(z)
-    return 0.5*tanh.(z)+0.5
-end
     
-"""
-z = g^-1(o)    inverse of squashing tanh function, input must be in (0, 1), output is zero when passed 0.5.
-"""
-function ginverse(z)
-    return 0.5*log.(z./(1-z))
-end
-
 
 """
 forwardModel(startU; dt=0.01, tau=0.1, nsteps=100, input=[0.1, 0], noise=[], W=[0 -5;-5 0], 
 init_add=0, start_add=0, const_add=0, sigma=0, gleak=1, U_rest=0, 
     do_plot=false, nderivs=0, difforder=0, clearfig=true, fignum=1, dUdt_mag_only=false,
-    warn_if_unused_params=false)
+    warn_if_unused_params=false, opto_fraction=1, opto_units=[], opto_times=zeros(0,2),)
 
 Runs a tanh() style-network forwards in time, given its starting point, using simple Euler integration
     tau dU/dt = -U + W*V + I
     V = 0.5*tanh(U)+ 0.5
 
-**PARAMETERS:**
+# PARAMETERS:
 
-startU     A column vector, nunits-by-1, indicating the values of U at time zero
+- startU     A column vector, nunits-by-1, indicating the values of U at time zero
 
 
-**OPTIONAL PARAMETERS**
+# OPTIONAL PARAMETERS
 
-dt      Scalar, timestep size
+- dt      Scalar, timestep size
 
-tau     Scalar, in seconds
+- tau     Scalar, in seconds
 
-gleak   
-        dUdt will have a term equal to gleak*(U_rest - U)
-U_rest
+- gleak   dUdt will have a term equal to gleak*(U_rest - U)
 
-nsteps  Number of timesteps to run, including time=0.
+- U_rest  dUdt will have a term equal to gleak*(U_rest - U)
 
-input   Either an nunits-by-1 vector, in which case inputs to each unit are constant
+- nsteps  Number of timesteps to run, including time=0.
+
+- input   Either an nunits-by-1 vector, in which case inputs to each unit are constant
         across time, or a matrix, nunits-by-nsteps, indicating input for each unit at each timepoint.
 
-W       Weight matrix, nunits-by-nunits
+- W       Weight matrix, nunits-by-nunits
 
-init_add    DEPRECATED: Vector or scalar that gets added to the input current at very first timestep.
+- init_add    DEPRECATED: Vector or scalar that gets added to the input current at very first timestep.
             Deprecated because this made it dt-dependent. Replaced by start_add.
 
-start_add   Vector or scalar that gets added, once, to the initial U[:,1], before the integration process begins.
+- start_add   Vector or scalar that gets added, once, to the initial U[:,1], before the integration process begins.
 
-const_add   Scalar that gets added to U after every timestep
+- const_add   Scalar that gets added to U after every timestep
 
-sigma       After each timestep, add sigma*sqrt(dt)*randn() to each element of U
+- sigma       After each timestep, add sigma*sqrt(dt)*randn() to each element of U
 
-do_plot   Default false, if true, plots V of up to the first two dimensions
+- opto_fraction    The outputs V, after being computed, will get multiplied by this number. opto_fraction should *EITHER* be a scalar, in which case optional params opto_units and opto_times below are also relevant; *OR* it should be an nunits-by-nsteps matrix, completely specifying how much each unit's V should be multiplied by at each timestep, in which case opto_times and opto_units are irrelevant
 
-fignum     Figure number on which to plot
+- opto_units       A list of the unit numbers that will have their V multiplied by opto_fraction. For example, [1,3] would affect only units 1 and 3.  Can be the empty matrix (equivalent to no opto effect). Irrelevant if opto_fraction = 1
 
-clrearfig  If true, the figure is first cleared, otherwise any plot ois overlaid
+- opto_times    An n-by-2 matrix, where each row lists t_start_of_opto_effect, t_end_of_opto_effect. For eaxmple,
+                [1 3 ; 6 8]  would mean "have an opto effect during both 1 <= t <=3 and 6 <= t <= 8]. With the 
+                code as currently configured, this would mean the same opto_fraction and opto_units across all 
+                the relevant time intervals in a run.
 
-nderivs, difforder     Required for making sure function can create its own arrays and 
+- do_plot   Default false, if true, plots V of up to the first two dimensions
+
+- fignum     Figure number on which to plot
+
+- clearfig  If true, the figure is first cleared, otherwise any plot ois overlaid
+
+- nderivs, difforder     Required for making sure function can create its own arrays and 
                        still be differentiated
 
-dUdt_mag_only  If true, returns |dUdt|^2 from the first timestep only, then stops.
+- dUdt_mag_only  If true, returns |dUdt|^2 from the first timestep only, then stops.
 
-warn_if_unused_params     If true, pronts out a warning of some of the passed parameters are not used.
+- warn_if_unused_params     If true, pronts out a warning of some of the passed parameters are not used.
+
+
 
 ** RETURNS:**
 
-Uend Vend       nunits-by-1 vectors representing the final values of U and V that were found.
-U, V            nunits-by-nsteps matrices containing the full trajectories
+- Uend Vend       nunits-by-1 vectors representing the final values of U and V that were found.
+
+- U, V            nunits-by-nsteps matrices containing the full trajectories
+
+- t               A time vector, so one could things like plot(t, U[1,:])
 
 """
-function forwardModel(startU; dt=0.01, tau=0.1, nsteps=100, input=[], noise=[], W=[0 -5;-5 0], 
+function forwardModel(startU; opto_fraction=1, opto_units=[], opto_times=zeros(0,2),
+    dt=0.01, tau=0.1, nsteps=100, input=[], noise=[], W=[0 -5;-5 0], 
     init_add=0, start_add=0, const_add=0, do_plot=false, nderivs=0, difforder=0, clearfig=true, fignum=1,
     dUdt_mag_only=false, sigma=0, g_leak=1, U_rest=0, theta=0, beta=1, 
     warn_if_unused_params=false, other_unused_params...)
 
+    
+    """
+    o = g(z)    squashing tanh function, running from 0 to 1, is equal to 0.5 when input is 0.
+    """
+    function g(z)
+        return 0.5*tanh.(z)+0.5
+    end
+    
     if warn_if_unused_params && length(other_unused_params)>0
         @printf("\n\n=== forwardModel warning, had unused params ")
         for k in keys(Dict(other_unused_params))
@@ -133,6 +142,19 @@ function forwardModel(startU; dt=0.01, tau=0.1, nsteps=100, input=[], noise=[], 
     elseif size(noise,2)==1     # was a column vector
         noise = noise*(1+ForwardDiffZeros(1, nsteps, nderivs=nderivs, difforder=difforder))
     end    
+    # --- formatting opto fraction ---
+    if typeof(opto_fraction)<:Array
+        if size(opto_fraction,1) != nunits || size(opto_fraction,2) != nsteps
+            error("opto_fraction must be either a scalar or an nunits-by-nsteps matrix")
+        end
+        opto_matrix = opto_fraction
+    else # We assume that if opto_fraction is not an Array, then it is a scalar
+        opto_matrix = ForwardDiffZeros(nunits, nsteps, nderivs=nderivs, difforder=difforder) + 1
+        time_axis = dt*(0:nsteps-1)
+        for i=1:size(opto_times,1)
+            opto_matrix[opto_units, (opto_times[i,1] .<= time_axis) & (time_axis .<= opto_times[i,2])] = opto_fraction
+        end
+    end
     
     U = ForwardDiffZeros(nunits, nsteps, nderivs=nderivs, difforder=difforder)
     V = ForwardDiffZeros(nunits, nsteps, nderivs=nderivs, difforder=difforder)
@@ -152,7 +174,9 @@ function forwardModel(startU; dt=0.01, tau=0.1, nsteps=100, input=[], noise=[], 
     #    size(U,1), size(U,2), size(startU,1), size(startU,2), size(noise,1), size(noise,2))
     # @printf("U[1]=%g, noise[1]=%g\n", startU, noise[1])
     U[:,1] = startU + noise[:,1] + start_add; # @printf("Resulting U=%g\n", U[1])
-    V[:,1] = g((U[:,1]-theta)/beta); # @printf("Resulting V=%g\n", V[1])
+    V[:,1] = g((U[:,1]-theta)/beta); 
+#    @printf("U[1U[1,1])
+    V[:,1] .*= opto_matrix[:,1]
     
     for i=2:nsteps
         dUdt = g_leak*(U_rest -U[:,i-1]) + W*V[:,i-1] + input[:,i-1]
@@ -163,6 +187,7 @@ function forwardModel(startU; dt=0.01, tau=0.1, nsteps=100, input=[], noise=[], 
         U[:,i] = U[:,i-1] + (dt/tau)*dUdt + noise[:,i] + sigma*sqrt(dt)*randn(size(U,1),1)
         # @printf("Resulting U[2]=%g\n", U[2])
         V[:,i] = g((U[:,i]-theta)/beta)
+        V[:,i] .*= opto_matrix[:,i]
         # @printf("Resulting V[2]=%g\n", V[2])
     end
 
@@ -185,7 +210,7 @@ function forwardModel(startU; dt=0.01, tau=0.1, nsteps=100, input=[], noise=[], 
         end
     end
 
-    return U[:,end], V[:,end], U, V
+    return U[:,end], V[:,end], U, V, (0:nsteps-1)*dt
 end
 
 
@@ -247,6 +272,13 @@ function backwardsModel(endU; nsteps=100, start_eta=10, tol=1e-15, maxiter=400,
     do_plot=false, init_add=0, start_add=0, dt=0.01, 
     input=[], noise=[], nderivs=0, difforder=0, clearfig=false, fignum=1, params...)    
 
+    """
+    o = g(z)    squashing tanh function, running from 0 to 1, is equal to 0.5 when input is 0.
+    """
+    function g(z)
+        return 0.5*tanh.(z)+0.5
+    end
+    
     nunits = length(endU)
 
     # --- formatting input ---
@@ -301,7 +333,7 @@ function backwardsModel(endU; nsteps=100, start_eta=10, tol=1e-15, maxiter=400,
     end
     
     
-    V = g(U)
+    V = g(U)  # REALLY???? HOW ABOUT THETA AND BETA?
     
     if do_plot
         figure(fignum)   
