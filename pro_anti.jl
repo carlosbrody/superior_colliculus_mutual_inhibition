@@ -82,6 +82,100 @@ end
 # DON'T MODIFY THIS FILE -- the source is in file ProAnti.ipynb
 
 
+"""
+parsed_times = parse_opto_times(opto_times, model_params)
+
+This function takes period specified with symbols and turns them into times in secs. Each element in the 
+opto_times parameter can be a number (time in secs) or a string. This string will be parsed and
+evaluated. Four special symbols are available: trial_start (which is really zero), target_start, 
+target_end, and trial_end.  To compute these, IT IS ASSUMED that model_params will contain entries
+for :rule_and_delay_period, :target period, and :post_target_period
+
+In addition, for backwards compatibility with Alex's code, some numbers are special:
+20 means end of trial (but we prefer the string "trial_end"), 100 mens end of rule and delay (but we prefer
+"target_start", and 200 means end of target (we prfer "target_end").
+
+# PARAMETERS
+
+* opto_times, an n-by-2 matrix where each row of the matrix specifies af starting time and an ending time. Entries can be numbers or strings representing expressions to be evaluated.
+
+* model_params  a Dict which must contain key-value pairs with the keys :rule_and_delay_period, :target_period, and :post_target_period
+
+# RETURNS
+
+* a matrix the same size as opto_times, but with all strings parsed and evaluated.
+
+# EXAMPLE
+
+> model_params[:target_period] = 1  ; model_params[:rule_and_delay_period] = 1
+> opto_times = ["exp(target_end)" 3; 6 8]
+> parse_opto_times(opto_times, model_params)
+
+7.38906   3
+ 6         8
+
+"""
+function parse_opto_times(opto_times2, model_params)
+    # Make a copy so we don't futz with the original:
+    opto_times = copy(opto_times2)
+    # we want to be able to stash floats and numbers in by the end:
+    if typeof(opto_times)<:Array{String}
+        opto_times = convert(Array{Any}, opto_times)
+    end
+
+    
+    # Let's define the time markers
+    trial_start = target_start = target_end = trial_end = 0   # just define them here so vars are available ourside try/catch
+    try
+        trial_start  = 0
+        target_start = model_params[:rule_and_delay_period]
+        target_end   = target_start + model_params[:target_period]
+        trial_end    = target_end   + model_params[:post_target_period]
+    catch y
+        @printf("\n\nwhoa, are you sure your model_params had all three of :rule_and_delay_period, :target_period, and :post_target_period?\n\n")
+        error(y)
+    end
+    
+    function replacer(P)   # run through an expression tree, replacing known symbols with their values, then evaluate
+        if typeof(P)<:Symbol
+            if P == :trial_start;  P = trial_start; end;                    
+            if P == :target_start; P = target_start; end;                    
+            if P == :target_end;   P = target_end; end;                    
+            if P == :trial_end;    P = trial_end; end;                    
+            return P
+        end        
+        for i=1:length(P.args)
+            if typeof(P.args[i])<:Expr
+                P.args[i] = replacer(P.args[i])
+            else
+                if P.args[i] == :trial_start;  P.args[i] = trial_start; end;                    
+                if P.args[i] == :target_start || P.args[i]==100;  P.args[i] = target_start; end;                    
+                if P.args[i] == :target_end   || P.args[i]==200;  P.args[i] = target_end; end;                    
+                if P.args[i] == :trial_end    || P.args[i]==20;   P.args[i] = trial_end; end;                    
+            end
+        end
+        return eval(P)
+    end
+    
+    for i=1:length(opto_times)
+        if typeof(opto_times[i])==String
+            # @printf("Got a string, and it is: %s\n", opto_times[i])
+            # @printf("Parsing turned it into: ");  print(parse(opto_times[i])); print("\n")
+            # @printf("Replacer turned it into: "); print(replacer(parse(opto_times[i]))); print("\n")
+            opto_times[i] = replacer(parse(opto_times[i]))
+        elseif typeof(opto_times[i])==Int64
+            if opto_times[i]==100; opto_times[i] = target_start; end;
+            if opto_times[i]==200; opto_times[i] = target_end;   end;
+            if opto_times[i]==20;  opto_times[i] = trial_end;    end;
+        end            
+    end
+    return opto_times
+end
+
+
+# DON'T MODIFY THIS FILE -- the source is in file ProAnti.ipynb
+
+
 model_params = Dict(
 :dt     =>  0.02,    # timestep, in secs
 :tau    =>  0.1,     # tau, in ms
