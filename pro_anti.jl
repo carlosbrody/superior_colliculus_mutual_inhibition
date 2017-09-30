@@ -141,9 +141,9 @@ end
 
 
 function run_ntrials(nPro, nAnti; plot_list=[], nderivs=0, difforder=0, model_params...)
-    pro_input,  t, nsteps = make_input("Pro" ; model_params...)
-    anti_input, t, nsteps = make_input("Anti"; model_params...)
-
+    pro_input,  t, nsteps = make_input("Pro" ; nderivs=nderivs, difforder=difforder, model_params...)
+    anti_input, t, nsteps = make_input("Anti"; nderivs=nderivs, difforder=difforder, model_params...)
+    
     model_params = Dict(model_params)
     sW = model_params[:sW]
     hW = model_params[:hW]
