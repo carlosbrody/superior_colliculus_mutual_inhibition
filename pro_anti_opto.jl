@@ -306,7 +306,15 @@ function forwardModel_opto(startU, opto_fraction; dt=0.01, tau=0.1, nsteps=100, 
             @printf("%s, ", k)
         end
     end
-    
+ """
+o = g(z)    squashing tanh function, running from 0 to 1, is equal to 0.5 when input is 0.
+"""
+function g(z)
+    return 0.5*tanh.(z)+0.5
+end
+   
+
+ 
     my_input = ForwardDiffZeros(size(input,1), size(input,2), nderivs=nderivs, difforder=difforder)
     for i=1:prod(size(input)); my_input[i] = input[i]; end
     input = my_input;
