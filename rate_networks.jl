@@ -117,6 +117,10 @@ function forwardModel(startU; opto_strength=1, opto_units=[], opto_times=zeros(0
         end
     end
     
+    if length(size(opto_times))==1
+        opto_times = reshape(opto_times, 1, 2)
+    end
+    
     my_input = ForwardDiffZeros(size(input,1), size(input,2), nderivs=nderivs, difforder=difforder)
     for i=1:prod(size(input)); my_input[i] = input[i]; end
     input = my_input;
