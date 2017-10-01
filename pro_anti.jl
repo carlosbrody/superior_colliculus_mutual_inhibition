@@ -250,8 +250,9 @@ end
 
 
 """
-proVs, antiVs, pro_fullV, anti_fullV = run_ntrials(nPro, nAnti; plot_list=[], nderivs=0, difforder=0, 
-    model_params...)
+proVs, antiVs, pro_fullV, anti_fullV, opto_fraction, pro_input, anti_input = 
+    run_ntrials(nPro, nAnti; plot_list=[], start_pro=[-0.5,-0.5,-0.5,-0.5], start_anti=[-0.5,-0.5,-0.5,-0.5],
+        opto_units = 1:4, nderivs=0, difforder=0, model_params...)
 
 Runs a set of proAnti model trials.  See model_params above for definition of all the parameters. In addition,
 
@@ -265,11 +266,16 @@ Runs a set of proAnti model trials.  See model_params above for definition of al
 
 - plot_list    A list of trials to plot on the figures. If empty nothing is plotted
 
+- start_pro    A 4-by-1 vector of starting U values on Pro trials for the 4 units
+
+- start_anti   A 4-by-1 vector of starting U values on Anti trials for the 4 units
+
 - nderivs      For ForwardDiff
 
 - difforder    For ForwardDiff
 
 - model_params   Further optional params, will be passed onto forwardModel() (e.g., opto times)
+
 
 # RETURNS
 
@@ -282,7 +288,8 @@ Runs a set of proAnti model trials.  See model_params above for definition of al
 - anti_fullVs  all Vs, across all times, for all Anti trials
 
 """
-function run_ntrials(nPro, nAnti; plot_list=[], nderivs=0, difforder=0, model_params...)
+function run_ntrials(nPro, nAnti; plot_list=[], start_pro=[-0.5,-0.5,-0.5,-0.5], start_anti=[-0.5,-0.5,-0.5,-0.5],
+    opto_units = 1:4, nderivs=0, difforder=0, model_params...)
     
     pro_input,  t, nsteps = make_input("Pro" ; nderivs=nderivs, difforder=difforder, model_params...)
     anti_input, t, nsteps = make_input("Anti"; nderivs=nderivs, difforder=difforder, model_params...)
@@ -306,8 +313,7 @@ function run_ntrials(nPro, nAnti; plot_list=[], nderivs=0, difforder=0, model_pa
     if length(plot_list)>0; figure(1); clf(); end
     model_params = make_dict(["input"], [pro_input], model_params)
     for i=1:nPro
-        startU = [-0.3, -0.7, -0.7, -0.3]
-        Uend, Vend, pro_fullU, pro_fullV[i] = forwardModel(startU, do_plot=false; model_params...)
+        Uend, Vend, pro_fullU, pro_fullV[i] = forwardModel(start_pro, do_plot=false, opto_units=opto_units; model_params...)
         proVs[:,i] = Vend
         if any(plot_list.==i) 
             plot_PA(t, pro_fullU, pro_fullV[i]; fignum=1, clearfig=false, model_params...)
@@ -319,92 +325,269 @@ function run_ntrials(nPro, nAnti; plot_list=[], nderivs=0, difforder=0, model_pa
     if length(plot_list)>0; figure(2); clf(); end
     model_params = make_dict(["input"], [anti_input], model_params)
     for i=1:nAnti
-        startU = [-0.7, -0.3, -0.3, -0.7]
-        Uend, Vend, anti_fullU, anti_fullV[i] = forwardModel(startU, do_plot=false; model_params...)
+        startU = [-0.5, -0.5, -0.5, -0.5]
+        Uend, Vend, anti_fullU, anti_fullV[i] = forwardModel(start_anti, do_plot=false, opto_units=opto_units; model_params...)
         antiVs[:,i] = Vend
         if any(plot_list.==i) 
             plot_PA(t, anti_fullU, anti_fullV[i]; fignum=2, clearfig=false, model_params...)
             subplot(3,1,1); title("ANTI")
         end
     end
+        
+    if haskey(model_params, :opto_fraction)
+        opto_fraction = model_params[:opto_fraction]
+    else
+        opto_fraction = 1
+    end
     
-    return proVs, antiVs, pro_fullV, anti_fullV
+    return proVs, antiVs, pro_fullV, anti_fullV, opto_fraction, pro_input, anti_input
 end
 
 
 # DON'T MODIFY THIS FILE -- the source is in file ProAnti.ipynb
 
 
-function JJ(nPro, nAnti; pro_target=0.9, anti_target=0.7, 
+"""
+cost, cost1s, cost2s, hP, hA, dP, dA, hBP, hBA = JJ(nPro, nAnti; pro_target=0.9, anti_target=0.7, 
+    opto_targets = Array{Float64}(2,0), opto_periods = Array{Float64}(2,0), 
+    model_details = false,
     theta1=0.025, theta2=0.035, cbeta=0.003, verbose=false, 
     pre_string="", zero_last_sigmas=0, seedrand=NaN, 
     rule_and_delay_periods = [0.4], target_periods = [0.1], post_target_periods = [0.5],
+    plot_conditions=false, plot_list = [],
     nderivs=0, difforder=0, model_params...)
 
-    nruns = length(rule_and_delay_periods)*length(target_periods)*length(post_target_periods)
-    
-    cost1s = ForwardDiffZeros(1, nruns, nderivs=nderivs, difforder=difforder)
-    cost2s = ForwardDiffZeros(1, nruns, nderivs=nderivs, difforder=difforder)
+Runs a proAnti network, if desired across multiple opto conditions and multiple period durations and returns
+resulting cost
 
-    if ~isnan(seedrand); srand(seedrand); end
-    
-    n = totHitsP = totHitsA = totDiffsP = totDiffsA = 0
-    for i in rule_and_delay_periods
-        for j in target_periods
-            for k = post_target_periods
-                n += 1
-                
-                my_params = make_dict(["rule_and_delay_period", "target_period", "post_target_period"],
-                [i, j, k], Dict(model_params))
-    
-                # print("model params is " ); print(model_params); print("\n")
-                proVs, antiVs = run_ntrials(nPro, nAnti; nderivs=nderivs, difforder=difforder, my_params...)
+# PARAMETERS (INCOMPLETE DOCS!!!):
 
-                hitsP  = 0.5*(1 + tanh.((proVs[1,:]-proVs[4,:,])/theta1))
-                diffsP = tanh.((proVs[1,:,]-proVs[4,:])/theta2).^2
-                hitsA  = 0.5*(1 + tanh.((antiVs[4,:]-antiVs[1,:,])/theta1))
-                diffsA = tanh.((antiVs[4,:,]-antiVs[1,:])/theta2).^2
+??
 
-                if nPro>0 && nAnti>0
-                    cost1s[n] = (nPro*(mean(hitsP) - pro_target).^2  + nAnti*(mean(hitsA) - anti_target).^2)/(nPro+nAnti)
-                    cost2s[n] = -cbeta*(nPro*mean(diffsP) + nAnti*mean(diffsA))/(nPro+nAnti)
-                elseif nPro>0
-                    cost1s[n] = (mean(hitsP) - pro_target).^2
-                    cost2s[n] = -cbeta*mean(diffsP)
-                else
-                    cost1s[n] = (mean(hitsA) - anti_target).^2
-                    cost2s[n] = -cbeta*mean(diffsA)
+# RETURNS (INCOMPLETE DOCS!!!):
+
+- cost   The net cost, composed of squared error cost (promoting performance close to the desired one) plus difference cost (promoting Pro_R and Pro_L differences at the end of the trial)
+
+- cost1s  A vector, for each opto condition, the squared error cost
+
+- cost2s  for each opto condition, the differences costc
+
+- hP     Pro "hits", as computed with the theta1 sigmoid
+    
+- hA     Anti "hits"
+
+- dP     Pro "diffs", as computed with the theta2 sigmoid
+    
+- dA     Anti "diffs"
+
+- hBP    Pro binarized hits, as computed by binarizing (equivalent to theta1->0)
+    
+- hBA    Anti binarized hits
+
+
+
+"""
+
+function JJ(nPro, nAnti; pro_target=0.9, anti_target=0.7, 
+    opto_targets = Array{Float64}(2,0), opto_periods = Array{Float64}(2,0), 
+    model_details = false,
+    theta1=0.025, theta2=0.035, cbeta=0.003, verbose=false, 
+    pre_string="", zero_last_sigmas=0, seedrand=NaN, 
+    rule_and_delay_periods = [0.4], target_periods = [0.1], post_target_periods = [0.5],
+    plot_conditions=false, plot_list = [],
+    nderivs=0, difforder=0, model_params...)
+
+    
+    
+    if size(opto_targets,1)==0  || size(opto_periods,1)==0 # if there's no opto that is being asked for
+        # Then tun with only a single opto_period request, with no opto, and control targets as our targets
+        opto_targets = [pro_target anti_target]
+        opto_periods = [-1, -1]   # opto effect is before time zero, i.e., is nothing
+    end
+    
+    if ~(size(opto_targets) == size(opto_periods)); 
+        error("opto parameters are bad -- need a Pro and Anti performance target for each requested period"); 
+    end
+
+    noptos     = size(opto_periods,1)  # of opto conditions
+    nruns_each = length(rule_and_delay_periods)*length(target_periods)*length(post_target_periods)    # runs per opto condition
+    nruns      = nruns_each*noptos  # total conditions
+    
+    cost1s = ForwardDiffZeros(noptos, nruns, nderivs=nderivs, difforder=difforder)
+    cost2s = ForwardDiffZeros(noptos, nruns, nderivs=nderivs, difforder=difforder)
+
+    hP  = zeros(noptos, nruns_each);   # Pro "hits", as computed with the theta1 sigmoid
+    hA  = zeros(noptos, nruns_each);   # Anti "hits"
+    dP  = zeros(noptos, nruns_each);   # Pro "diffs", as computed with the theta2 sigmoid
+    dA  = zeros(noptos, nruns_each);   # Anti "diffs"
+    hBP = zeros(noptos, nruns_each);   # Pro binarized hits, as computed by binarizing (equivalent to theta1->0)
+    hBA = zeros(noptos, nruns_each);   # Anti binarized hits
+
+    if model_details   # If caller wants all details from all timesteps, not just final output
+        proVall         = [];
+        antiVall        = [];
+        opto_fraction   = [];
+        pro_input       = [];
+        anti_input      = [];
+    end
+    
+    for nopto=1:noptos # iterate over each opto inactivation period
+        
+        # reset random number generator for each opto period, so it cant over fit noise samples
+        if ~isnan(seedrand); srand(seedrand); end
+
+        n = 0  # n is a counter over all period duration conditions
+        totHitsP = totHitsA = totDiffsP = totDiffsA = 0
+        for i in rule_and_delay_periods
+            for j in target_periods
+                for k = post_target_periods
+                    n += 1
+
+                    # include this opto inactivation in the parameters to pass on
+                    my_params = make_dict(["rule_and_delay_period","target_period","post_target_period"], [i,j,k])
+                    my_params = make_dict(["opto_times"], [reshape(opto_periods[nopto,:], 1, 2)], my_params)
+                    my_params = merge(Dict(model_params), my_params)  # my_params takes precedence
+
+                    my_plot_list = [];
+                    if typeof(plot_conditions)==Bool && plot_conditions
+                        my_plot_list = plot_list;
+                    elseif typeof(plot_conditions)<:Array && plot_conditions[nopto]
+                        my_plot_list = plot_list;
+                    end
+
+                    # print("model params is " ); print(model_params); print("\n")
+                    proVs, antiVs, proVall, antiVall, opto_fraction,pro_input,anti_input =
+                        run_ntrials(nPro, nAnti; plot_list=my_plot_list, 
+                            nderivs=nderivs, difforder=difforder, my_params...)
+                        # run_ntrials_opto(nPro, nAnti; nderivs=nderivs, difforder=difforder, my_params...)
+
+                    hitsP  = 0.5*(1 + tanh.((proVs[1,:]-proVs[4,:,])/theta1))
+                    diffsP = tanh.((proVs[1,:,]-proVs[4,:])/theta2).^2
+                    hitsA  = 0.5*(1 + tanh.((antiVs[4,:]-antiVs[1,:,])/theta1))
+                    diffsA = tanh.((antiVs[4,:,]-antiVs[1,:])/theta2).^2
+
+                   # set up storage  
+                    hP[nopto, n] = mean(hitsP);
+                    hA[nopto, n] = mean(hitsA);
+                    dP[nopto, n] = mean(diffsP);
+                    dA[nopto, n] = mean(diffsA);
+                    hBP[nopto, n] = sum(proVs[1,:] .>= proVs[4,:,])/nPro;
+                    hBA[nopto, n] = sum(proVs[4,:] .>  proVs[1,:,])/nAnti;                    
+                    
+                    if nPro>0 && nAnti>0
+                        cost1s[nopto, n] = (nPro*(mean(hitsP) - opto_targets[nopto,1]).^2  
+                                    + nAnti*(mean(hitsA) - opto_targets[nopto,2]).^2)/(nPro+nAnti)
+                        cost2s[nopto, n] = -cbeta*(nPro*mean(diffsP) + nAnti*mean(diffsA))/(nPro+nAnti)
+                    elseif nPro>0
+                        cost1s[nopto, n] = (mean(hitsP) - opto_targets[nopto,1]).^2
+                        cost2s[nopto, n] = -cbeta*mean(diffsP)
+                    else
+                        cost1s[nopto, n] = (mean(hitsA) - opto_targets[nopto,2]).^2
+                        cost2s[nopto, n] = -cbeta*mean(diffsA)
+                    end
+
+                    totHitsP  += mean(hitsP);  totHitsA  += mean(hitsA); 
+                    totDiffsP += mean(diffsP); totDiffsA += mean(diffsA);
                 end
-
-                totHitsP  += mean(hitsP);  totHitsA  += mean(hitsA); 
-                totDiffsP += mean(diffsP); totDiffsA += mean(diffsA);
             end
         end
+
+        hitsP = totHitsP/n; hitsA = totHitsA/n; diffsP = totDiffsP/n; diffsA = totDiffsA/n
+    
+        if verbose
+            pcost1 = mean(cost1s[nopto,:])   # partial costs
+            pcost2 = mean(cost2s[nopto,:])            
+            
+            @printf("%s", pre_string)
+            @printf("Opto condition # %d\n", nopto)
+            @printf("     - %d - cost=%g, cost1=%g, cost2=%g\n", nopto,
+                convert(Float64, pcost1+pcost2), convert(Float64, pcost1), convert(Float64, pcost2))
+            if nPro>0 && nAnti>0
+                @printf("     - %d - mean(hitsP)=%g, mean(diffsP)=%g mean(hitsA)=%g, mean(diffsA)=%g\n", nopto,
+                    convert(Float64, mean(hitsP)), convert(Float64, mean(diffsP)),
+                    convert(Float64, mean(hitsA)), convert(Float64, mean(diffsA)))
+            elseif nPro>0
+                @printf("     - %d - mean(hitsP)=%g, mean(diffsP)=%g (nAnti=0)\n", nopto,
+                    convert(Float64, mean(hitsP)), convert(Float64, mean(diffsP)))
+            else
+                @printf("     - %d - (nPro=0) mean(hitsA)=%g, mean(diffsA)=%g\n", nopto,
+                    convert(Float64, mean(hitsA)), convert(Float64, mean(diffsA)))
+            end        
+        end
     end
+        
     
     cost1 = mean(cost1s)
     cost2 = mean(cost2s)
 
-    hitsP = totHitsP/n; hitsA = totHitsA/n; diffsP = totDiffsP/n; diffsA = totDiffsA/n
-    
     if verbose
         @printf("%s", pre_string)
-        @printf("     -- cost=%g,   cost1=%g, cost2=%g\n", 
+        @printf("OVERALL\n")
+        @printf("     -- cost=%g, cost1=%g, cost2=%g\n", 
             convert(Float64, cost1+cost2), convert(Float64, cost1), convert(Float64, cost2))
-        if nPro>0 && nAnti>0
-            @printf("     -- mean(hitsP)=%g, mean(diffsP)=%g mean(hitsA)=%g, mean(diffsA)=%g\n", 
-                convert(Float64, mean(hitsP)), convert(Float64, mean(diffsP)),
-                convert(Float64, mean(hitsA)), convert(Float64, mean(diffsA)))
-        elseif nPro>0
-            @printf("     -- mean(hitsP)=%g, mean(diffsP)=%g (nAnti=0)\n", 
-                convert(Float64, mean(hitsP)), convert(Float64, mean(diffsP)))
-        else
-            @printf("     -- (nPro=0) mean(hitsA)=%g, mean(diffsA)=%g\n", 
-                convert(Float64, mean(hitsA)), convert(Float64, mean(diffsA)))
-        end        
     end
     
-    return cost1 + cost2
+    if model_details
+        return cost1 + cost2, cost1s, cost2s, hP,hA,dP,dA,hBP,hBA, 
+            proVall, antiVall, opto_fraction, pro_input, anti_input
+    else
+        return cost1 + cost2, cost1s, cost2s, hP,hA,dP,dA,hBP,hBA
+    end
+end
+
+
+# DON'T MODIFY THIS FILE -- the source is in file ProAnti.ipynb
+
+
+
+"""
+model_params, F, nPro, nAnti = load_run(run_name; farmdir="FarmFields")
+
+Loads a run and sets everything into a self-contained model_params so that you could then run it directly:
+
+JJ(model_params[:nPro], model_params[:nAnti]; model_params...)
+
+# PARAMETERS:
+
+- run_name   A string representing the run. If it doesn't end in .mat, the .mat is added to it
+
+# OPTIONAL PARAMETERS:
+
+- farmdir   A string representing the directory in which the run is found
+
+# RETURNS:
+
+- model_params    The dictionary with all necessary params
+
+- F               A dictionary with the raw matread of the run file
+
+- nPro            equals model_params[:nPro]
+
+- nAnti           equals model_params[:nAnti]
+
+
+
+"""
+function load_run(run_name; farmdir="FarmFields")
+
+    if !endswith(run_name, ".mat")
+        run_name = run_name * ".mat"
+    end
+    
+    F = matread(farmdir * "/" * run_name)
+    model_params = symbol_key_ize(F["model_params"])
+    model_params[:rule_and_delay_periods] = F["rule_and_delay_periods"]
+    model_params[:post_target_periods] = F["post_target_periods"]
+    model_params[:seedrand]=F["test_sr"]
+    model_params[:cbeta] =F["cb"]
+    model_params[:start_pro] = [-0.5, -0.5, -0.5, -0.5]
+    model_params[:start_anti] = [-0.5, -0.5, -0.5, -0.5]
+    model_params = make_dict(F["args"], F["pars"], model_params)
+
+    nPro = model_params[:nPro]
+    nAnti = model_params[:nAnti]
+    
+    return model_params, F, nPro, nAnti
 end
 
 
