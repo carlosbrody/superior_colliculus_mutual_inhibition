@@ -12,7 +12,12 @@ include("rate_networks.jl")  # that will also include genera_utils.jl, constrain
     plot_PA(t, U, V; fignum=1, clearfig=true, rule_and_delay_period=1, target_period=1, post_target_period=1,
         other_unused_params...)
 
-Helper function for plotting ProAnti results
+Helper function for plotting ProAnti results. Given a time axia and nunits-by-nsteps U and V matrices, will 
+plot them (first clearing the figure if clearfig=true but overlaying if clearfig=false) in three vertically-
+arranged subplots. The top one has V as a function of time, with the two Pro units in blues and the two Anti 
+units in reds, dark colors for the left side of the brain, light colors for the right.  The middle subplot
+has Us. And the bottom subplot shows the difference between the two Pro units as a function of time.
+
 """
 function plot_PA(t, U, V; fignum=1, clearfig=true, rule_and_delay_period=1, target_period=1, post_target_period=1,
     other_unused_params...)
@@ -82,6 +87,100 @@ end
 # DON'T MODIFY THIS FILE -- the source is in file ProAnti.ipynb
 
 
+"""
+parsed_times = parse_opto_times(opto_times, model_params)
+
+This function takes period specified with symbols and turns them into times in secs. Each element in the 
+opto_times parameter can be a number (time in secs) or a string. This string will be parsed and
+evaluated. Four special symbols are available: trial_start (which is really zero), target_start, 
+target_end, and trial_end.  To compute these, IT IS ASSUMED that model_params will contain entries
+for :rule_and_delay_period, :target period, and :post_target_period
+
+In addition, for backwards compatibility with Alex's code, some numbers are special:
+20 means end of trial (but we prefer the string "trial_end"), 100 mens end of rule and delay (but we prefer
+"target_start", and 200 means end of target (we prfer "target_end").
+
+# PARAMETERS
+
+* opto_times, an n-by-2 matrix where each row of the matrix specifies af starting time and an ending time. Entries can be numbers or strings representing expressions to be evaluated.
+
+* model_params  a Dict which must contain key-value pairs with the keys :rule_and_delay_period, :target_period, and :post_target_period
+
+# RETURNS
+
+* a matrix the same size as opto_times, but with all strings parsed and evaluated.
+
+# EXAMPLE
+
+> model_params[:target_period] = 1  ; model_params[:rule_and_delay_period] = 1
+> opto_times = ["exp(target_end)" 3; 6 8]
+> parse_opto_times(opto_times, model_params)
+
+7.38906   3
+ 6         8
+
+"""
+function parse_opto_times(opto_times2, model_params)
+    # Make a copy so we don't futz with the original:
+    opto_times = copy(opto_times2)
+    # we want to be able to stash floats and numbers in by the end:
+    if typeof(opto_times)<:Array{String}
+        opto_times = convert(Array{Any}, opto_times)
+    end
+
+    
+    # Let's define the time markers
+    trial_start = target_start = target_end = trial_end = 0   # just define them here so vars are available ourside try/catch
+    try
+        trial_start  = 0
+        target_start = model_params[:rule_and_delay_period]
+        target_end   = target_start + model_params[:target_period]
+        trial_end    = target_end   + model_params[:post_target_period]
+    catch y
+        @printf("\n\nwhoa, are you sure your model_params had all three of :rule_and_delay_period, :target_period, and :post_target_period?\n\n")
+        error(y)
+    end
+    
+    function replacer(P)   # run through an expression tree, replacing known symbols with their values, then evaluate
+        if typeof(P)<:Symbol
+            if P == :trial_start;  P = trial_start; end;                    
+            if P == :target_start; P = target_start; end;                    
+            if P == :target_end;   P = target_end; end;                    
+            if P == :trial_end;    P = trial_end; end;                    
+            return P
+        end        
+        for i=1:length(P.args)
+            if typeof(P.args[i])<:Expr
+                P.args[i] = replacer(P.args[i])
+            else
+                if P.args[i] == :trial_start;  P.args[i] = trial_start; end;                    
+                if P.args[i] == :target_start || P.args[i]==100;  P.args[i] = target_start; end;                    
+                if P.args[i] == :target_end   || P.args[i]==200;  P.args[i] = target_end; end;                    
+                if P.args[i] == :trial_end    || P.args[i]==20;   P.args[i] = trial_end; end;                    
+            end
+        end
+        return eval(P)
+    end
+    
+    for i=1:length(opto_times)
+        if typeof(opto_times[i])==String
+            # @printf("Got a string, and it is: %s\n", opto_times[i])
+            # @printf("Parsing turned it into: ");  print(parse(opto_times[i])); print("\n")
+            # @printf("Replacer turned it into: "); print(replacer(parse(opto_times[i]))); print("\n")
+            opto_times[i] = replacer(parse(opto_times[i]))
+        elseif typeof(opto_times[i])==Int64
+            if opto_times[i]==100; opto_times[i] = target_start; end;
+            if opto_times[i]==200; opto_times[i] = target_end;   end;
+            if opto_times[i]==20;  opto_times[i] = trial_end;    end;
+        end            
+    end
+    return opto_times
+end
+
+
+# DON'T MODIFY THIS FILE -- the source is in file ProAnti.ipynb
+
+
 model_params = Dict(
 :dt     =>  0.02,    # timestep, in secs
 :tau    =>  0.1,     # tau, in ms
@@ -101,17 +200,26 @@ model_params = Dict(
 :anti_rule_strength       => 0.1,    # input added only to anti units during rule_and_delay_period in Anti trials
 :pro_rule_strength        => 0.1,    # input added only to pro units during rule_and_delay_period in Pro trials
 :const_pro_bias           => 0,      # input added only to pro units during all times in all trial types
-:target_period_excitation => 1,      # input added to all units during target_period
-:right_light_excitation   => 0.5,    # input added to the Anti and the Pro unit on one side during the target_period
+:target_period_excitation => 0.2,      # input added to all units during target_period
+:right_light_excitation   => 0.3,    # input added to the Anti and the Pro unit on one side during the target_period
 :right_light_pro_extra    => 0,      # input added to the right side Pro unit alone during the target_period
 :rule_and_delay_period    => 0.4,    # duration of rule_and_delay_period, in secs
 :target_period            => 0.1,    # duration of target_period, in secs
 :post_target_period       => 0.5,    # duration of post_target_period, in secs
 :const_add => 0,  # from rate_networks.jl, unused here
 :init_add  => 0,  # from rate_networks.jl, unused here 
+:opto_strength            => 1,      # fraction by which to scale V outputs
+:opto_times               => [],     # n-by-2 matrix, indicating start and stop times for opto_strength effect, all within the same trial
+:opto_units               => 1:4,    # ids of the units that will be affected by opto_strength effect
 )
 
 
+"""
+input, t, nsteps = make_input(trial_type; dt=0.02, nderivs=0, difforder=0, constant_excitation=0.19, anti_rule_strength=0.1, 
+    pro_rule_strength=0.1, target_period_excitation=1, right_light_excitation=0.5, right_light_pro_extra=0, 
+    rule_and_delay_period=0.4, target_period=0.1, post_target_period=0.4, const_pro_bias=0,
+    other_unused_params...)
+"""
 function make_input(trial_type; dt=0.02, nderivs=0, difforder=0, constant_excitation=0.19, anti_rule_strength=0.1, 
     pro_rule_strength=0.1, target_period_excitation=1, right_light_excitation=0.5, right_light_pro_extra=0, 
     rule_and_delay_period=0.4, target_period=0.1, post_target_period=0.4, const_pro_bias=0,
@@ -140,7 +248,42 @@ function make_input(trial_type; dt=0.02, nderivs=0, difforder=0, constant_excita
 end
 
 
+
+"""
+proVs, antiVs, pro_fullV, anti_fullV = run_ntrials(nPro, nAnti; plot_list=[], nderivs=0, difforder=0, 
+    model_params...)
+
+Runs a set of proAnti model trials.  See model_params above for definition of all the parameters. In addition,
+
+# PARAMETERS
+
+- nPro    number of Pro tials to run
+
+- nAnti   number of Anti trials to run
+
+# OPTIONAL PARAMETERS
+
+- plot_list    A list of trials to plot on the figures. If empty nothing is plotted
+
+- nderivs      For ForwardDiff
+
+- difforder    For ForwardDiff
+
+- model_params   Further optional params, will be passed onto forwardModel() (e.g., opto times)
+
+# RETURNS
+
+- proVs    final V for the four units on Pro trials
+
+- antiVs   final V for the four units on Anti trials
+
+- pro_fullVs   all Vs, across all times, for all Pro trials
+
+- anti_fullVs  all Vs, across all times, for all Anti trials
+
+"""
 function run_ntrials(nPro, nAnti; plot_list=[], nderivs=0, difforder=0, model_params...)
+    
     pro_input,  t, nsteps = make_input("Pro" ; nderivs=nderivs, difforder=difforder, model_params...)
     anti_input, t, nsteps = make_input("Anti"; nderivs=nderivs, difforder=difforder, model_params...)
     
@@ -152,19 +295,22 @@ function run_ntrials(nPro, nAnti; plot_list=[], nderivs=0, difforder=0, model_pa
     model_params = make_dict(["nsteps", "W"], [nsteps, [sW vW dW hW; vW sW hW dW; dW hW sW vW; hW dW vW sW]], 
         model_params)
     model_params = make_dict(["nderivs", "difforder"], [nderivs, difforder], model_params)
+    model_params[:opto_times] = parse_opto_times(model_params[:opto_times], model_params)
     
     proVs  = ForwardDiffZeros(4, nPro, nderivs=nderivs, difforder=difforder)
     antiVs = ForwardDiffZeros(4, nAnti, nderivs=nderivs, difforder=difforder)
-
+    pro_fullV  = Array{Any}(nPro,1)
+    anti_fullV = Array{Any}(nAnti,1)
+    
     # --- PRO ---
     if length(plot_list)>0; figure(1); clf(); end
     model_params = make_dict(["input"], [pro_input], model_params)
     for i=1:nPro
         startU = [-0.3, -0.7, -0.7, -0.3]
-        Uend, Vend, U, V = forwardModel(startU, do_plot=false; model_params...)
+        Uend, Vend, pro_fullU, pro_fullV[i] = forwardModel(startU, do_plot=false; model_params...)
         proVs[:,i] = Vend
         if any(plot_list.==i) 
-            plot_PA(t, U, V; fignum=1, clearfig=false, model_params...)
+            plot_PA(t, pro_fullU, pro_fullV[i]; fignum=1, clearfig=false, model_params...)
             subplot(3,1,1); title("PRO")
         end
     end
@@ -174,17 +320,16 @@ function run_ntrials(nPro, nAnti; plot_list=[], nderivs=0, difforder=0, model_pa
     model_params = make_dict(["input"], [anti_input], model_params)
     for i=1:nAnti
         startU = [-0.7, -0.3, -0.3, -0.7]
-        Uend, Vend, U, V = forwardModel(startU, do_plot=false; model_params...)
+        Uend, Vend, anti_fullU, anti_fullV[i] = forwardModel(startU, do_plot=false; model_params...)
         antiVs[:,i] = Vend
         if any(plot_list.==i) 
-            plot_PA(t, U, V; fignum=2, clearfig=false, model_params...)
+            plot_PA(t, anti_fullU, anti_fullV[i]; fignum=2, clearfig=false, model_params...)
             subplot(3,1,1); title("ANTI")
         end
     end
     
-    return proVs, antiVs
+    return proVs, antiVs, pro_fullV, anti_fullV
 end
-
 
 
 # DON'T MODIFY THIS FILE -- the source is in file ProAnti.ipynb

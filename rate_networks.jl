@@ -26,7 +26,7 @@ include("hessian_utils.jl")
 forwardModel(startU; dt=0.01, tau=0.1, nsteps=100, input=[0.1, 0], noise=[], W=[0 -5;-5 0], 
 init_add=0, start_add=0, const_add=0, sigma=0, gleak=1, U_rest=0, 
     do_plot=false, nderivs=0, difforder=0, clearfig=true, fignum=1, dUdt_mag_only=false,
-    warn_if_unused_params=false, opto_fraction=1, opto_units=[], opto_times=zeros(0,2),)
+    warn_if_unused_params=false, opto_strength=1, opto_units=[], opto_times=zeros(0,2),)
 
 Runs a tanh() style-network forwards in time, given its starting point, using simple Euler integration
     tau dU/dt = -U + W*V + I
@@ -63,13 +63,13 @@ Runs a tanh() style-network forwards in time, given its starting point, using si
 
 - sigma       After each timestep, add sigma*sqrt(dt)*randn() to each element of U
 
-- opto_fraction    The outputs V, after being computed, will get multiplied by this number. opto_fraction should *EITHER* be a scalar, in which case optional params opto_units and opto_times below are also relevant; *OR* it should be an nunits-by-nsteps matrix, completely specifying how much each unit's V should be multiplied by at each timestep, in which case opto_times and opto_units are irrelevant
+- opto_strength    The outputs V, after being computed, will get multiplied by this number. opto_strength should *EITHER* be a scalar, in which case optional params opto_units and opto_times below are also relevant; *OR* it should be an nunits-by-nsteps matrix, completely specifying how much each unit's V should be multiplied by at each timestep, in which case opto_times and opto_units are irrelevant
 
-- opto_units       A list of the unit numbers that will have their V multiplied by opto_fraction. For example, [1,3] would affect only units 1 and 3.  Can be the empty matrix (equivalent to no opto effect). Irrelevant if opto_fraction = 1
+- opto_units       A list of the unit numbers that will have their V multiplied by opto_strength. For example, [1,3] would affect only units 1 and 3.  Can be the empty matrix (equivalent to no opto effect). Irrelevant if opto_strength = 1
 
-- opto_times    An n-by-2 matrix, where each row lists t_start_of_opto_effect, t_end_of_opto_effect. For eaxmple,
+- opto_times    An n-by-2 matrix, where each row lists t_start_of_opto_effect, t_end_of_opto_effect. For example,
                 [1 3 ; 6 8]  would mean "have an opto effect during both 1 <= t <=3 and 6 <= t <= 8]. With the 
-                code as currently configured, this would mean the same opto_fraction and opto_units across all 
+                code as currently configured, this would mean the same opto_strength and opto_units across all 
                 the relevant time intervals in a run.
 
 - do_plot   Default false, if true, plots V of up to the first two dimensions
@@ -96,7 +96,7 @@ Runs a tanh() style-network forwards in time, given its starting point, using si
 - t               A time vector, so one could things like plot(t, U[1,:])
 
 """
-function forwardModel(startU; opto_fraction=1, opto_units=[], opto_times=zeros(0,2),
+function forwardModel(startU; opto_strength=1, opto_units=[], opto_times=zeros(0,2),
     dt=0.01, tau=0.1, nsteps=100, input=[], noise=[], W=[0 -5;-5 0], 
     init_add=0, start_add=0, const_add=0, do_plot=false, nderivs=0, difforder=0, clearfig=true, fignum=1,
     dUdt_mag_only=false, sigma=0, g_leak=1, U_rest=0, theta=0, beta=1, 
@@ -143,16 +143,16 @@ function forwardModel(startU; opto_fraction=1, opto_units=[], opto_times=zeros(0
         noise = noise*(1+ForwardDiffZeros(1, nsteps, nderivs=nderivs, difforder=difforder))
     end    
     # --- formatting opto fraction ---
-    if typeof(opto_fraction)<:Array
-        if size(opto_fraction,1) != nunits || size(opto_fraction,2) != nsteps
-            error("opto_fraction must be either a scalar or an nunits-by-nsteps matrix")
+    if typeof(opto_strength)<:Array
+        if size(opto_strength,1) != nunits || size(opto_strength,2) != nsteps
+            error("opto_strength must be either a scalar or an nunits-by-nsteps matrix")
         end
-        opto_matrix = opto_fraction
-    else # We assume that if opto_fraction is not an Array, then it is a scalar
+        opto_matrix = opto_strength
+    else # We assume that if opto_strength is not an Array, then it is a scalar
         opto_matrix = ForwardDiffZeros(nunits, nsteps, nderivs=nderivs, difforder=difforder) + 1
         time_axis = dt*(0:nsteps-1)
         for i=1:size(opto_times,1)
-            opto_matrix[opto_units, (opto_times[i,1] .<= time_axis) & (time_axis .<= opto_times[i,2])] = opto_fraction
+            opto_matrix[opto_units, (opto_times[i,1] .<= time_axis) & (time_axis .<= opto_times[i,2])] = opto_strength
         end
     end
     
