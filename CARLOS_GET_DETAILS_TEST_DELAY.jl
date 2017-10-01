@@ -104,8 +104,8 @@ model_params = symbol_key_ize(F["model_params"])
 ####### WARNING, WARNING, WARNING, WARNING. THIS IS A HACK! THIS IS A HACK!
 # because julia is dumb, and its 1:30am, I am doing things this way. I am setting the condition I want to get the details for as the last opto condition to run. Dont change anything unless you understand what the next line of code is doing. 
 model_params[:opto_periods][5,:] = model_params[:opto_periods][4,:];
-test_func =  (;params...) -> JJ_opto_plot(model_params[:nPro],model_params[:nAnti]; rule_and_delay_periods=F["rule_and_delay_periods"], theta1=model_params[:theta1], theta2=model_params[:theta2], post_target_periods=F["post_target_periods"], seedrand=F["test_sr"], cbeta=F["cb"], verbose=true,plot_conditions=[false,false,false,false,true],model_details=true,  merge(make_dict(F["args"],F["pars"], merge(model_params, Dict(params))))...)
+test_func =  (;params...) -> JJ_opto(model_params[:nPro],model_params[:nAnti]; rule_and_delay_periods=F["rule_and_delay_periods"], theta1=model_params[:theta1], theta2=model_params[:theta2], post_target_periods=F["post_target_periods"], seedrand=F["test_sr"], cbeta=F["cb"], verbose=true,plot_conditions=[false,false,false,false,true],model_details=true,  merge(make_dict(F["args"],F["pars"], merge(model_params, Dict(params))))...)
 
 opto_scost, opto_scost1, opto_scost2, opto_hitsP,opto_hitsA, opto_diffsP, opto_diffsA, opto_bP, opto_bA, proVall, antiVall, opto_fraction, pro_input, anti_input = test_func(;:start_pro=>[-0.5,-0.5,-0.5,-0.5],:start_anti=>[-0.5,-0.5,-0.5,-0.5]);
 
-done=1
+include("CARLOS_COMPUTE_DELAY_ENCODING.jl")
