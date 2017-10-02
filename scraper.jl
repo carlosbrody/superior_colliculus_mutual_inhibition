@@ -101,7 +101,7 @@ function scrape_notebook(notebook_filename; verbose=false, includemagic="#@inclu
                         if verbose; @printf("Writing out file %s\n", m["filename"]); end
                     end
                     # Now write out the contents of the cell, with a warning at the top:
-                    write(f, @sprintf("# DON'T MODIFY THIS FILE -- the source is in file %s\n\n", notebook_filename))
+                    write(f, @sprintf("# DON'T MODIFY THIS FILE -- the source is in file %s. Look there for further documentation and examples of running the code.\n\n", notebook_filename))
                     for i=2:length(lines)
                         write(f, lines[i])
                     end
