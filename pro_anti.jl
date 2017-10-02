@@ -252,6 +252,7 @@ end
 """
 proVs, antiVs, pro_fullV, anti_fullV, opto_fraction, pro_input, anti_input = 
     run_ntrials(nPro, nAnti; plot_list=[], start_pro=[-0.5,-0.5,-0.5,-0.5], start_anti=[-0.5,-0.5,-0.5,-0.5],
+        profig=1, antifig=2,
         opto_units = 1:4, nderivs=0, difforder=0, model_params...)
 
 Runs a set of proAnti model trials.  See model_params above for definition of all the parameters. In addition,
@@ -265,6 +266,10 @@ Runs a set of proAnti model trials.  See model_params above for definition of al
 # OPTIONAL PARAMETERS
 
 - plot_list    A list of trials to plot on the figures. If empty nothing is plotted
+
+- profig       The figure number on which Pro traces will be drawn
+
+- antifig      The figure number on which Anti traces will be drawn
 
 - start_pro    A 4-by-1 vector of starting U values on Pro trials for the 4 units
 
@@ -283,12 +288,13 @@ Runs a set of proAnti model trials.  See model_params above for definition of al
 
 - antiVs   final V for the four units on Anti trials
 
-- pro_fullVs   all Vs, across all times, for all Pro trials
+- pro_fullVs   all Vs, across all times, for all Pro trials (4-by-nsteps-by-nPro)
 
-- anti_fullVs  all Vs, across all times, for all Anti trials
+- anti_fullVs  all Vs, across all times, for all Anti trials (4-by-nsteps-by-nAnti)
 
 """
 function run_ntrials(nPro, nAnti; plot_list=[], start_pro=[-0.5,-0.5,-0.5,-0.5], start_anti=[-0.5,-0.5,-0.5,-0.5],
+    profig=1, antifig=2,
     opto_units = 1:4, nderivs=0, difforder=0, model_params...)
     
     pro_input,  t, nsteps = make_input("Pro" ; nderivs=nderivs, difforder=difforder, model_params...)
@@ -306,30 +312,30 @@ function run_ntrials(nPro, nAnti; plot_list=[], start_pro=[-0.5,-0.5,-0.5,-0.5],
     
     proVs  = ForwardDiffZeros(4, nPro, nderivs=nderivs, difforder=difforder)
     antiVs = ForwardDiffZeros(4, nAnti, nderivs=nderivs, difforder=difforder)
-    pro_fullV  = Array{Any}(nPro,1)
-    anti_fullV = Array{Any}(nAnti,1)
+    proVall  = zeros(4, nsteps, nPro);
+    antiVall = zeros(4, nsteps, nAnti);
     
     # --- PRO ---
-    if length(plot_list)>0; figure(1); clf(); end
+    if length(plot_list)>0; figure(profig); clf(); end
     model_params = make_dict(["input"], [pro_input], model_params)
     for i=1:nPro
-        Uend, Vend, pro_fullU, pro_fullV[i] = forwardModel(start_pro, do_plot=false, opto_units=opto_units; model_params...)
+        Uend, Vend, pro_fullU, proVall[:,:,i] = forwardModel(start_pro, do_plot=false, opto_units=opto_units; model_params...)
         proVs[:,i] = Vend
         if any(plot_list.==i) 
-            plot_PA(t, pro_fullU, pro_fullV[i]; fignum=1, clearfig=false, model_params...)
+            plot_PA(t, pro_fullU, proVall[:,:,i]; fignum=profig, clearfig=false, model_params...)
             subplot(3,1,1); title("PRO")
         end
     end
 
     # --- ANTI ---
-    if length(plot_list)>0; figure(2); clf(); end
+    if length(plot_list)>0; figure(antifig); clf(); end
     model_params = make_dict(["input"], [anti_input], model_params)
     for i=1:nAnti
         startU = [-0.5, -0.5, -0.5, -0.5]
-        Uend, Vend, anti_fullU, anti_fullV[i] = forwardModel(start_anti, do_plot=false, opto_units=opto_units; model_params...)
+        Uend, Vend, anti_fullU, antiVall[:,:,i] = forwardModel(start_anti, do_plot=false, opto_units=opto_units; model_params...)
         antiVs[:,i] = Vend
         if any(plot_list.==i) 
-            plot_PA(t, anti_fullU, anti_fullV[i]; fignum=2, clearfig=false, model_params...)
+            plot_PA(t, anti_fullU, antiVall[:,:,i]; fignum=antifig, clearfig=false, model_params...)
             subplot(3,1,1); title("ANTI")
         end
     end
@@ -340,7 +346,7 @@ function run_ntrials(nPro, nAnti; plot_list=[], start_pro=[-0.5,-0.5,-0.5,-0.5],
         opto_fraction = 1
     end
     
-    return proVs, antiVs, pro_fullV, anti_fullV, opto_fraction, pro_input, anti_input
+    return proVs, antiVs, proVall, antiVall, opto_fraction, pro_input, anti_input
 end
 
 
@@ -384,6 +390,8 @@ resulting cost
     
 - hBA    Anti binarized hits
 
+If model_details is set to true, also returns proValls, antiValls, opto_fraction, pro_input, anti_input
+
 
 
 """
@@ -423,13 +431,11 @@ function JJ(nPro, nAnti; pro_target=0.9, anti_target=0.7,
     hBP = zeros(noptos, nruns_each);   # Pro binarized hits, as computed by binarizing (equivalent to theta1->0)
     hBA = zeros(noptos, nruns_each);   # Anti binarized hits
 
-    if model_details   # If caller wants all details from all timesteps, not just final output
-        proVall         = [];
-        antiVall        = [];
-        opto_fraction   = [];
-        pro_input       = [];
-        anti_input      = [];
-    end
+    proValls         = [];
+    antiValls        = [];
+    opto_fraction    = [];
+    pro_input        = [];
+    anti_input       = [];
     
     for nopto=1:noptos # iterate over each opto inactivation period
         
@@ -460,7 +466,16 @@ function JJ(nPro, nAnti; pro_target=0.9, anti_target=0.7,
                         run_ntrials(nPro, nAnti; plot_list=my_plot_list, 
                             nderivs=nderivs, difforder=difforder, my_params...)
                         # run_ntrials_opto(nPro, nAnti; nderivs=nderivs, difforder=difforder, my_params...)
-
+                    if length(proValls)==0
+                        proValls = zeros(4, size(proVall,2), size(proVall,3), noptos)
+                    end
+                    if length(antiValls)==0
+                        antiValls = zeros(4, size(antiVall,2), size(antiVall,3), noptos)
+                    end
+                    proValls[:,:,:,nopto]  = proVall
+                    antiValls[:,:,:,nopto] = antiVall
+                    # @printf("size of proValls is "); print(size(proValls)); print("\n")
+                    
                     hitsP  = 0.5*(1 + tanh.((proVs[1,:]-proVs[4,:,])/theta1))
                     diffsP = tanh.((proVs[1,:,]-proVs[4,:])/theta2).^2
                     hitsA  = 0.5*(1 + tanh.((antiVs[4,:]-antiVs[1,:,])/theta1))
@@ -529,7 +544,7 @@ function JJ(nPro, nAnti; pro_target=0.9, anti_target=0.7,
     
     if model_details
         return cost1 + cost2, cost1s, cost2s, hP,hA,dP,dA,hBP,hBA, 
-            proVall, antiVall, opto_fraction, pro_input, anti_input
+            proValls, antiValls, opto_fraction, pro_input, anti_input
     else
         return cost1 + cost2, cost1s, cost2s, hP,hA,dP,dA,hBP,hBA
     end
@@ -545,7 +560,12 @@ model_params, F, nPro, nAnti = load_run(run_name; farmdir="FarmFields")
 
 Loads a run and sets everything into a self-contained model_params so that you could then run it directly:
 
-JJ(model_params[:nPro], model_params[:nAnti]; model_params...)
+    JJ(model_params[:nPro], model_params[:nAnti]; model_params...);
+
+If the model_params for the run included :start_pro and :start_anti entries (or "start_pro" and
+"start_anti" entries in F), it uses those. Otherwise
+sets :start_pro and :start_anti to a default of [-0.5, -0.5, -0.5, -0.5]
+
 
 # PARAMETERS:
 
@@ -570,6 +590,8 @@ JJ(model_params[:nPro], model_params[:nAnti]; model_params...)
 """
 function load_run(run_name; farmdir="FarmFields")
 
+    default_U_start = [-0.5, -0.5, -0.5, -0.5]
+    
     if !endswith(run_name, ".mat")
         run_name = run_name * ".mat"
     end
@@ -577,11 +599,26 @@ function load_run(run_name; farmdir="FarmFields")
     F = matread(farmdir * "/" * run_name)
     model_params = symbol_key_ize(F["model_params"])
     model_params[:rule_and_delay_periods] = F["rule_and_delay_periods"]
-    model_params[:post_target_periods] = F["post_target_periods"]
+    model_params[:rule_and_delay_period]  = model_params[:rule_and_delay_periods][1]
+    model_params[:target_period]          = model_params[:target_period]
+    model_params[:post_target_periods]    = F["post_target_periods"]
+    model_params[:post_target_period]     = model_params[:post_target_periods][1]
     model_params[:seedrand]=F["test_sr"]
     model_params[:cbeta] =F["cb"]
-    model_params[:start_pro] = [-0.5, -0.5, -0.5, -0.5]
-    model_params[:start_anti] = [-0.5, -0.5, -0.5, -0.5]
+    if ~haskey(model_params, :start_pro)
+        if ~haskey(F, "start_pro")
+            model_params[:start_pro] = default_U_start
+        else
+            model_params[:start_pro] = F["start_pro"]
+        end
+    end
+    if ~haskey(model_params, :start_anti)
+        if ~haskey(F, "start_anti")
+            model_params[:start_anti] = default_U_start
+        else
+            model_params[:start_anti] = F["start_antia"]
+        end
+    end
     model_params = make_dict(F["args"], F["pars"], model_params)
 
     nPro = model_params[:nPro]
