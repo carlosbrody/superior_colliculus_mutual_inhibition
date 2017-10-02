@@ -53,6 +53,7 @@ for resname in filter(x -> startswith(x, "res_"), readdir("../for_carlos_without
     plot_farm(fname)
     
     @printf("==> This was %s\n\n", fname)
+    @printf("Type anything to go on to next run, type q to quit\n")
     q = readline()
     if startswith(q, "q") || startswith(q, "Q")
         break
