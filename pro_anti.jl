@@ -124,7 +124,7 @@ function parse_opto_times(opto_times2, model_params)
     # Make a copy so we don't futz with the original:
     opto_times = copy(opto_times2)
     # we want to be able to stash floats and numbers in by the end:
-    if typeof(opto_times)<:Array{String}
+    if typeof(opto_times)<:Array{String} || typeof(opto_times)<:Array{Int64}
         opto_times = convert(Array{Any}, opto_times)
     end
 
