@@ -60,7 +60,7 @@ function one_d_minimizer(seed, func; tol=1e-5, maxiter=100, start_eta=0.1)
         if abs(h_delta[1]) < eta
             new_lambdavec = lambdavec + h_delta
         else
-            new_lambdavec = lambdavec - eta*sign(grad)
+            new_lambdavec = lambdavec - eta*sign.(grad)
         end
 
         delta_lambda = new_lambdavec[1] - lambdavec[1]
@@ -200,7 +200,7 @@ function constrained_parabolic_minimization(H, G, r; tol=1e-6, min_only=true,
         # First scan lambda to find good candidates for minimizing the parabolic 
         # surface under the x'*x = r^2 constraint
         L = eig(H)[1]
-        L0 = maximum(abs(L))
+        L0 = maximum(abs.(L))
         lambdas = L0*efactor*[-1.0:lambdastepsize:1.0;]
         costs = zeros(size(lambdas))
         for i in [1:length(lambdas);]
@@ -221,7 +221,7 @@ function constrained_parabolic_minimization(H, G, r; tol=1e-6, min_only=true,
         # Take all candidates where the derivative of costs changes sign 
         # from negative to positive (those would be minima),
         # plus the smallest and the largest lambdas tested, as candidates
-        g = append!(prepend!(find(diff(sign(diff(costs))) .> 0.99), [1]), [length(lambdas)])
+        g = append!(prepend!(find(diff(sign.(diff(costs))) .> 0.99), [1]), [length(lambdas)])
         if verbose
             @printf("cpm: g (candidate indices) are : ");           print_vector_g(g);        print("\n")
             @printf("cpm: and their corresponding costs are : ");   print_vector(costs[g]);   print("\n");
