@@ -1,7 +1,7 @@
 # DON'T MODIFY THIS FILE -- the source is in file ProAnti.ipynb
 
 
-include("rate_networks.jl")  # that will also include genera_utils.jl, constrained_parabolic_minimization.jl, and hessian_utils.jl
+include("rate_networks.jl")  # that will also include general_utils.jl, constrained_parabolic_minimization.jl, and hessian_utils.jl
 
 
 
@@ -20,11 +20,15 @@ has Us. And the bottom subplot shows the difference between the two Pro units as
 
 """
 function plot_PA(t, U, V; fignum=1, clearfig=true, rule_and_delay_period=1, target_period=1, post_target_period=1,
-    other_unused_params...)
+    plot_Us=true, ax_set=Dict(), other_unused_params...)
     figure(fignum)
-    if clearfig; clf(); end
+    if clearfig && ~isempty(ax_set); clf(); end
     
-    ax1 = subplot(3,1,1)
+    if ~haskey(ax_set, "Vax")
+        if plot_Us; ax1 = subplot(3,1,1); else ax1=subplot(2,1,1); end;
+    else
+        ax1 = axes(ax_set["Vax"], fontsize=20)
+    end
     h = plot(t, V'); 
     setp(h[1], color=[0, 0, 1])
     setp(h[2], color=[1, 0, 0])
@@ -50,26 +54,37 @@ function plot_PA(t, U, V; fignum=1, clearfig=true, rule_and_delay_period=1, targ
     grid(true)
     remove_xtick_labels(ax1)
         
-    ax2 = subplot(3,1,2)
-    hu = plot(t, U')
-    oldlims = [ylim()[1]+0.1, ylim()[2]-0.1]
-    ylim(minimum([U[:];oldlims[1]])-0.1, maximum([U[:];oldlims[2]])+0.1)
-    setp(hu[1], color=[0, 0, 1])
-    setp(hu[2], color=[1, 0, 0])
-    setp(hu[3], color=[1, 0.5, 0.5])
-    setp(hu[4], color=[0, 1, 1])
-    ylabel("U"); 
-    vlines([rule_and_delay_period, 
-            rule_and_delay_period+target_period,
-            rule_and_delay_period+target_period+post_target_period], 
-            ylim()[1], ylim()[2], linewidth=2)
-    remove_xtick_labels(ax2)
+    if plot_Us
+        if ~haskey(ax_set, "Uax")
+            ax2 = subplot(3,1,2)
+        else
+            ax2 = axes(ax_set["Uax"])
+        end
+        hu = plot(t, U')
+        oldlims = [ylim()[1]+0.1, ylim()[2]-0.1]
+        ylim(minimum([U[:];oldlims[1]])-0.1, maximum([U[:];oldlims[2]])+0.1)
+        setp(hu[1], color=[0, 0, 1])
+        setp(hu[2], color=[1, 0, 0])
+        setp(hu[3], color=[1, 0.5, 0.5])
+        setp(hu[4], color=[0, 1, 1])
+        ylabel("U"); 
+        vlines([rule_and_delay_period, 
+                rule_and_delay_period+target_period,
+                rule_and_delay_period+target_period+post_target_period], 
+                ylim()[1], ylim()[2], linewidth=2)
+        remove_xtick_labels(ax2)
 
-    grid(true)
+        grid(true)
+    end
     
-    subplot(3,1,3)
+    if ~haskey(ax_set, "Dax")
+        if plot_Us; ax3 = subplot(3,1,3); else ax3=subplot(2,1,2); end;
+    else
+        ax3 = axes(ax_set["Dax"])
+    end
+
     delta = V[1,:] - V[4,:]
-    hr = plot(t, delta)
+    hr = plot(t, delta, "k")
     oldlims = [ylim()[1]+0.1, ylim()[2]-0.1]
     ylim(minimum([delta[:];oldlims[1]])-0.1, maximum([delta[:];oldlims[2]])+0.1)
     vlines([rule_and_delay_period, 
@@ -113,7 +128,7 @@ In addition, for backwards compatibility with Alex's code, some numbers are spec
 # EXAMPLE
 
 > model_params[:target_period] = 1  ; model_params[:rule_and_delay_period] = 1
-> opto_times = ["exp(target_end)" 3; 6 8]
+> opto_times = ["exp(target_end)" 3; 6 8]   # NOTE: exp() that means the exponential-- any arbitrary Julia expression is allowed
 > parse_opto_times(opto_times, model_params)
 
 7.38906   3
@@ -123,8 +138,9 @@ In addition, for backwards compatibility with Alex's code, some numbers are spec
 function parse_opto_times(opto_times2, model_params)
     # Make a copy so we don't futz with the original:
     opto_times = copy(opto_times2)
+    
     # we want to be able to stash floats and numbers in by the end:
-    if typeof(opto_times)<:Array{String} || typeof(opto_times)<:Array{Int64}
+    if typeof(opto_times)<:Array{String}  ||  typeof(opto_times)<:Array{Int64}
         opto_times = convert(Array{Any}, opto_times)
     end
 
@@ -294,8 +310,17 @@ Runs a set of proAnti model trials.  See model_params above for definition of al
 
 """
 function run_ntrials(nPro, nAnti; plot_list=[], start_pro=[-0.5,-0.5,-0.5,-0.5], start_anti=[-0.5,-0.5,-0.5,-0.5],
-    profig=1, antifig=2,
+    profig=1, antifig=2, plot_Us=true,  clearfig=true, ax_set = Dict(),
     opto_units = 1:4, nderivs=0, difforder=0, model_params...)
+    
+    pro_ax_set = Dict()
+    anti_ax_set = Dict()
+    if haskey(ax_set, "pro_Vax");  pro_ax_set["Vax"]  = ax_set["pro_Vax"]; end;
+    if haskey(ax_set, "pro_Uax");  pro_ax_set["Uax"]  = ax_set["pro_Uax"]; end;
+    if haskey(ax_set, "pro_Dax");  pro_ax_set["Dax"]  = ax_set["pro_Dax"]; end;                        
+    if haskey(ax_set, "anti_Vax"); anti_ax_set["Vax"] = ax_set["anti_Vax"]; end;
+    if haskey(ax_set, "anti_Dax"); anti_ax_set["Dax"] = ax_set["anti_Dax"]; end;
+    if haskey(ax_set, "anti_Uax"); anti_ax_set["Uax"] = ax_set["anti_Uax"]; end;
     
     pro_input,  t, nsteps = make_input("Pro" ; nderivs=nderivs, difforder=difforder, model_params...)
     anti_input, t, nsteps = make_input("Anti"; nderivs=nderivs, difforder=difforder, model_params...)
@@ -314,29 +339,30 @@ function run_ntrials(nPro, nAnti; plot_list=[], start_pro=[-0.5,-0.5,-0.5,-0.5],
     antiVs = ForwardDiffZeros(4, nAnti, nderivs=nderivs, difforder=difforder)
     proVall  = zeros(4, nsteps, nPro);
     antiVall = zeros(4, nsteps, nAnti);
-    
     # --- PRO ---
-    if length(plot_list)>0; figure(profig); clf(); end
+    if length(plot_list)>0; figure(profig); if clearfig; clf(); end; end
     model_params = make_dict(["input"], [pro_input], model_params)
     for i=1:nPro
         Uend, Vend, pro_fullU, proVall[:,:,i] = forwardModel(start_pro, do_plot=false, opto_units=opto_units; model_params...)
         proVs[:,i] = Vend
         if any(plot_list.==i) 
-            plot_PA(t, pro_fullU, proVall[:,:,i]; fignum=profig, clearfig=false, model_params...)
-            subplot(3,1,1); title("PRO")
+            plot_PA(t, pro_fullU, proVall[:,:,i]; clearfig=false,
+                fignum=profig, ax_set=pro_ax_set, plot_Us=plot_Us, clearfig=false, model_params...)
+            # subplot(3,1,1); title("PRO")
         end
     end
 
     # --- ANTI ---
-    if length(plot_list)>0; figure(antifig); clf(); end
+    if length(plot_list)>0; figure(antifig); if clearfig; clf(); end; end
     model_params = make_dict(["input"], [anti_input], model_params)
     for i=1:nAnti
         startU = [-0.5, -0.5, -0.5, -0.5]
         Uend, Vend, anti_fullU, antiVall[:,:,i] = forwardModel(start_anti, do_plot=false, opto_units=opto_units; model_params...)
         antiVs[:,i] = Vend
         if any(plot_list.==i) 
-            plot_PA(t, anti_fullU, antiVall[:,:,i]; fignum=antifig, clearfig=false, model_params...)
-            subplot(3,1,1); title("ANTI")
+            plot_PA(t, anti_fullU, antiVall[:,:,i]; clearfig=false,
+            fignum=antifig, ax_set=anti_ax_set, plot_Us=plot_Us, clearfig=false, model_params...)
+            # subplot(3,1,1); title("ANTI")
         end
     end
         
