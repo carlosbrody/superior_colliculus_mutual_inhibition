@@ -1,8 +1,24 @@
-# include opto inactivation functionality
-#opto_periods: a matrix with start and stop times of each opto inactivation to sample, defaults to [-1 -1], which is no inactivation
-#opto_strength: the inactivation fraction (default = 1 is no inactivation), 0 would be complete inactivation
+# Same as normal JJ cost function, except it includes opto inactivation functionality
+#
+# Additional optional parameters:
+# Also takes the starting conditions "start_pro" and "start_anti" as optional parameters
+# opto_periods: a matrix with start and stop times of each opto inactivation defaults to [-1 -1], which is no inactivation
+#               Special characters 20 end of trial, 100 end of rule and delay, 200 end of target, 50 end of rule (1/2 of 100)
+# opto_strength: the inactivation fraction (default = 1 is no inactivation), 0 would be complete inactivation
+# opto_targets: a matrix with hit% targets for Pro (column 1) and Anti (column 2). Each row is one opto period
+#
+# Outputs:
+# total cost
+# cost1
+# cost2 (just beta terms)
+# hP: matrix of hit% on Pro trials. rows correspond to each opto condition. Columns correspond to combinations of rule_and_delay_periods and post_target_periods 
+# hA: same as hP but for pro trials
+# dP: tanh^2 of the differences in final node activation on pro trials
+# dA: tanh^2 of the differences in final node activation on pro trials
+# hBP: matrix of hit%, but evaluated using a step function on the node activations
+# hBA: matrix of hit%, but evaluated using a step function on the node activations 
 
-function JJ_opto_delay(nPro, nAnti; opto_targets=[0.9 0.7], theta1=0.025, theta2=0.035, cbeta=0.003, verbose=false, pre_string="", zero_last_sigmas=0, seedrand=NaN, delay_period = 0, rule_and_delay_periods = [0.4], target_periods = [0.1], post_target_periods = [0.5], opto_periods = [-1 -1],opto_strength=1, nderivs=0, difforder=0, model_params...) #set opto defaults!
+function JJ_opto(nPro, nAnti; opto_targets=[0.9 0.7], theta1=0.025, theta2=0.035, cbeta=0.003, verbose=false, pre_string="", zero_last_sigmas=0, seedrand=NaN, rule_and_delay_periods = [0.4], target_periods = [0.1], post_target_periods = [0.5], opto_periods = [-1.1 -1],opto_strength=1, nderivs=0, difforder=0,model_details=false, model_params...) #set opto defaults!
 
     if ~(size(opto_targets) == size(opto_periods)); error("opto parameters are bad"); end
 
@@ -17,7 +33,13 @@ function JJ_opto_delay(nPro, nAnti; opto_targets=[0.9 0.7], theta1=0.025, theta2
     dA = zeros(size(opto_periods)[1], nruns_each);
     hBP = zeros(size(opto_periods)[1], nruns_each);
     hBA = zeros(size(opto_periods)[1], nruns_each);
-
+    if model_details
+        proVall         = [];
+        antiVall        = [];
+        opto_fraction   = [];
+        pro_input       = [];
+        anti_input      = [];
+    end
     n = totHitsP = totHitsA = totDiffsP = totDiffsA =nopto= 0
     for kk=1:size(opto_periods)[1] # iterate over each opto inactivation period
     nopto = 0;
@@ -31,10 +53,10 @@ function JJ_opto_delay(nPro, nAnti; opto_targets=[0.9 0.7], theta1=0.025, theta2
                 nopto += 1
                 
                 # include this opto inactivation in the parameters to pass on
-                my_params = make_dict(["rule_and_delay_period", "target_period", "post_target_period","opto_period","opto_strength","delay_period"], [i, j, k, opto_periods[kk,:], opto_strength,delay_period], Dict(model_params))
+                my_params = make_dict(["rule_and_delay_period", "target_period", "post_target_period","opto_period","opto_strength"], [i, j, k, opto_periods[kk,:], opto_strength], Dict(model_params))
     
                 # print("model params is " ); print(model_params); print("\n")
-                proVs, antiVs = run_ntrials_opto_delay(nPro, nAnti; nderivs=nderivs, difforder=difforder, my_params...)
+                proVs, antiVs, proVall, antiVall, opto_fraction,pro_input,anti_input = run_ntrials_opto(nPro, nAnti; nderivs=nderivs, difforder=difforder, my_params...)
 
                 hitsP  = 0.5*(1 + tanh.((proVs[1,:]-proVs[4,:,])/theta1))
                 diffsP = tanh.((proVs[1,:,]-proVs[4,:])/theta2).^2
@@ -59,42 +81,31 @@ function JJ_opto_delay(nPro, nAnti; opto_targets=[0.9 0.7], theta1=0.025, theta2
                     cost1s[kk,nopto] = (mean(hitsA) - opto_targets[kk,2]).^2
                     cost2s[kk,nopto] = -cbeta*mean(diffsA)
                 end
-
-              #  totHitsP  += mean(hitsP);  totHitsA  += mean(hitsA); 
-              #  totDiffsP += mean(diffsP); totDiffsA += mean(diffsA);
             end
         end
     end
     end
     
     cost1 = mean(cost1s)
-    cost2 = mean(cost2s)
-#    print(cost1s)
-    
-#    print(cost2s)
-#    hitsP = totHitsP/n; hitsA = totHitsA/n; diffsP = totDiffsP/n; diffsA = totDiffsA/n
-    
-    
-#    if verbose
-#        @printf("%s", pre_string)
-#        @printf("     -- cost=%g,   cost1=%g, cost2=%g\n", 
-#            convert(Float64, cost1+cost2), convert(Float64, cost1), convert(Float64, cost2))
-#        if nPro>0 && nAnti>0
-#            @printf("     -- mean(hitsP)=%g, mean(diffsP)=%g mean(hitsA)=%g, mean(diffsA)=%g\n", 
-#                convert(Float64, mean(hitsP)), convert(Float64, mean(diffsP)),
-#                convert(Float64, mean(hitsA)), convert(Float64, mean(diffsA)))
-#        elseif nPro>0
-#            @printf("     -- mean(hitsP)=%g, mean(diffsP)=%g (nAnti=0)\n", 
-#                convert(Float64, mean(hitsP)), convert(Float64, mean(diffsP)))
-#        else
-#            @printf("     -- (nPro=0) mean(hitsA)=%g, mean(diffsA)=%g\n", 
-#                convert(Float64, mean(hitsA)), convert(Float64, mean(diffsA)))
-#        end        
-#    end 
-    
-    return cost1 + cost2, cost1s, cost2s, hP,hA,dP,dA,hBP,hBA
+    cost2 = mean(cost2s) 
+    if model_details
+         return cost1 + cost2, cost1s, cost2s, hP,hA,dP,dA,hBP,hBA, proVall, antiVall, opto_fraction, pro_input, anti_input
+    else
+        return cost1 + cost2, cost1s, cost2s, hP,hA,dP,dA,hBP,hBA
+    end
 end
 
+# Same as normal JJ, but with extra outputs
+# Outputs:
+# total cost
+# cost1
+# cost2 (just beta terms)
+# hP: matrix of hit% on Pro trials. Columns correspond to combinations of rule_and_delay_periods and post_target_periods 
+# hA: same as hP but for pro trials
+# dP: tanh^2 of the differences in final node activation on pro trials
+# dA: tanh^2 of the differences in final node activation on pro trials
+# hBP: matrix of hit%, but evaluated using a step function on the node activations
+# hBA: matrix of hit%, but evaluated using a step function on the node activations 
 function JJ(nPro, nAnti; pro_target=0.9, anti_target=0.7, 
     theta1=0.025, theta2=0.035, cbeta=0.003, verbose=false, 
     pre_string="", zero_last_sigmas=0, seedrand=NaN, 
@@ -168,10 +179,42 @@ function JJ(nPro, nAnti; pro_target=0.9, anti_target=0.7,
 end
 
 
+
+function make_input(trial_type; dt=0.02, nderivs=0, difforder=0, constant_excitation=0.19, anti_rule_strength=0.1, 
+    pro_rule_strength=0.1, target_period_excitation=1, right_light_excitation=0.5, right_light_pro_extra=0, 
+    rule_and_delay_period=0.4, target_period=0.1, post_target_period=0.4, const_pro_bias=0, rule_set = 0, rule_period = 0,rule_strength = 0,
+    other_unused_params...)
+ 
+    T = rule_and_delay_period + target_period + post_target_period
+    t = 0:dt:T
+    nsteps = length(t)
+
+    input = constant_excitation + ForwardDiffZeros(4, nsteps, nderivs=nderivs, difforder=difforder)
+    if trial_type=="Anti"
+        input[2:3, t.<rule_and_delay_period] += rule_strength
+        input[2:3, t.<rule_period] += rule_set
+
+    elseif trial_type=="Pro"
+        input[[1,4], t.<rule_and_delay_period] += rule_strength
+        input[[1,4], t.<rule_period] += rule_set
+    else
+        error("make_input: I don't recognize input type \"" * trial_type * "\"")
+    end
+    
+    input[:,     (rule_and_delay_period.<=t) & (t.<rule_and_delay_period+target_period)] += target_period_excitation
+    input[1:2,   (rule_and_delay_period.<=t) & (t.<rule_and_delay_period+target_period)] += right_light_excitation
+    input[1,     (rule_and_delay_period.<=t) & (t.<rule_and_delay_period+target_period)] += right_light_pro_extra
+    
+    input[[1,4],:] += const_pro_bias
+    
+    return input, t, nsteps
+end
+
+
 # returns a vector of the inhibition fraction for each node given the opto period and opto strength
 # right now, it always computes bilateral inactivations
-function make_opto_input_delay(nsteps; dt = 0.02, opto_strength=1, opto_period=[-1 1],nderivs=0,difforder=0, other_unused_params...);
-       
+function make_opto_input(nsteps; dt = 0.02, opto_strength=1, opto_period=[-1 1],nderivs=0,difforder=0, other_unused_params...);
+    
     strength = ForwardDiffZeros(1,1,nderivs=nderivs, difforder=difforder);
     strength[1] = strength[1] + opto_strength;
 
@@ -186,21 +229,21 @@ function make_opto_input_delay(nsteps; dt = 0.02, opto_strength=1, opto_period=[
         # check for variable inputs
         other_unused_params = Dict(other_unused_params);
         end_rd =     other_unused_params[:rule_and_delay_period];
-        end_target = other_unused_params[:rule_and_delay_period]+other_unused_params[:delay_period]+other_unused_params[:target_period];
-        end_delay =  other_unused_params[:rule_and_delay_period]+other_unused_params[:delay_period]; 
+        end_rule =   other_unused_params[:rule_period];
+        end_target = other_unused_params[:rule_and_delay_period]+other_unused_params[:target_period]; 
         if opto_period[1]==100
             opto_period[1] = end_rd;
+        elseif opto_period[1]==50
+            opto_period[1] = end_rule;
         elseif opto_period[1]==200
             opto_period[1] = end_target;
-        elseif opto_period[1]==300
-            opto_period[1] = end_delay;
         end        
         if opto_period[2]==100
             opto_period[2] = end_rd;
+        elseif opto_period[2]==50
+            opto_period[2] = end_rule;
         elseif opto_period[2]==200
             opto_period[2] = end_target;
-        elseif opto_period[2]==300
-            opto_period[2] = end_delay;
         end        
 
         # check for start and end of trial flags
@@ -227,12 +270,14 @@ function make_opto_input_delay(nsteps; dt = 0.02, opto_strength=1, opto_period=[
     return opto_fraction
 end
 
-
-function run_ntrials_opto_delay(nPro, nAnti; plot_list=[], nderivs=0, difforder=0,start_pro=[-0.3, -0.7, -0.7, -0.3], start_anti=[-0.7, -0.3, -0.3, -0.7],  opto_periods=[-1 -1],model_params...)
-    pro_input,  t, nsteps = make_input_delay("Pro" ; model_params...);
-    anti_input, t, nsteps = make_input_delay("Anti"; model_params...);
+# same as normal run_ntrials_opto, but passes opto parameters through, and computes the opto_fraction using make_opto_input
+# Also takes the starting conditions "start_pro" and "start_anti" as optional parameters
+# returns two matrices which are all model trajectories
+function run_ntrials_opto(nPro, nAnti; plot_list=[], nderivs=0, difforder=0,start_pro=[-0.3, -0.7, -0.7, -0.3], start_anti=[-0.7, -0.3, -0.3, -0.7],  opto_periods=[-1 -1],model_params...)
+    pro_input,  t, nsteps = make_input("Pro" ; nderivs=nderivs, difforder=difforder, model_params...);
+    anti_input, t, nsteps = make_input("Anti"; nderivs=nderivs, difforder=difforder, model_params...);
     #### make opto fraction vector
-    opto_fraction = make_opto_input_delay(nsteps; nderivs=nderivs,difforder=difforder, model_params...);
+    opto_fraction = make_opto_input(nsteps; nderivs=nderivs,difforder=difforder, model_params...);
     model_params = Dict(model_params)
     sW = model_params[:sW]
     hW = model_params[:hW]
@@ -246,15 +291,18 @@ function run_ntrials_opto_delay(nPro, nAnti; plot_list=[], nderivs=0, difforder=
 
     proVs  = ForwardDiffZeros(4, nPro, nderivs=nderivs, difforder=difforder)
     antiVs = ForwardDiffZeros(4, nAnti, nderivs=nderivs, difforder=difforder)
+    proVall  = zeros(4, nsteps, nPro);
+    antiVall = zeros(4, nsteps, nAnti);
 
     # --- PRO ---
     if length(plot_list)>0; figure(1); clf(); end
     model_params = make_dict(["input"], [pro_input], model_params)
     for i=1:nPro
-       # startU = [-0.3, -0.7, -0.7, -0.3]
         startU = start_pro;
         Uend, Vend, U, V = forwardModel_opto(startU, opto_fraction, do_plot=false; model_params...)
         proVs[:,i] = Vend
+        proVall[:,:,i] = V;
+
         if any(plot_list.==i) 
             plot_PA(t, U, V; fignum=1, clearfig=false, model_params...)
             subplot(3,1,1); title("PRO")
@@ -265,20 +313,21 @@ function run_ntrials_opto_delay(nPro, nAnti; plot_list=[], nderivs=0, difforder=
     if length(plot_list)>0; figure(2); clf(); end
     model_params = make_dict(["input"], [anti_input], model_params)
     for i=1:nAnti
-        #startU = [-0.7, -0.3, -0.3, -0.7]
         startU = start_anti;
-
         Uend, Vend, U, V = forwardModel_opto(startU,opto_fraction, do_plot=false; model_params...)
         antiVs[:,i] = Vend
+        antiVall[:,:,i] = V
+
         if any(plot_list.==i) 
             plot_PA(t, U, V; fignum=2, clearfig=false, model_params...)
             subplot(3,1,1); title("ANTI")
         end
     end
     
-    return proVs, antiVs
+    return proVs, antiVs, proVall, antiVall,opto_fraction,pro_input, anti_input 
 end
 
+# same as forwardModel, except it takes the opto_Fraction vector as an input, and the starting conditions as input. 
 function forwardModel_opto(startU, opto_fraction; dt=0.01, tau=0.1, nsteps=100, input=[], noise=[], W=[0 -5;-5 0], 
     init_add=0, start_add=0, const_add=0, do_plot=false, nderivs=0, difforder=0, clearfig=true, fignum=1,
     dUdt_mag_only=false, sigma=0, g_leak=1, U_rest=0, theta=0, beta=1, 
@@ -290,7 +339,15 @@ function forwardModel_opto(startU, opto_fraction; dt=0.01, tau=0.1, nsteps=100, 
             @printf("%s, ", k)
         end
     end
-    
+ """
+o = g(z)    squashing tanh function, running from 0 to 1, is equal to 0.5 when input is 0.
+"""
+function g(z)
+    return 0.5*tanh.(z)+0.5
+end
+   
+
+ 
     my_input = ForwardDiffZeros(size(input,1), size(input,2), nderivs=nderivs, difforder=difforder)
     for i=1:prod(size(input)); my_input[i] = input[i]; end
     input = my_input;
@@ -377,33 +434,5 @@ function forwardModel_opto(startU, opto_fraction; dt=0.01, tau=0.1, nsteps=100, 
 
     return U[:,end], V[:,end], U, V
 end
-
-function make_input_delay(trial_type; dt=0.02, nderivs=0, difforder=0, constant_excitation=0.19, anti_rule_strength=0.1, 
-    pro_rule_strength=0.1, target_period_excitation=1, right_light_excitation=0.5, right_light_pro_extra=0, 
-    rule_and_delay_period=0.4, target_period=0.1, post_target_period=0.4, const_pro_bias=0, delay_period=0,
-    other_unused_params...)
-
-    T = rule_and_delay_period +delay_period+ target_period + post_target_period
-    t = 0:dt:T
-    nsteps = length(t)
-
-    input = constant_excitation + ForwardDiffZeros(4, nsteps, nderivs=nderivs, difforder=difforder)
-    if trial_type=="Anti"
-        input[2:3, t.<rule_and_delay_period] += anti_rule_strength
-    elseif trial_type=="Pro"
-        input[[1,4], t.<rule_and_delay_period] += pro_rule_strength
-    else
-        error("make_input: I don't recognize input type \"" * trial_type * "\"")
-    end
-    
-    input[:,     (rule_and_delay_period+delay_period.<=t) & (t.<rule_and_delay_period+delay_period+target_period)] += target_period_excitation
-    input[1:2,   (rule_and_delay_period+delay_period.<=t) & (t.<rule_and_delay_period+delay_period+target_period)] += right_light_excitation
-    input[1,     (rule_and_delay_period+delay_period.<=t) & (t.<rule_and_delay_period+delay_period+target_period)] += right_light_pro_extra
-    
-    input[[1,4],:] += const_pro_bias
-    
-    return input, t, nsteps
-end
-
 
 
