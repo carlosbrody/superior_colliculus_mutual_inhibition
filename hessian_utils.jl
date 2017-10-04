@@ -83,16 +83,26 @@ end
 
 using ForwardDiff
 
-"""
-v = FDversion()
 
-Return the installed version of ForwardDiff as a floating point, major.minor
-"""
-function FDversion()
+# Here we're going to define a closure over x so that when this code runs, it sets the local variable
+# x to report ForwardDiff's verison number; then we export the function FDversion, that simply returns
+# x.  When we call FDversion(), it simply returns the value of x, stored locally inside the let block.
+# So it is extremely fast.
+let x 
     try
-        return Pkg.installed("ForwardDiff").major + 0.1*Pkg.installed("ForwardDiff").minor
+        x = Pkg.installed("ForwardDiff").major + 0.1*Pkg.installed("ForwardDiff").minor
     catch
         error("Is ForwardDiff really installed???")
+    end
+
+    global FDversion
+
+    @doc """
+    v = FDversion()
+
+    Return the installed version of ForwardDiff as a floating point, major.minor
+    """ function FDversion()
+        return x
     end
 end
 
@@ -181,7 +191,8 @@ else
     # That means that any accidental casts into Float64s will cause errors, alerting us of 
     # problems rather than letting the code run but producing derivatives that are zero
     
-    """
+    
+    @doc """
     v = get_value(x)
     
     If you're going to @print something that might be a ForwardDiff Dual, use this function. It'll
@@ -191,8 +202,7 @@ else
         @printf("%g\n", get_value(x))
     
     will work regardless of whether x is a ForwardDiff Dual, a Float64, or an Int64    
-    """
-    function get_value(x)
+    """ function get_value(x)
         if typeof(x)<:Array && length(x)>0 
             if typeof(x[1])<:ForwardDiff.Dual
                 y = zeros(size(x)); 
@@ -219,14 +229,16 @@ else
     end    
     
 
-    """
+    @doc """
     e = get_eltype(vars)
     
     vars should be a tuple of variables. If any of them is a ForwardDiff Dual, this function returns
     the typeof of that one (the first one encountered); otherwise it returns Float64.
-    """
-    function get_eltype(vars)
+    """ function get_eltype(vars)
         for v in vars
+            if typeof(v)<:Array && length(v)> 0 && typeof(v[1])<:ForwardDiff.Dual
+                return typeof(v[1])
+            end
             if typeof(v)<:ForwardDiff.Dual
                 return typeof(v)
             end
