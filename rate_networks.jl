@@ -102,6 +102,14 @@ function forwardModel(startU; opto_strength=1, opto_units=[], opto_times=zeros(0
     dUdt_mag_only=false, sigma=0, g_leak=1, U_rest=0, theta=0, beta=1, 
     warn_if_unused_params=false, other_unused_params...)
 
+    if FDversion()>=0.6
+        # All the variables that we MIGHT choose to differentiate w.r.t. go into this bag -- further down
+        # we'll use get_eltype(varbag) to check for any of them being ForwardDiff.Dual.
+        # That is how we'll tell whether new matrices should be regular numbers of ForwardDiff.Dual's.
+        # *** if you add a new variable you'll want to differentiate w.r.t., it should be added here too ***
+        varbag = (startU, opto_strength, opto_times, dt, tau, input, noise, W, init_add, start_add, const_add,
+        sigma, g_leak, U_rest, theta, beta)
+    end
     
     """
     o = g(z)    squashing tanh function, running from 0 to 1, is equal to 0.5 when input is 0.
@@ -121,48 +129,101 @@ function forwardModel(startU; opto_strength=1, opto_units=[], opto_times=zeros(0
         opto_times = reshape(opto_times, 1, 2)
     end
     
-    my_input = ForwardDiffZeros(size(input,1), size(input,2), nderivs=nderivs, difforder=difforder)
-    for i=1:prod(size(input)); my_input[i] = input[i]; end
-    input = my_input;
-    
     nunits = length(startU)
     if size(startU,2) > size(startU,1)
         error("startU must be a column vector")
     end
-    
-    # --- formatting input ---
-    if ~(typeof(input)<:Array) || prod(size(input))==1  # was a scalar
-        input = input[1]*(1+ForwardDiffZeros(nunits, nsteps, nderivs=nderivs, difforder=difforder))
-    elseif length(input)==0 # was the empty matrix
-        input = ForwardDiffZeros(nunits, nsteps, nderivs=nderivs, difforder=difforder)
-    elseif size(input,2)==1     # was a column vector
-        input = input*(1+ForwardDiffZeros(1, nsteps, nderivs=nderivs, difforder=difforder))
-    end    
-    # --- formatting noise ---
-    if ~(typeof(noise)<:Array) || prod(size(noise))==1  # was a scalar
-        noise = noise*(1+ForwardDiffZeros(nunits, nsteps, nderivs=nderivs, difforder=difforder))
-    elseif length(noise)==0 # was the empty matrix
-        noise = ForwardDiffZeros(nunits, nsteps, nderivs=nderivs, difforder=difforder)
-    elseif size(noise,2)==1     # was a column vector
-        noise = noise*(1+ForwardDiffZeros(1, nsteps, nderivs=nderivs, difforder=difforder))
-    end    
-    # --- formatting opto fraction ---
-    if typeof(opto_strength)<:Array
-        if size(opto_strength,1) != nunits || size(opto_strength,2) != nsteps
-            error("opto_strength must be either a scalar or an nunits-by-nsteps matrix")
+
+    # We copy the input so as not to mess with the original -- remember, Julia passes arrays by reference, not by value
+    if FDversion() < 0.6
+        # -----------------------------------------------------------------------------------
+        #
+        #    Formatting and declaring arrays for ForwardDiff version < 0.6  (Julia 0.5.2)
+        #
+        # -----------------------------------------------------------------------------------
+
+        my_input = ForwardDiffZeros(size(input,1), size(input,2), nderivs=nderivs, difforder=difforder)
+        for i=1:prod(size(input)); my_input[i] = input[i]; end
+        input = my_input;
+
+        # --- formatting input ---
+        if ~(typeof(input)<:Array) || prod(size(input))==1  # was a scalar
+            input = input[1]*(1+ForwardDiffZeros(nunits, nsteps, nderivs=nderivs, difforder=difforder))
+        elseif length(input)==0 # was the empty matrix
+            input = ForwardDiffZeros(nunits, nsteps, nderivs=nderivs, difforder=difforder)
+        elseif size(input,2)==1     # was a column vector
+            input = input*(1+ForwardDiffZeros(1, nsteps, nderivs=nderivs, difforder=difforder))
+        end    
+        # --- formatting noise ---
+        if ~(typeof(noise)<:Array) || prod(size(noise))==1  # was a scalar
+            noise = noise*(1+ForwardDiffZeros(nunits, nsteps, nderivs=nderivs, difforder=difforder))
+        elseif length(noise)==0 # was the empty matrix
+            noise = ForwardDiffZeros(nunits, nsteps, nderivs=nderivs, difforder=difforder)
+        elseif size(noise,2)==1     # was a column vector
+            noise = noise*(1+ForwardDiffZeros(1, nsteps, nderivs=nderivs, difforder=difforder))
+        end    
+        # --- formatting opto fraction ---
+        if typeof(opto_strength)<:Array
+            if size(opto_strength,1) != nunits || size(opto_strength,2) != nsteps
+                error("opto_strength must be either a scalar or an nunits-by-nsteps matrix")
+            end
+            opto_matrix = opto_strength
+        else # We assume that if opto_strength is not an Array, then it is a scalar
+            opto_matrix = ForwardDiffZeros(nunits, nsteps, nderivs=nderivs, difforder=difforder) + 1
+            time_axis = dt*(0:nsteps-1)
+            for i=1:size(opto_times,1)
+                opto_matrix[opto_units, (opto_times[i,1] .<= time_axis) & (time_axis .<= opto_times[i,2])] = opto_strength
+            end
         end
-        opto_matrix = opto_strength
-    else # We assume that if opto_strength is not an Array, then it is a scalar
-        opto_matrix = ForwardDiffZeros(nunits, nsteps, nderivs=nderivs, difforder=difforder) + 1
-        time_axis = dt*(0:nsteps-1)
-        for i=1:size(opto_times,1)
-            opto_matrix[opto_units, (opto_times[i,1] .<= time_axis) & (time_axis .<= opto_times[i,2])] = opto_strength
+
+        U = ForwardDiffZeros(nunits, nsteps, nderivs=nderivs, difforder=difforder)
+        V = ForwardDiffZeros(nunits, nsteps, nderivs=nderivs, difforder=difforder)
+    else
+        # -------------------------------------------------------------------------------------------
+        #
+        #    Formatting and declaring arrays for ForwardDiff version >= 0.6  (Julia 0.6 and onwards)
+        #
+        # -------------------------------------------------------------------------------------------
+        
+        my_input = zeros(get_eltype(varbag), size(input,1), size(input,2))
+        for i=1:prod(size(input)); my_input[i] = input[i]; end
+        input = my_input;
+
+        # --- formatting input ---
+        if ~(typeof(input)<:Array) || prod(size(input))==1  # was a scalar
+            input = input[1]*ones(get_eltype(varbag), nunits, nsteps)
+        elseif length(input)==0 # was the empty matrix
+            input = zeros(get_eltype(varbag), nunits, nsteps)
+        elseif size(input,2)==1     # was a column vector
+            input = input*ones(get_eltype(varbag), 1, nsteps)
+        end    
+        # --- formatting noise ---
+        if ~(typeof(noise)<:Array) || prod(size(noise))==1  # was a scalar
+            noise = noise[1]*ones(get_eltype(varbag), nunits, nsteps)
+        elseif length(noise)==0 # was the empty matrix
+            noise = zeros(get_eltype(varbag), nunits, nsteps)
+        elseif size(noise,2)==1     # was a column vector
+            noise = noise*ones(get_eltype(varbag), 1, nsteps)
+        end    
+        # --- formatting opto fraction ---
+        if typeof(opto_strength)<:Array
+            if size(opto_strength,1) != nunits || size(opto_strength,2) != nsteps
+                error("opto_strength must be either a scalar or an nunits-by-nsteps matrix")
+            end
+            opto_matrix = copy(opto_strength)
+        else # We assume that if opto_strength is not an Array, then it is a scalar
+            opto_matrix = ones(get_eltype(varbag), nunits, nsteps)
+            time_axis = dt*(0:nsteps-1)
+            for i=1:size(opto_times,1)
+                opto_matrix[opto_units, (opto_times[i,1] .<= time_axis) .& (time_axis .<= opto_times[i,2])] = opto_strength
+            end
         end
+
+        U = zeros(get_eltype(varbag), nunits, nsteps)
+        V = zeros(get_eltype(varbag), nunits, nsteps)
+        
     end
-    
-    U = ForwardDiffZeros(nunits, nsteps, nderivs=nderivs, difforder=difforder)
-    V = ForwardDiffZeros(nunits, nsteps, nderivs=nderivs, difforder=difforder)
-    
+
     if ~(typeof(W)<:Array); W = [W]; end
 
     W     = reshape(W, nunits, nunits)
@@ -197,18 +258,23 @@ function forwardModel(startU; opto_strength=1, opto_units=[], opto_times=zeros(0
 
     if do_plot
         figure(fignum)
+        if FDversion() >= 0.6
+            myV = get_value(V);
+        else
+            myV = V;
+        end
         if length(startU)==1
             if clearfig; clf(); end;
             t = (0:nsteps-1)*dt
-            plot(t, V[1,:], "b-")
-            plot(t[1], V[1,1], "g.")
-            plot(t[end], V[1,end], "r.")
+            plot(t, myV[1,:], "b-")
+            plot(t[1], myV[1,1], "g.")
+            plot(t[end], myV[1,end], "r.")
             xlabel("t"); ylabel("V1"); ylim([-0.01, 1.01])
         elseif length(startU)>=2
             if clearfig; clf(); end;
-            plot(V[1,:], V[2,:], "b-")
-            plot(V[1,1], V[2,1], "g.")
-            plot(V[1,end], V[2,end], "r.")
+            plot(myV[1,:], myV[2,:], "b-")
+            plot(myV[1,1], myV[2,1], "g.")
+            plot(myV[1,end], myV[2,end], "r.")
             xlabel("V1"); ylabel("V2"); 
             xlim([-0.01, 1.01]); ylim([-0.01, 1.01])
         end
@@ -276,6 +342,14 @@ function backwardsModel(endU; nsteps=100, start_eta=10, tol=1e-15, maxiter=400,
     do_plot=false, init_add=0, start_add=0, dt=0.01, 
     input=[], noise=[], nderivs=0, difforder=0, clearfig=false, fignum=1, params...)    
 
+    if FDversion()>=0.6
+        # All the variables that we MIGHT choose to differentiate w.r.t. go into this bag -- further down
+        # we'll use get_eltype(varbag) to check for any of them being ForwardDiff.Dual.
+        # That is how we'll tell whether new matrices should be regular numbers of ForwardDiff.Dual's.
+        # *** if you add a new variable you'll want to differentiate w.r.t., it should be added here too ***
+        varbag = (endU, dt, init_add, start_add)
+    end
+
     """
     o = g(z)    squashing tanh function, running from 0 to 1, is equal to 0.5 when input is 0.
     """
@@ -285,22 +359,69 @@ function backwardsModel(endU; nsteps=100, start_eta=10, tol=1e-15, maxiter=400,
     
     nunits = length(endU)
 
-    # --- formatting input ---
-    if ~(typeof(input)<:Array) || prod(size(input))==1  # was a scalar
-        input = input[1]*(1+ForwardDiffZeros(nunits, nsteps, nderivs=nderivs, difforder=difforder))
-    elseif length(input)==0 # was the empty matrix
-        input = ForwardDiffZeros(nunits, nsteps, nderivs=nderivs, difforder=difforder)
-    elseif size(input,2)==1     # was a column vector
-        input = input*(1+ForwardDiffZeros(1, nsteps, nderivs=nderivs, difforder=difforder))
-    end    
-    # --- formatting noise ---
-    if ~(typeof(noise)<:Array)  # was a scalar
-        noise = noise*(1+ForwardDiffZeros(nunits, nsteps, nderivs=nderivs, difforder=difforder))
-    elseif length(noise)==0 # was the empty matrix
-        noise = ForwardDiffZeros(nunits, nsteps, nderivs=nderivs, difforder=difforder)
-    elseif size(noise,2)==1     # was a column vector
-        noise = noise*(1+ForwardDiffZeros(1, nsteps, nderivs=nderivs, difforder=difforder))
-    end    
+    if FDversion() < 0.6
+        # -----------------------------------------------------------------------------------
+        #
+        #    Formatting and declaring arrays for ForwardDiff version < 0.6  (Julia 0.5.2)
+        #
+        # -----------------------------------------------------------------------------------
+
+        # --- formatting input ---
+        if ~(typeof(input)<:Array) || prod(size(input))==1  # was a scalar
+            input = input[1]*(1+ForwardDiffZeros(nunits, nsteps, nderivs=nderivs, difforder=difforder))
+        elseif length(input)==0 # was the empty matrix
+            input = ForwardDiffZeros(nunits, nsteps, nderivs=nderivs, difforder=difforder)
+        elseif size(input,2)==1     # was a column vector
+            input = input*(1+ForwardDiffZeros(1, nsteps, nderivs=nderivs, difforder=difforder))
+        end    
+        # --- formatting noise ---
+        if ~(typeof(noise)<:Array)  # was a scalar
+            noise = noise*(1+ForwardDiffZeros(nunits, nsteps, nderivs=nderivs, difforder=difforder))
+        elseif length(noise)==0 # was the empty matrix
+            noise = ForwardDiffZeros(nunits, nsteps, nderivs=nderivs, difforder=difforder)
+        elseif size(noise,2)==1     # was a column vector
+            noise = noise*(1+ForwardDiffZeros(1, nsteps, nderivs=nderivs, difforder=difforder))
+        end    
+        
+        if length(noise)==0
+            noise = ForwardDiffZeros(nunits, nsteps, nderivs=nderivs, difforder=difforder)
+        end
+
+        U     = ForwardDiffZeros(nunits, nsteps, nderivs=nderivs, difforder=difforder)
+        costs = ForwardDiffZeros(nsteps, 1, nderivs=nderivs, difforder=difforder)    
+
+    else
+        # -------------------------------------------------------------------------------------------
+        #
+        #    Formatting and declaring arrays for ForwardDiff version >= 0.6  (Julia 0.6 and onwards)
+        #
+        # -------------------------------------------------------------------------------------------
+
+        # --- formatting input ---
+        if ~(typeof(input)<:Array) || prod(size(input))==1  # was a scalar
+            input = input*ones(get_eltype(varbag), nunits, nsteps)
+        elseif length(input)==0 # was the empty matrix
+            input = zeros(get_eltype(varbag), nunits, nsteps)
+        elseif size(input,2)==1     # was a column vector
+            input = input*ones(get_eltype(varbag), 1, nsteps)
+        end    
+        # --- formatting noise ---
+        if ~(typeof(noise)<:Array) || prod(size(noise))==1  # was a scalar
+            noise = noise*ones(get_eltype(varbag), nunits, nsteps)
+        elseif length(noise)==0 # was the empty matrix
+            noise = zeros(get_eltype(varbag), nunits, nsteps)
+        elseif size(noise,2)==1     # was a column vector
+            noise = noise*ones(get_eltype(varbag), 1, nsteps)
+        end            
+
+        if length(noise)==0
+            noise = zeros(get_eltype(varbag), nunits, nsteps)
+        end
+        
+        U     = zeros(get_eltype(varbag), nunits, nsteps)
+        costs = zeros(get_eltype(varbag), nsteps, 1)
+
+    end
     
     function J(U1, U2; nderivs=0, difforder=0, noise=[], inputs=[], pars...)
         U2hat = forwardModel(U1; nsteps=2, noise=noise, input=input, nderivs=nderivs, difforder=difforder, pars...)[1]
@@ -310,13 +431,6 @@ function backwardsModel(endU; nsteps=100, start_eta=10, tol=1e-15, maxiter=400,
         return sum(DU.*DU)
     end
     
-    if length(noise)==0
-        noise = ForwardDiffZeros(nunits, nsteps, nderivs=nderivs, difforder=difforder)
-    end
-
-    U = ForwardDiffZeros(nunits, nsteps, nderivs=nderivs, difforder=difforder)
-    U = reshape(U, nunits, nsteps)
-    costs = ForwardDiffZeros(nsteps, 1, nderivs=nderivs, difforder=difforder)    
     
     U[:,end] = endU
     for i=(nsteps-1):-1:1
