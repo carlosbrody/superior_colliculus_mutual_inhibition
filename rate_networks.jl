@@ -10,7 +10,6 @@ using MAT
 # pygui(true)
 
 include("general_utils.jl")
-include("constrained_parabolic_minimization.jl")
 include("hessian_utils.jl")
 
 
