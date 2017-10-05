@@ -492,7 +492,7 @@ function JJ(nPro, nAnti; pro_target=0.9, anti_target=0.7,
     nruns_each = length(rule_and_delay_periods)*length(target_periods)*length(post_target_periods)    # runs per opto condition
     nruns      = nruns_each*noptos  # total conditions
 
-    if FDversion() < 0.5
+    if FDversion() < 0.6
         cost1s = ForwardDiffZeros(noptos, nruns, nderivs=nderivs, difforder=difforder)
         cost2s = ForwardDiffZeros(noptos, nruns, nderivs=nderivs, difforder=difforder)
     else
@@ -590,6 +590,7 @@ function JJ(nPro, nAnti; pro_target=0.9, anti_target=0.7,
             pcost1 = mean(cost1s[nopto,:])   # partial costs
             pcost2 = mean(cost2s[nopto,:])            
             
+            # Notice the get_value() calls below, to transform ForwardDiff Duals into Float64s
             @printf("%s", pre_string)
             @printf("Opto condition # %d\n", nopto)
             @printf("     - %d - cost=%g, cost1=%g, cost2=%g\n", nopto,
