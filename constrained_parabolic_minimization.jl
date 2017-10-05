@@ -1,6 +1,80 @@
 # DON'T MODIFY THIS FILE -- the source is in file Constrained Parabolic Minimization.ipynb
 
 
+
+using ForwardDiff
+
+if Pkg.installed("ForwardDiff").major + 0.1*Pkg.installed("ForwardDiff").minor < 0.6
+
+    # --------------------------------------------------------------
+    #
+    #               FOR FORWARDDIFF < 0.6   (Julia 0.5.2)
+    #
+    # --------------------------------------------------------------
+
+    using DiffBase
+    """
+    function value, gradient, hessian = vgh(func, x0)
+
+    Wrapper for ForwardDiff.hessian!() that computes and returns all three of a function's value, gradient, and hessian.
+
+    EXAMPLE:
+    ========
+
+    function tester(x::Vector)
+
+        return sum(x.*x)
+    end
+
+    value, grad, hess = vgh(tester, [10, 3.1])
+    """
+    function vgh(func, x0)
+        out = DiffBase.HessianResult(x0)             
+        ForwardDiff.hessian!(out, func, x0)
+        value    = DiffBase.value(out)
+        gradient = DiffBase.gradient(out)
+        hessian  = DiffBase.hessian(out)
+
+        return value, gradient, hessian    
+    end
+else
+    # --------------------------------------------------------------
+    #
+    #         FOR FORWARDDIFF >= 0.6   (Julia 0.6 and onwards)
+    #
+    # --------------------------------------------------------------
+
+    using DiffResults
+    
+    """
+    function value, gradient, hessian = vgh(func, x0)
+
+    Wrapper for ForwardDiff.hessian!() that computes and returns all three of a function's value, gradient, and hessian.
+
+    EXAMPLE:
+    ========
+
+    function tester(x::Vector)
+
+        return sum(x.*x)
+    end
+
+    value, grad, hess = vgh(tester, [10, 3.1])
+    """
+    function vgh(func, x0)
+        out = DiffResults.HessianResult(x0)             
+        out = ForwardDiff.hessian!(out, func, x0)
+        value    = DiffResults.value(out)
+        gradient = DiffResults.gradient(out)
+        hessian  = DiffResults.hessian(out)
+
+        return value, gradient, hessian    
+    end
+end
+
+
+
+
 """
 function x, cost, iters_used, last_Delta_x = one_d_minimizer(seed, func; tol=1e-5, maxiter=100, start_eta=0.1)
 
@@ -48,11 +122,7 @@ function one_d_minimizer(seed, func; tol=1e-5, maxiter=100, start_eta=0.1)
     lambdavec = [seed]
 
 
-    out = DiffBase.HessianResult(lambdavec)
-    ForwardDiff.hessian!(out, func, lambdavec)
-    cost = DiffBase.value(out)
-    grad = DiffBase.gradient(out)
-    hess = DiffBase.hessian(out)
+    cost, grad, hess = vgh(func, lambdavec)
 
     i = delta_lambda = 0;  # declare it so we can use it after the if
     for i in [1:maxiter;]
@@ -68,10 +138,7 @@ function one_d_minimizer(seed, func; tol=1e-5, maxiter=100, start_eta=0.1)
             break
         end
         
-        ForwardDiff.hessian!(out, func, new_lambdavec)
-        new_cost = DiffBase.value(out)
-        new_grad = DiffBase.gradient(out)
-        new_hess = DiffBase.hessian(out)
+        new_cost, new_grad, new_hess = vgh(func, new_lambdavec)
 
         if new_cost .< cost
             lambdavec[1] = new_lambdavec[1]
