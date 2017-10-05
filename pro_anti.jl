@@ -241,11 +241,26 @@ function make_input(trial_type; dt=0.02, nderivs=0, difforder=0, constant_excita
     rule_and_delay_period=0.4, target_period=0.1, post_target_period=0.4, const_pro_bias=0,
     other_unused_params...)
 
+    if FDversion() >= 0.6
+        # All the variables that we MIGHT choose to differentiate w.r.t. go into this bag -- further down
+        # we'll use get_eltype(varbag) to check for any of them being ForwardDiff.Dual.
+        # That is how we'll tell whether new matrices should be regular numbers of ForwardDiff.Dual's.
+        # *** if you add a new variable you'll want to differentiate w.r.t., it should be added here too ***
+        varbag = (dt, constant_excitation, anti_rule_strength, pro_rule_strength, target_period_excitation, 
+        right_light_excitation, right_light_pro_extra, rule_and_delay_period, target_period, post_target_period,
+        const_pro_bias)
+    end
+    
     T = rule_and_delay_period + target_period + post_target_period
     t = 0:dt:T
     nsteps = length(t)
-
-    input = constant_excitation + ForwardDiffZeros(4, nsteps, nderivs=nderivs, difforder=difforder)
+    
+    if FDversion() < 0.6
+        input = constant_excitation + ForwardDiffZeros(4, nsteps, nderivs=nderivs, difforder=difforder)
+    else
+        input = constant_excitation + zeros(get_eltype(varbag), 4, nsteps)
+    end
+    
     if trial_type=="Anti"
         input[2:3, t.<rule_and_delay_period] += anti_rule_strength
     elseif trial_type=="Pro"
@@ -254,10 +269,15 @@ function make_input(trial_type; dt=0.02, nderivs=0, difforder=0, constant_excita
         error("make_input: I don't recognize input type \"" * trial_type * "\"")
     end
     
-    input[:,     (rule_and_delay_period.<=t) & (t.<rule_and_delay_period+target_period)] += target_period_excitation
-    input[1:2,   (rule_and_delay_period.<=t) & (t.<rule_and_delay_period+target_period)] += right_light_excitation
-    input[1,     (rule_and_delay_period.<=t) & (t.<rule_and_delay_period+target_period)] += right_light_pro_extra
-    
+    if VERSION.major + 0.1*VERSION.minor < 0.6
+        input[:,     (rule_and_delay_period.<=t) & (t.<rule_and_delay_period+target_period)] += target_period_excitation
+        input[1:2,   (rule_and_delay_period.<=t) & (t.<rule_and_delay_period+target_period)] += right_light_excitation
+        input[1,     (rule_and_delay_period.<=t) & (t.<rule_and_delay_period+target_period)] += right_light_pro_extra
+    else    
+        input[:,     (rule_and_delay_period.<=t) .& (t.<rule_and_delay_period+target_period)] += target_period_excitation
+        input[1:2,   (rule_and_delay_period.<=t) .& (t.<rule_and_delay_period+target_period)] += right_light_excitation
+        input[1,     (rule_and_delay_period.<=t) .& (t.<rule_and_delay_period+target_period)] += right_light_pro_extra
+    end    
     input[[1,4],:] += const_pro_bias
     
     return input, t, nsteps
@@ -312,6 +332,15 @@ Runs a set of proAnti model trials.  See model_params above for definition of al
 function run_ntrials(nPro, nAnti; plot_list=[], start_pro=[-0.5,-0.5,-0.5,-0.5], start_anti=[-0.5,-0.5,-0.5,-0.5],
     profig=1, antifig=2, plot_Us=true,  clearfig=true, ax_set = Dict(),
     opto_units = 1:4, nderivs=0, difforder=0, model_params...)
+
+    if FDversion() >= 0.6
+        # All the variables that we MIGHT choose to differentiate w.r.t. go into this bag -- further down
+        # we'll use get_eltype(varbag) to check for any of them being ForwardDiff.Dual.
+        # That is how we'll tell whether new matrices should be regular numbers of ForwardDiff.Dual's.
+        # *** if you add a new variable you'll want to differentiate w.r.t., it should be added here too ***
+        varbag = (start_pro, start_anti, model_params)
+        # print("get_eltype(varbag)="); print(get_eltype(varbag)); print("\n")
+    end
     
     pro_ax_set = Dict()
     anti_ax_set = Dict()
@@ -335,18 +364,25 @@ function run_ntrials(nPro, nAnti; plot_list=[], start_pro=[-0.5,-0.5,-0.5,-0.5],
     model_params = make_dict(["nderivs", "difforder"], [nderivs, difforder], model_params)
     model_params[:opto_times] = parse_opto_times(model_params[:opto_times], model_params)
     
-    proVs  = ForwardDiffZeros(4, nPro, nderivs=nderivs, difforder=difforder)
-    antiVs = ForwardDiffZeros(4, nAnti, nderivs=nderivs, difforder=difforder)
+    if FDversion()<0.6
+        proVs  = ForwardDiffZeros(4, nPro, nderivs=nderivs, difforder=difforder)
+        antiVs = ForwardDiffZeros(4, nAnti, nderivs=nderivs, difforder=difforder)
+    else
+        proVs  = zeros(get_eltype(varbag), 4, nPro)
+        antiVs = zeros(get_eltype(varbag), 4, nAnti)
+    end
     proVall  = zeros(4, nsteps, nPro);
     antiVall = zeros(4, nsteps, nAnti);
     # --- PRO ---
     if length(plot_list)>0; figure(profig); if clearfig; clf(); end; end
     model_params = make_dict(["input"], [pro_input], model_params)
     for i=1:nPro
-        Uend, Vend, pro_fullU, proVall[:,:,i] = forwardModel(start_pro, do_plot=false, opto_units=opto_units; model_params...)
+        Uend, Vend, pro_fullU, temp = forwardModel(start_pro, do_plot=false, opto_units=opto_units; model_params...)
+        if FDversion() < 0.6; proVall[:,:,i] = temp; else proVall[:,:,i] = get_value(temp); end
+        # print("typeof(proVs) = "); print(typeof(proVs)); print("\n")
         proVs[:,i] = Vend
         if any(plot_list.==i) 
-            plot_PA(t, pro_fullU, proVall[:,:,i]; clearfig=false,
+            plot_PA(t, get_value(pro_fullU), get_value(proVall[:,:,i]); clearfig=false,
                 fignum=profig, ax_set=pro_ax_set, plot_Us=plot_Us, clearfig=false, model_params...)
             # subplot(3,1,1); title("PRO")
         end
@@ -357,10 +393,11 @@ function run_ntrials(nPro, nAnti; plot_list=[], start_pro=[-0.5,-0.5,-0.5,-0.5],
     model_params = make_dict(["input"], [anti_input], model_params)
     for i=1:nAnti
         startU = [-0.5, -0.5, -0.5, -0.5]
-        Uend, Vend, anti_fullU, antiVall[:,:,i] = forwardModel(start_anti, do_plot=false, opto_units=opto_units; model_params...)
+        Uend, Vend, anti_fullU, temp = forwardModel(start_anti, do_plot=false, opto_units=opto_units; model_params...)
+        if FDversion() < 0.6; antiVall[:,:,i] = temp; else antiVall[:,:,i] = get_value(temp); end
         antiVs[:,i] = Vend
         if any(plot_list.==i) 
-            plot_PA(t, anti_fullU, antiVall[:,:,i]; clearfig=false,
+            plot_PA(t, get_value(anti_fullU), get_value(antiVall[:,:,i]); clearfig=false,
             fignum=antifig, ax_set=anti_ax_set, plot_Us=plot_Us, clearfig=false, model_params...)
             # subplot(3,1,1); title("ANTI")
         end
@@ -431,6 +468,14 @@ function JJ(nPro, nAnti; pro_target=0.9, anti_target=0.7,
     plot_conditions=false, plot_list = [],
     nderivs=0, difforder=0, model_params...)
 
+    if FDversion() >= 0.6
+        # All the variables that we MIGHT choose to differentiate w.r.t. go into this bag -- further down
+        # we'll use get_eltype(varbag) to check for any of them being ForwardDiff.Dual.
+        # That is how we'll tell whether new matrices should be regular numbers of ForwardDiff.Dual's.
+        # *** if you add a new variable you'll want to differentiate w.r.t., it should be added here too ***
+        varbag = (pro_target, anti_target, opto_targets, opto_periods, theta1, theta2, cbeta,model_params)
+        # print("get_eltype(varbag)="); print(get_eltype(varbag)); print("\n")
+    end
     
     
     if size(opto_targets,1)==0  || size(opto_periods,1)==0 # if there's no opto that is being asked for
@@ -446,10 +491,15 @@ function JJ(nPro, nAnti; pro_target=0.9, anti_target=0.7,
     noptos     = size(opto_periods,1)  # of opto conditions
     nruns_each = length(rule_and_delay_periods)*length(target_periods)*length(post_target_periods)    # runs per opto condition
     nruns      = nruns_each*noptos  # total conditions
-    
-    cost1s = ForwardDiffZeros(noptos, nruns, nderivs=nderivs, difforder=difforder)
-    cost2s = ForwardDiffZeros(noptos, nruns, nderivs=nderivs, difforder=difforder)
 
+    if FDversion() < 0.5
+        cost1s = ForwardDiffZeros(noptos, nruns, nderivs=nderivs, difforder=difforder)
+        cost2s = ForwardDiffZeros(noptos, nruns, nderivs=nderivs, difforder=difforder)
+    else
+        cost1s = zeros(get_eltype(varbag), noptos, nruns)
+        cost2s = zeros(get_eltype(varbag), noptos, nruns)
+    end
+            
     hP  = zeros(noptos, nruns_each);   # Pro "hits", as computed with the theta1 sigmoid
     hA  = zeros(noptos, nruns_each);   # Anti "hits"
     dP  = zeros(noptos, nruns_each);   # Pro "diffs", as computed with the theta2 sigmoid
@@ -498,8 +548,8 @@ function JJ(nPro, nAnti; pro_target=0.9, anti_target=0.7,
                     if length(antiValls)==0
                         antiValls = zeros(4, size(antiVall,2), size(antiVall,3), noptos)
                     end
-                    proValls[:,:,:,nopto]  = proVall
-                    antiValls[:,:,:,nopto] = antiVall
+                    proValls[:,:,:,nopto]  = get_value(proVall)
+                    antiValls[:,:,:,nopto] = get_value(antiVall)
                     # @printf("size of proValls is "); print(size(proValls)); print("\n")
                     
                     hitsP  = 0.5*(1 + tanh.((proVs[1,:]-proVs[4,:,])/theta1))
@@ -507,15 +557,16 @@ function JJ(nPro, nAnti; pro_target=0.9, anti_target=0.7,
                     hitsA  = 0.5*(1 + tanh.((antiVs[4,:]-antiVs[1,:,])/theta1))
                     diffsA = tanh.((antiVs[4,:,]-antiVs[1,:])/theta2).^2
 
-                   # set up storage  
-                    hP[nopto, n] = mean(hitsP);
-                    hA[nopto, n] = mean(hitsA);
-                    dP[nopto, n] = mean(diffsP);
-                    dA[nopto, n] = mean(diffsA);
-                    hBP[nopto, n] = sum(proVs[1,:] .>= proVs[4,:,])/nPro;
-                    hBA[nopto, n] = sum(proVs[4,:] .>  proVs[1,:,])/nAnti;                    
+                    # set up storage  -- we do get_value() to make sure to from ForwardDiff.Dual into Float64 if necessary
+                    hP[nopto, n] = mean(get_value(hitsP));
+                    hA[nopto, n] = mean(get_value(hitsA));
+                    dP[nopto, n] = mean(get_value(diffsP));
+                    dA[nopto, n] = mean(get_value(diffsA));
+                    hBP[nopto, n] = get_value(sum(proVs[1,:] .>= proVs[4,:,])/nPro);
+                    hBA[nopto, n] = get_value(sum(proVs[4,:] .>  proVs[1,:,])/nAnti);                    
                     
                     if nPro>0 && nAnti>0
+                        # cost1s and cost2s can accept ForwardDiff.Dual, so no get_value() for them
                         cost1s[nopto, n] = (nPro*(mean(hitsP) - opto_targets[nopto,1]).^2  
                                     + nAnti*(mean(hitsA) - opto_targets[nopto,2]).^2)/(nPro+nAnti)
                         cost2s[nopto, n] = -cbeta*(nPro*mean(diffsP) + nAnti*mean(diffsA))/(nPro+nAnti)
@@ -542,17 +593,17 @@ function JJ(nPro, nAnti; pro_target=0.9, anti_target=0.7,
             @printf("%s", pre_string)
             @printf("Opto condition # %d\n", nopto)
             @printf("     - %d - cost=%g, cost1=%g, cost2=%g\n", nopto,
-                convert(Float64, pcost1+pcost2), convert(Float64, pcost1), convert(Float64, pcost2))
+                get_value(pcost1+pcost2), get_value(pcost1), get_value(pcost2))
             if nPro>0 && nAnti>0
                 @printf("     - %d - mean(hitsP)=%g, mean(diffsP)=%g mean(hitsA)=%g, mean(diffsA)=%g\n", nopto,
-                    convert(Float64, mean(hitsP)), convert(Float64, mean(diffsP)),
-                    convert(Float64, mean(hitsA)), convert(Float64, mean(diffsA)))
+                    get_value(mean(hitsP)), get_value(mean(diffsP)),
+                    get_value(mean(hitsA)), get_value(mean(diffsA)))
             elseif nPro>0
                 @printf("     - %d - mean(hitsP)=%g, mean(diffsP)=%g (nAnti=0)\n", nopto,
-                    convert(Float64, mean(hitsP)), convert(Float64, mean(diffsP)))
+                    get_value(mean(hitsP)), get_value(mean(diffsP)))
             else
                 @printf("     - %d - (nPro=0) mean(hitsA)=%g, mean(diffsA)=%g\n", nopto,
-                    convert(Float64, mean(hitsA)), convert(Float64, mean(diffsA)))
+                    get_value(mean(hitsA)), get_value(mean(diffsA)))
             end        
         end
     end
@@ -565,7 +616,7 @@ function JJ(nPro, nAnti; pro_target=0.9, anti_target=0.7,
         @printf("%s", pre_string)
         @printf("OVERALL\n")
         @printf("     -- cost=%g, cost1=%g, cost2=%g\n", 
-            convert(Float64, cost1+cost2), convert(Float64, cost1), convert(Float64, cost2))
+            get_value(cost1+cost2), get_value(cost1), get_value(cost2))
     end
     
     if model_details
