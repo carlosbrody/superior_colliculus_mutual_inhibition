@@ -210,3 +210,38 @@ function symbol_key_ize(d)
 end
 
 
+"""
+vks = vectorize_dict(dictionary, ks)
+
+Given a dictionary (in which) all keys are either strings or Symbols, and all values are Float64s),
+and an array ks of keys into that dictionary, returns a Float64 array the same size as ks containing
+the values. Each key is checked as either itself or the string version of itself or the Symbol version 
+of itself.
+
+Thus the following all return the same
+
+a = Dict(:this=>33.4, "that"=>28.7)
+
+vectorize_dict(a, ["this", "that"])
+vectorize_dict(a, [:this, "that"])
+vectorize_dict(a, [:this, :that])
+"""
+function vectorize_dict(dictionary, ks)
+    output = Array{Float64}(size(ks))
+    for i=1:length(ks)
+        if haskey(dictionary, ks[i])
+            output[i] = dictionary[ks[i]]
+        elseif typeof(ks[i])<:Symbol && haskey(dictionary, string(ks[i]))
+            output[i] = dictionary[string(ks[i])]
+        elseif typeof(ks[i])<:String && haskey(dictionary, Symbol(ks[i]))
+            output[i] = dictionary[Symbol(ks[i])]
+        else
+            print("Troublesome key: "); print(ks[i]); print("\n")
+            error("Found neither key nor string(key) nor Symbol(key) in the dictionary")
+        end
+    end
+    return output
+end
+
+
+
