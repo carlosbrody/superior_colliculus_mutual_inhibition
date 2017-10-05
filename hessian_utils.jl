@@ -1,6 +1,8 @@
 # DON'T MODIFY THIS FILE -- the source is in file Cost Function Minimization and Hessian Utilities.ipynb
 
-        
+
+include("constrained_parabolic_minimization.jl")
+
 """
 dict = make_dict(argstrings, x, [starting_dict=Dict()] )
 
@@ -295,34 +297,6 @@ if FDversion() < 0.6
     #
     # --------------------------------------------------------------
 
-    using DiffBase
-    """
-    function value, gradient, hessian = vgh(func, x0)
-
-    Wrapper for ForwardDiff.hessian!() that computes and returns all three of a function's value, gradient, and hessian.
-
-    EXAMPLE:
-    ========
-
-    function tester(x::Vector)
-
-        return sum(x.*x)
-    end
-
-    value, grad, hess = vgh(tester, [10, 3.1])
-    """
-    function vgh(func, x0)
-        out = DiffBase.HessianResult(x0)             
-        ForwardDiff.hessian!(out, func, x0)
-        value    = DiffBase.value(out)
-        gradient = DiffBase.gradient(out)
-        hessian  = DiffBase.hessian(out)
-
-        return value, gradient, hessian    
-    end
-
-
-
 
 
     """
@@ -376,36 +350,6 @@ else
     #         FOR FORWARDDIFF >= 0.6   (Julia 0.6 and onwards)
     #
     # --------------------------------------------------------------
-
-    using DiffResults
-    
-    """
-    function value, gradient, hessian = vgh(func, x0)
-
-    Wrapper for ForwardDiff.hessian!() that computes and returns all three of a function's value, gradient, and hessian.
-
-    EXAMPLE:
-    ========
-
-    function tester(x::Vector)
-
-        return sum(x.*x)
-    end
-
-    value, grad, hess = vgh(tester, [10, 3.1])
-    """
-    function vgh(func, x0)
-        out = DiffResults.HessianResult(x0)             
-        out = ForwardDiff.hessian!(out, func, x0)
-        value    = DiffResults.value(out)
-        gradient = DiffResults.gradient(out)
-        hessian  = DiffResults.hessian(out)
-
-        return value, gradient, hessian    
-    end
-
-
-
 
 
     """
