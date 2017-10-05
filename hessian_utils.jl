@@ -187,67 +187,99 @@ else
     #
     # --------------------------------------------------------------
     
-    # No more automatic converts from Dual to Float64; instead, let's use an explicit call to a get_value function.
-    # That means that any accidental casts into Float64s will cause errors, alerting us of 
-    # problems rather than letting the code run but producing derivatives that are zero
     
-    
-    @doc """
-    v = get_value(x)
-    
-    If you're going to @print something that might be a ForwardDiff Dual, use this function. It'll
-    return the value of the number if it is a Dual and just the number if it was not a Dual, suitable for
-    printing, e.g.
-    
-        @printf("%g\n", get_value(x))
-    
-    will work regardless of whether x is a ForwardDiff Dual, a Float64, or an Int64    
-    """ function get_value(x)
-        if typeof(x)<:Array && length(x)>0 
-            if typeof(x[1])<:ForwardDiff.Dual
-                y = zeros(size(x)); 
-                if typeof(x[1].value)<:ForwardDiff.Dual  # nested, taking 2nd derivative
-                    for i=1:length(y); y[i] = x[i].value.value; end;
-                else # not nested, 1st derivative
-                    for i=1:length(y); y[i] = x[i].value; end;
-                end
-                return y
-            elseif typeof(x[1])<:Int64 || typeof(x[1])<:Float64
-                return x
-            else
-                error(@sprintf("Don't know how to get the value of type %s", typeof(x[1])))
-            end
-        elseif typeof(x)<:Array
-            return zeros(size(x))
-        elseif typeof(x)<:ForwardDiff.Dual
-            if typeof(x.value)<:ForwardDiff.Dual; return x.value.value; else; return x.value; end;
-        elseif typeof(x)<:Int64 || typeof(x)<:Float64
-            return x
-        else
-            error(@sprintf("Don't know how to get the value of type %s", typeof(x)))
-        end
-    end    
-    
-
     @doc """
     e = get_eltype(vars)
     
     vars should be a tuple of variables. If any of them is a ForwardDiff Dual, this function returns
     the typeof of that one (the first one encountered); otherwise it returns Float64.
     """ function get_eltype(vars)
+        # print("vars is "); print(vars); print("\n")
+        # print("typeof(vars) is "); print(typeof(vars)); print("\n")
+        if ! (typeof(vars)<:Tuple)
+            error("vars must be a Tuple (of variables)")
+        end
         for v in vars
+            # print("About to check v = "); print(v); print("\n")
+            # If it's an array, check its elements
             if typeof(v)<:Array && length(v)> 0 && typeof(v[1])<:ForwardDiff.Dual
                 return typeof(v[1])
             end
-            if typeof(v)<:ForwardDiff.Dual
-                return typeof(v)
+            # If it's an array of tuples, check each one
+            if typeof(v)<:Array && length(v)> 0 && typeof(v[1])<:Tuple
+                for tup in v; if typeof(tup[2])<:ForwardDiff.Dual; return typeof(tup[2]); end; end
+            end
+            # If it's a Pair, check its value
+            if typeof(v)<:Pair && typeof(v[2])<:ForwardDiff.Dual
+                return typeof(v[2])
+            end
+            # If it's a tuple, try to turn it into a Dict
+            if typeof(v)<:Tuple 
+                try; myv = Dict(v); catch; error("Sorry don''t know how to deal with that kind of Tuple"); end
+            else
+                myv = v
+            end
+            # If it's a Dict, check all the key contents
+            if typeof(myv)<:Dict
+                for k in keys(myv)
+                    # print("about to check key "); print(k); print(" with value "); print(myv[k]); print("\n")
+                    if get_eltype(Tuple(myv[k]))<:ForwardDiff.Dual
+                        return get_eltype(Tuple(myv[k]))
+                    end
+                end
+            end
+            if typeof(myv)<:ForwardDiff.Dual
+                return typeof(myv)
             end
         end
         return Float64
     end
 
+
 end
 
+
+# We're deprecating automatic converts from Dual to Float64; 
+# instead, let's use an explicit call to a get_value function.
+# That means that any accidental casts into Float64s will cause errors, alerting us of 
+# problems rather than letting the code run but producing derivatives that are zero
+    
+    
+@doc """
+v = get_value(x)
+    
+If you're going to @print something that might be a ForwardDiff Dual, use this function. It'll
+return the value of the number if it is a Dual and just the number if it was not a Dual, suitable for
+printing, e.g.
+    
+    @printf("%g\n", get_value(x))
+    
+will work regardless of whether x is a ForwardDiff Dual, a Float64, or an Int64    
+""" function get_value(x)
+    if typeof(x)<:Array && length(x)>0 
+        if typeof(x[1])<:ForwardDiff.Dual
+            y = zeros(size(x)); 
+            if typeof(x[1].value)<:ForwardDiff.Dual  # nested, taking 2nd derivative
+                for i=1:length(y); y[i] = x[i].value.value; end;
+            else # not nested, 1st derivative
+                for i=1:length(y); y[i] = x[i].value; end;
+            end
+            return y
+        elseif typeof(x[1])<:Int64 || typeof(x[1])<:Float64
+            return x
+        else
+            error(@sprintf("Don't know how to get the value of type %s", typeof(x[1])))
+        end
+    elseif typeof(x)<:Array
+        return zeros(size(x))
+    elseif typeof(x)<:ForwardDiff.Dual
+        if typeof(x.value)<:ForwardDiff.Dual; return x.value.value; else; return x.value; end;
+    elseif typeof(x)<:Int64 || typeof(x)<:Float64
+        return x
+    else
+        error(@sprintf("Don't know how to get the value of type %s", typeof(x)))
+    end
+end    
 
 
 
