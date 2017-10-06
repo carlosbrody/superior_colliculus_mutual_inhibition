@@ -69,7 +69,7 @@ function JJ_opto(nPro, nAnti; opto_targets=[0.9 0.7], theta1=0.025, theta2=0.035
                 dP[kk,nopto] = mean(diffsP);
                 dA[kk,nopto] = mean(diffsA);
                 hBP[kk,nopto] = sum(proVs[1,:] .>= proVs[4,:,])/nPro;
-                hBA[kk,nopto] = sum(proVs[4,:] .>  proVs[1,:,])/nAnti;
+                hBA[kk,nopto] = sum(antiVs[4,:] .>  antiVs[1,:,])/nAnti;
 
                 if nPro>0 && nAnti>0
                     cost1s[kk,nopto] = (nPro*(mean(hitsP) - opto_targets[kk,1]).^2  + nAnti*(mean(hitsA) - opto_targets[kk,2]).^2)/(nPro+nAnti)
