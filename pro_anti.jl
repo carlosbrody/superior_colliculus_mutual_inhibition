@@ -351,10 +351,10 @@ function run_ntrials(nPro, nAnti; plot_list=[], start_pro=[-0.5,-0.5,-0.5,-0.5],
     if haskey(ax_set, "anti_Dax"); anti_ax_set["Dax"] = ax_set["anti_Dax"]; end;
     if haskey(ax_set, "anti_Uax"); anti_ax_set["Uax"] = ax_set["anti_Uax"]; end;
     
+    model_params = Dict(model_params)
     pro_input,  t, nsteps = make_input("Pro" ; nderivs=nderivs, difforder=difforder, model_params...)
     anti_input, t, nsteps = make_input("Anti"; nderivs=nderivs, difforder=difforder, model_params...)
     
-    model_params = Dict(model_params)
     sW = model_params[:sW]
     hW = model_params[:hW]
     vW = model_params[:vW]
@@ -417,17 +417,22 @@ end
 
 
 """
-cost, cost1s, cost2s, hP, hA, dP, dA, hBP, hBA = JJ(nPro, nAnti; pro_target=0.9, anti_target=0.7, 
+cost, cost1s, cost2s, hP, hA, dP, dA, hBP, hBA, [proValls, antiValls, opto_fraction, pro_input, anti_input] = 
+    JJ(nPro, nAnti; pro_target=0.9, anti_target=0.7, 
     opto_targets = Array{Float64}(2,0), opto_periods = Array{Float64}(2,0), 
     model_details = false,
     theta1=0.025, theta2=0.035, cbeta=0.003, verbose=false, 
     pre_string="", zero_last_sigmas=0, seedrand=NaN, 
-    rule_and_delay_periods = [0.4], target_periods = [0.1], post_target_periods = [0.5],
+    rule_and_delay_periods = nothing, target_periods = [0.1], post_target_periods = nothing,
     plot_conditions=false, plot_list = [],
     nderivs=0, difforder=0, model_params...)
 
 Runs a proAnti network, if desired across multiple opto conditions and multiple period durations and returns
-resulting cost
+resulting cost.
+
+If rule_and_delay_periods and post_target_periods are not passed, it tries to get them from their
+singular (not plural) versions in model_params, e.g., model_params[:rule_and_delay_period]. NOTE that
+target_period is different, for backwards compatibility it defaults to 0.1.
 
 # PARAMETERS (INCOMPLETE DOCS!!!):
 
@@ -464,7 +469,7 @@ function JJ(nPro, nAnti; pro_target=0.9, anti_target=0.7,
     model_details = false,
     theta1=0.025, theta2=0.035, cbeta=0.003, verbose=false, 
     pre_string="", zero_last_sigmas=0, seedrand=NaN, 
-    rule_and_delay_periods = [0.4], target_periods = [0.1], post_target_periods = [0.5],
+    rule_and_delay_periods = nothing, target_periods = nothing, post_target_periods = nothing,
     plot_conditions=false, plot_list = [],
     nderivs=0, difforder=0, model_params...)
 
@@ -477,6 +482,18 @@ function JJ(nPro, nAnti; pro_target=0.9, anti_target=0.7,
         # print("get_eltype(varbag)="); print(get_eltype(varbag)); print("\n")
     end
     
+    # If the plurals of the periods are not passed in, then use the singular in model_params as the default:
+    if rule_and_delay_periods==nothing
+        rule_and_delay_periods = model_params[:rule_and_delay_period]
+    end
+    if target_periods==nothing        
+        target_periods = [0.1]
+        @printf("\n\nWARNING: JJ() was not given a target_periods parameter, I will *IGNORE* the\n")
+        @printf("    model_params[:target_period] entry and will use a default of 0.1\n\n")
+    end
+    if post_target_periods==nothing
+         post_target_periods = model_params[:post_target_period]
+    end
     
     if size(opto_targets,1)==0  || size(opto_periods,1)==0 # if there's no opto that is being asked for
         # Then tun with only a single opto_period request, with no opto, and control targets as our targets
@@ -514,7 +531,8 @@ function JJ(nPro, nAnti; pro_target=0.9, anti_target=0.7,
     anti_input       = [];
     
     for nopto=1:noptos # iterate over each opto inactivation period
-        
+        # @printf("size(hBP) is %d, %d\n", size(hBP,1), size(hBP,2))
+
         # reset random number generator for each opto period, so it cant over fit noise samples
         if ~isnan(seedrand); srand(seedrand); end
 
@@ -542,6 +560,7 @@ function JJ(nPro, nAnti; pro_target=0.9, anti_target=0.7,
                         run_ntrials(nPro, nAnti; plot_list=my_plot_list, 
                             nderivs=nderivs, difforder=difforder, my_params...)
                         # run_ntrials_opto(nPro, nAnti; nderivs=nderivs, difforder=difforder, my_params...)
+
                     if length(proValls)==0
                         proValls = zeros(4, size(proVall,2), size(proVall,3), noptos)
                     end
@@ -563,7 +582,7 @@ function JJ(nPro, nAnti; pro_target=0.9, anti_target=0.7,
                     dP[nopto, n] = mean(get_value(diffsP));
                     dA[nopto, n] = mean(get_value(diffsA));
                     hBP[nopto, n] = get_value(sum(proVs[1,:] .>= proVs[4,:,])/nPro);
-                    hBA[nopto, n] = get_value(sum(proVs[4,:] .>  proVs[1,:,])/nAnti);                    
+                    hBA[nopto, n] = get_value(sum(antiVs[4,:] .>  antiVs[1,:,])/nAnti);                    
                     
                     if nPro>0 && nAnti>0
                         # cost1s and cost2s can accept ForwardDiff.Dual, so no get_value() for them
@@ -577,13 +596,12 @@ function JJ(nPro, nAnti; pro_target=0.9, anti_target=0.7,
                         cost1s[nopto, n] = (mean(hitsA) - opto_targets[nopto,2]).^2
                         cost2s[nopto, n] = -cbeta*mean(diffsA)
                     end
-
                     totHitsP  += mean(hitsP);  totHitsA  += mean(hitsA); 
                     totDiffsP += mean(diffsP); totDiffsA += mean(diffsA);
                 end
             end
         end
-
+        ## @printf("size(hBP) is %d, %d\n", size(hBP,1), size(hBP,2))
         hitsP = totHitsP/n; hitsA = totHitsA/n; diffsP = totDiffsP/n; diffsA = totDiffsA/n
     
         if verbose
@@ -609,7 +627,8 @@ function JJ(nPro, nAnti; pro_target=0.9, anti_target=0.7,
         end
     end
         
-    
+    @printf("size(hBP) is %d, %d\n", size(hBP,1), size(hBP,2))
+
     cost1 = mean(cost1s)
     cost2 = mean(cost2s)
 
@@ -626,7 +645,7 @@ function JJ(nPro, nAnti; pro_target=0.9, anti_target=0.7,
     else
         return cost1 + cost2, cost1s, cost2s, hP,hA,dP,dA,hBP,hBA
     end
-end
+end                    
 
 
 # DON'T MODIFY THIS FILE -- the source is in file ProAnti.ipynb
