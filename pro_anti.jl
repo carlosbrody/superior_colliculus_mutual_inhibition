@@ -84,13 +84,14 @@ function plot_PA(t, U, V; fignum=1, clearfig=true, rule_and_delay_period=1, targ
     end
 
     delta = V[1,:] - V[4,:]
-    hr = plot(t, delta, "k")
+    hr = plot(t, delta, "g")
     oldlims = [ylim()[1]+0.1, ylim()[2]-0.1]
     ylim(minimum([delta[:];oldlims[1]])-0.1, maximum([delta[:];oldlims[2]])+0.1)
     vlines([rule_and_delay_period, 
             rule_and_delay_period+target_period,
             rule_and_delay_period+target_period+post_target_period], 
             ylim()[1], ylim()[2], linewidth=2)
+    hlines(0, t[1], t[end], linewidth=2)
     xlabel("t"); ylabel("Pro R - Pro L")
     grid(true)
         
