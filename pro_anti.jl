@@ -628,7 +628,7 @@ function JJ(nPro, nAnti; pro_target=0.9, anti_target=0.7,
         end
     end
         
-    @printf("size(hBP) is %d, %d\n", size(hBP,1), size(hBP,2))
+    # @printf("size(hBP) is %d, %d\n", size(hBP,1), size(hBP,2))
 
     cost1 = mean(cost1s)
     cost2 = mean(cost2s)
@@ -721,6 +721,15 @@ function load_run(run_name; farmdir="FarmFields")
 
     nPro = model_params[:nPro]
     nAnti = model_params[:nAnti]
+    
+    if ~haskey(model_params, :target_periods)
+        model_params[:target_periods] = 0.1  # Use the JJ() default
+        model_params[:target_period]  = 0.1  # Use the JJ() default
+        @printf("\n\nWARNING: :target_periods was not specified, JJ() would ignore :target_period and\n")
+        @printf("would use a default of :target_periods=>[0.1].  Setting that explicitly here, no warning from JJ()\n")
+        @printf("will be elicited.\n\n")
+    end
+
     
     return model_params, F, nPro, nAnti
 end
