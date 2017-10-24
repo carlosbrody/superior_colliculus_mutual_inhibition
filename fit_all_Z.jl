@@ -1,4 +1,4 @@
-FarmName = "Z"
+FarmName = "ZZB9"
 
 # Incorporate packages
 using ForwardDiff
@@ -9,7 +9,7 @@ using MAT
 include("pro_anti.jl")
 include("pro_anti_opto.jl")
 
-# Define core model parameters
+#Define core model parameters
 model_params = Dict(
 :dt     =>  0.002,      # Changed hyper-parameter
 :tau    =>  0.02,       # Changed hyper-parameter
@@ -42,7 +42,7 @@ model_params = Dict(
 :const_pro_bias           => 0,    #FIT parameter
 :nPro                     => 100,
 :nAnti                    => 100,
-:theta1                   => 0.05,
+:theta1                   => 0.01,
 :theta2                   => 0.15,
 :start_pro                => [-0.5, -0.5, -0.5, -0.5],
 :start_anti               => [-0.5, -0.5, -0.5, -0.5],
@@ -62,7 +62,7 @@ model_params = Dict(
 # Actual Opto targets
 #:opto_targets   => [.75 .73;.77 .58;.75 .74; .72 .66;.73 .75] 
 # Fake Targets
-:opto_targets => [.9 .7; .9 .5;.9 .7; .9 .5; .9 .7]  
+:opto_targets => [.9 .7; .9 .5; .9 .7; .9 .5; .9 .7]  
 );
 
 # ======= ARGUMENTS AND SEED VALUES:
@@ -71,14 +71,14 @@ seed = [0.001,  -1.58,   -0.05,  0.001,    0.001,                0.6,           
 # ======= BOUNDING BOX:
 bbox = Dict(:sW=>[0 3], :vW=>[-3 3], :hW=>[-3 3], :dW=>[-3 3], :constant_excitation=>[-2 2],
 :right_light_excitation=>[0.05 4], :target_period_excitation=>[0 4], :const_pro_bias=>[-2 2],
-:sigma=>[0.01 0.2],:opto_strength=>[0 1]);
+:sigma=>[0.1 0.4],:opto_strength=>[0 1]);
 
 # ======== SEARCH ZONE:
 sbox = Dict(:sW=>[0 .5], :vW=>[-.5 .5], :hW=>[-.5 .5], :dW=>[-.5 .5],
-:constant_excitation=>[-.5 .5], :right_light_excitation=>[0.05 .5], :target_period_excitation=>[0.001 .5],:const_pro_bias=>[-.5 .5], :sigma=>[0.02 .19],:opto_strength=>[.7 .99]);
+:constant_excitation=>[-.5 .5], :right_light_excitation=>[0.05 .5], :target_period_excitation=>[0.001 .5],:const_pro_bias=>[-.5 .5], :sigma=>[0.1 .2],:opto_strength=>[.7 .99]);
 
 # define a few hyper parameters
-cbetas = [0.04];
+cbetas = [4e-3];
 rule_and_delay_periods = [0.2];
 post_target_periods    = [0.05];
 num_eval_runs           = 1000;
