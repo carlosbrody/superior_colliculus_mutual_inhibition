@@ -1,4 +1,4 @@
-# DON'T MODIFY THIS FILE -- the source is in file General Utilities.ipynb
+# DON'T MODIFY THIS FILE -- the source is in file General Utilities.ipynb. Look there for further documentation and examples of running the code.
 
 
 """
@@ -175,7 +175,7 @@ function next_file(fbasename, ndigits)
 end
 
 
-# DON'T MODIFY THIS FILE -- the source is in file General Utilities.ipynb
+# DON'T MODIFY THIS FILE -- the source is in file General Utilities.ipynb. Look there for further documentation and examples of running the code.
 
 
 
