@@ -1,4 +1,4 @@
-# DON'T MODIFY THIS FILE -- the source is in file Rate Networks.ipynb
+# DON'T MODIFY THIS FILE -- the source is in file Rate Networks.ipynb. Look there for further documentation and examples of running the code.
 
 
 using PyCall
@@ -9,14 +9,12 @@ using MAT
 
 # pygui(true)
 
-include("general_utils.jl")
-include("hessian_utils.jl")
+include("optimization_utils.jl")
 
 
 
 
-
-# DON'T MODIFY THIS FILE -- the source is in file Rate Networks.ipynb
+# DON'T MODIFY THIS FILE -- the source is in file Rate Networks.ipynb. Look there for further documentation and examples of running the code.
 
 
     
