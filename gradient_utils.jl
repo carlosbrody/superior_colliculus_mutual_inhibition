@@ -298,7 +298,7 @@ if FDversion() < 0.6
 
 
     using DiffBase
-    """
+    @doc """
     function value, gradient, hessian = vgh(func, x0)
 
     Wrapper for ForwardDiff.hessian!() that computes and returns all three of a function's value, gradient, and hessian.
@@ -312,8 +312,7 @@ if FDversion() < 0.6
     end
 
     value, grad, hess = vgh(tester, [10, 3.1])
-    """
-    function vgh(func, x0)
+    """ function vgh(func, x0)
         out = DiffBase.HessianResult(x0)             
         ForwardDiff.hessian!(out, func, x0)
         value    = DiffBase.value(out)
@@ -324,7 +323,7 @@ if FDversion() < 0.6
     end
 
     
-    """
+    @doc """
     function value, gradient, hessian = keyword_vgh(func, args, x0)
 
     Wrapper for vgh() that computes and returns all three of a function's value, gradient, and hessian, but now
@@ -360,8 +359,7 @@ if FDversion() < 0.6
 
     value, grad, hess = keyword_vgh((;params...) -> tester(;params...), ["a", "c"], [10, 3.1])
 
-    """
-    function keyword_vgh(func, args, x0)
+    """ function keyword_vgh(func, args, x0)
 
         value, gradient, hessian = vgh(x -> func(;nderivs=length(x), difforder=2, make_dict(args, x)...), x0)
 
@@ -379,7 +377,7 @@ else
 
     using DiffResults
     
-    """
+    @doc """
     function value, gradient, hessian = vgh(func, x0)
 
     Wrapper for ForwardDiff.hessian!() that computes and returns all three of a function's value, gradient, and hessian.
@@ -393,8 +391,7 @@ else
     end
 
     value, grad, hess = vgh(tester, [10, 3.1])
-    """
-    function vgh(func, x0)
+    """ function vgh(func, x0)
         out = DiffResults.HessianResult(x0)             
         out = ForwardDiff.hessian!(out, func, x0)
         value    = DiffResults.value(out)
@@ -405,7 +402,7 @@ else
     end
 
 
-    """
+    @doc """
     function value, gradient, hessian = keyword_vgh(func, args, x0)
 
     Wrapper for vgh() that computes and returns all three of a function's value, gradient, and hessian, but now
@@ -447,8 +444,7 @@ else
 
     value, grad, hess = keyword_vgh((;params...) -> tester(;params...), ["a", "c"], [10, 3.1])
 
-    """
-    function keyword_vgh(func, args, x0)
+    """ function keyword_vgh(func, args, x0)
 
         value, gradient, hessian = vgh(x -> func(;make_dict(args, x)...), x0)
 

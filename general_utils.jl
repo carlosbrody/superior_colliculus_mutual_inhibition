@@ -2,14 +2,20 @@
 
 
 """
-[] = remove_xtick_labels(ax)
+[] = remove_xtick_labels(ax=NaN)
 
-Given an axis object, or an array of axes objects, replaces each xtick label string with the empty string ""
+Given an axis object, or an array of axes objects, replaces each xtick label string with the empty string "". 
+
+If no axis is passed, uses gca() to work with the current axis.
 
 
 """
-function remove_xtick_labels(ax)
+function remove_xtick_labels(ax=NaN)
 
+    if isnan(ax)
+        ax = gca()
+    end
+    
     if typeof(ax) <: Array
         for i=1:length(ax)
             remove_xtick_labels(ax[i])
@@ -27,6 +33,8 @@ function remove_xtick_labels(ax)
     ax[:xaxis][:set_ticklabels](newlabels)
     return
 end
+
+
 
 
 

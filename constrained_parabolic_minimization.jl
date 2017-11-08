@@ -129,7 +129,7 @@ vector's length equals the desired radius.
                 proposed as satisfying |x|^2=r^2, is then used to seed a Newton's method one-d minimization with a certain tolerance.
                 If the results of that search do not satisfy |x|^2=r^2 within the desired tolerance, then the tolerance
                 for the 1-d search is reduced (to make the one-d search more exact), by a factor of tol_delta, 
-                up to minimu_tol
+                up to minimum_tol
 
 - tol_delta       see minimum_tol
 
@@ -155,7 +155,7 @@ RETURNS:
 
 - c        The squared difference between the length of x and r. Should be small, otherwise somthing went wrong!
 
-- niters   The number of iterations used in the one-d minimiation that identified the output lambdas.
+- niters   The number of iterations used in the one-d minimization that identified the output lambdas.
 
 - Dlambda  The last change in lambda during the one-d minimization. If the one-d minimization did not reach
          its maxiters, then this will be smaller than the one-d minimization's tolerance.
