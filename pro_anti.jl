@@ -1,28 +1,56 @@
-# DON'T MODIFY THIS FILE -- the source is in file ProAnti.ipynb
+# DON'T MODIFY THIS FILE -- the source is in file ProAnti.ipynb. Look there for further documentation and examples of running the code.
 
 
 include("rate_networks.jl")  # that will also include general_utils.jl, constrained_parabolic_minimization.jl, and hessian_utils.jl
 
 
 
-# DON'T MODIFY THIS FILE -- the source is in file ProAnti.ipynb
+# DON'T MODIFY THIS FILE -- the source is in file ProAnti.ipynb. Look there for further documentation and examples of running the code.
 
 
 """
     plot_PA(t, U, V; fignum=1, clearfig=true, rule_and_delay_period=1, target_period=1, post_target_period=1,
-        other_unused_params...)
+        plot_Us=true, ax_set=Dict(), other_unused_params...)
 
-Helper function for plotting ProAnti results. Given a time axia and nunits-by-nsteps U and V matrices, will 
+Helper function for plotting ProAnti results. Given a time axis and nunits-by-nsteps U and V matrices, will 
 plot them (first clearing the figure if clearfig=true but overlaying if clearfig=false) in three vertically-
 arranged subplots. The top one has V as a function of time, with the two Pro units in blues and the two Anti 
 units in reds, dark colors for the left side of the brain, light colors for the right.  The middle subplot
 has Us. And the bottom subplot shows the difference between the two Pro units as a function of time.
 
+# PARAMETERS:
+
+- t     a vector representing the time axis
+
+- U     a 4-by-length(t) matrix representing activities of Pro_L, Anti_L, Anti_R, Pro_R units
+
+- V     as with U but for the unit outputs, after going through the sigmoid. We expect 0<=V<=1.
+
+# OPTIONAL PARAMETERS:
+
+- fignum   Which figure to plot on
+
+- clearfig   If ax_set is empty and clearfig=true, clears the figure before doing anything
+
+- rule_and_delay_period   duration of the rule_and_delay_period; a vertical line will be placed at its end
+
+- target_period   duration of the target period; a vertical line will be placed at its end
+
+- post_target_period   duration of the post_target period; a vertical line will be placed at its end
+
+- plot_Us    If true, makes an axis for, and plots, U.  If false ignores U.
+
+- ax_set     A dictionary. If it has an enty with key "Vax", the value should be an 
+             axis handle, on which V will be plotted. Value for key "Uax" will be axis where U should be plotted;
+             and value for key "Dax" will be axis where the difference is plotted. 
+             If ax_set is not empty, clearfig is ignored and the figure is not cleared beforehand.
+
+
 """
 function plot_PA(t, U, V; fignum=1, clearfig=true, rule_and_delay_period=1, target_period=1, post_target_period=1,
     plot_Us=true, ax_set=Dict(), other_unused_params...)
     figure(fignum)
-    if clearfig && ~isempty(ax_set); clf(); end
+    if isempty(ax_set) && clearfig; clf(); end
     
     if ~haskey(ax_set, "Vax")
         if plot_Us; ax1 = subplot(3,1,1); else ax1=subplot(2,1,1); end;
@@ -100,7 +128,7 @@ end
 
 
 
-# DON'T MODIFY THIS FILE -- the source is in file ProAnti.ipynb
+# DON'T MODIFY THIS FILE -- the source is in file ProAnti.ipynb. Look there for further documentation and examples of running the code.
 
 
 """
@@ -195,7 +223,7 @@ function parse_opto_times(opto_times2, model_params)
 end
 
 
-# DON'T MODIFY THIS FILE -- the source is in file ProAnti.ipynb
+# DON'T MODIFY THIS FILE -- the source is in file ProAnti.ipynb. Look there for further documentation and examples of running the code.
 
 
 model_params = Dict(
@@ -289,7 +317,7 @@ end
 """
 proVs, antiVs, pro_fullV, anti_fullV, opto_fraction, pro_input, anti_input = 
     run_ntrials(nPro, nAnti; plot_list=[], start_pro=[-0.5,-0.5,-0.5,-0.5], start_anti=[-0.5,-0.5,-0.5,-0.5],
-        profig=1, antifig=2,
+        profig=1, antifig=2, plot_Us=true, clearfig=true, ax_set=Dict(), 
         opto_units = 1:4, nderivs=0, difforder=0, model_params...)
 
 Runs a set of proAnti model trials.  See model_params above for definition of all the parameters. In addition,
@@ -316,7 +344,15 @@ Runs a set of proAnti model trials.  See model_params above for definition of al
 
 - difforder    For ForwardDiff
 
-- model_params   Further optional params, will be passed onto forwardModel() (e.g., opto times)
+- plot_Us      If true, plots Us, not just Vs.
+
+- clearfig     if ax_set is not empty, then clearfig=true clears the figure
+
+- ax_set       A Dict(), with keys "pro_Vax", "pro_Uax", "pro_Dax" and "anti_Vax", "anti_Uax", "anti_Dax" 
+               whose values are corresponding axis handles, to be passed to plot_PA()
+
+- model_params   Further optional params, will be passed onto forwardModel() (e.g., opto times, although
+                opto_times is first passed through parse_opto_times())
 
 
 # RETURNS
@@ -375,7 +411,7 @@ function run_ntrials(nPro, nAnti; plot_list=[], start_pro=[-0.5,-0.5,-0.5,-0.5],
     proVall  = zeros(4, nsteps, nPro);
     antiVall = zeros(4, nsteps, nAnti);
     # --- PRO ---
-    if length(plot_list)>0; figure(profig); if clearfig; clf(); end; end
+    if length(plot_list)>0; figure(profig); if isempty(pro_ax_set) && clearfig; clf(); end; end
     model_params = make_dict(["input"], [pro_input], model_params)
     for i=1:nPro
         Uend, Vend, pro_fullU, temp = forwardModel(start_pro, do_plot=false, opto_units=opto_units; model_params...)
@@ -390,7 +426,7 @@ function run_ntrials(nPro, nAnti; plot_list=[], start_pro=[-0.5,-0.5,-0.5,-0.5],
     end
 
     # --- ANTI ---
-    if length(plot_list)>0; figure(antifig); if clearfig; clf(); end; end
+    if length(plot_list)>0; figure(antifig); if isempty(anti_ax_set) && clearfig; clf(); end; end
     model_params = make_dict(["input"], [anti_input], model_params)
     for i=1:nAnti
         startU = [-0.5, -0.5, -0.5, -0.5]
@@ -414,19 +450,19 @@ function run_ntrials(nPro, nAnti; plot_list=[], start_pro=[-0.5,-0.5,-0.5,-0.5],
 end
 
 
-# DON'T MODIFY THIS FILE -- the source is in file ProAnti.ipynb
+# DON'T MODIFY THIS FILE -- the source is in file ProAnti.ipynb. Look there for further documentation and examples of running the code.
 
 
 """
 cost, cost1s, cost2s, hP, hA, dP, dA, hBP, hBA, [proValls, antiValls, opto_fraction, pro_input, anti_input] = 
     JJ(nPro, nAnti; pro_target=0.9, anti_target=0.7, 
-    opto_targets = Array{Float64}(2,0), opto_periods = Array{Float64}(2,0), 
-    model_details = false,
-    theta1=0.025, theta2=0.035, cbeta=0.003, verbose=false, 
-    pre_string="", zero_last_sigmas=0, seedrand=NaN, 
-    rule_and_delay_periods = nothing, target_periods = [0.1], post_target_periods = nothing,
-    plot_conditions=false, plot_list = [],
-    nderivs=0, difforder=0, model_params...)
+        opto_targets = Array{Float64}(0,2), opto_periods = Array{Float64}(0,2), 
+        model_details = false,
+        theta1=0.025, theta2=0.035, cbeta=0.003, verbose=false, 
+        pre_string="", zero_last_sigmas=0, seedrand=NaN, 
+        rule_and_delay_periods = nothing, target_periods = nothing, post_target_periods = nothing,
+        plot_conditions=false, plot_list = [],
+        nderivs=0, difforder=0, model_params...)
 
 Runs a proAnti network, if desired across multiple opto conditions and multiple period durations and returns
 resulting cost.
@@ -437,7 +473,63 @@ target_period is different, for backwards compatibility it defaults to 0.1.
 
 # PARAMETERS (INCOMPLETE DOCS!!!):
 
-??
+- nPro, nAnti    The number of Pro and the number of Anti trials to run
+
+- pro_target     The target %correct for Pro trials
+
+- anti_target    The target %correct for Anti trials
+
+- opto_targets   Each row is a [target % correct Pro, %correct Anti] for the corresponding row of opto_periods
+
+- opto_periods  Each row is the [start_time, end_time] for an opto condition. These follow the rules
+                of `parse_opto_times()`: they can be arbitrary Julia expressions involving the terms 
+                trial_start, target_start, target_end, and trial_end.
+
+- model_details   If this is set to true, the function will also returns proValls, antiValls, 
+                opto_fraction, pro_input, anti_input (see below)
+
+- theta1        Trials are interpreted as going either Left or Right based on the sign of V_pro_L - V_pro_R.
+                However, to make this a continuous function, went_Left is actually computed as the continuous 
+                function 0.5(1 + tanh((V__pro_L - V_pro_R)/theta1)). In other words, theta1 is the width
+                of the smoothing band.
+
+- theta2        To encourage outputs to lie *outside* the smoothing band, we also compute
+                -tanh((V_pro_L - V_pro_R)/theta2)^2, and make that part of the cost. This encourage differences
+                between V_pro_L and V_pro_R that are larger than theta2, but cares little if the differences are 
+                already larger than theta2.  This cost function term is added after being multiplied by factor cbeta
+
+- cbeta         The cost function is going to be (theta1 term) + cbeta(theta2 term).  We typically keep
+                cbeta small, so that at first only the theta1 term matters; once that theta1 term starts 
+                getting close to its target value (and so its cost gets small, approaching zero) then the 
+                theta2 term becomes, relatively speaking, important.
+
+- seedrand      If sets, calls srand() on the value to initialize the random number generator.
+
+- verbose       If true, prints out diagnostic information to the console.
+
+- pre_string    Relevant only under verbose=true, a string that gets printed out before the rest of the verbose info.
+
+- rule_and_delay_periods    Vector, indicating set of rule_and_delay_period lengths to iterate over, 
+                            while testing set of opto_periods, etc. on each one. 
+                            Deafult is to do a single one, as picked out from model_params[:rule_and_delay_period]
+
+- target_periods            Vector, indicating set of target_perdiod lengths to iterate over, 
+                            while testing set of opto_periods, etc. on each one.
+                            ** DEFAULT IS TO USE 0.1**, not to pick it out from model_params
+
+- post_target_periods       Vector, indicating set of post_target_period lengths to iterate over, 
+                            while testing set of opto_periods, etc. on each one. 
+                            Deafult is to do a single one, as picked out from model_params[:post_target_period]
+ 
+
+- plot_conditions=false,    If anything other than false, is expected to be a list of Booleans, same
+                            length as the number of rows of opto_periods; ture indicates that the 
+                            corresponding opto_period should be plotted.
+
+- plot_list                 A list of trial numbers to plot in each condition
+
+- model_params              Any remaining keyword-value params are passed as is on to run_ntrials 
+
 
 # RETURNS (INCOMPLETE DOCS!!!):
 
@@ -466,7 +558,7 @@ If model_details is set to true, also returns proValls, antiValls, opto_fraction
 """
 
 function JJ(nPro, nAnti; pro_target=0.9, anti_target=0.7, 
-    opto_targets = Array{Float64}(2,0), opto_periods = Array{Float64}(2,0), 
+    opto_targets = Array{Float64}(0,2), opto_periods = Array{Float64}(0,2), 
     model_details = false,
     theta1=0.025, theta2=0.035, cbeta=0.003, verbose=false, 
     pre_string="", zero_last_sigmas=0, seedrand=NaN, 
@@ -500,6 +592,21 @@ function JJ(nPro, nAnti; pro_target=0.9, anti_target=0.7,
         # Then tun with only a single opto_period request, with no opto, and control targets as our targets
         opto_targets = [pro_target anti_target]
         opto_periods = [-1, -1]   # opto effect is before time zero, i.e., is nothing
+    end
+    
+    if size(opto_periods,2) != 2
+        try
+            opto_periods = reshape(opto_periods, Int64(round(length(opto_periods)/2)), 2)  # Make sure its rows of 2 cols
+        catch
+            error("Something is wrong with opto_periods -- it should have 2 columns")
+        end
+    end
+    if size(opto_targets,2) != 2
+        try
+            opto_targets = reshape(opto_targets, Int64(round(length(opto_targets)/2)), 2)  # Make sure its rows of 2 cols
+        catch
+            error("Something is wrong with opto_targets -- it should have 2 columns")
+        end
     end
     
     if ~(size(opto_targets) == size(opto_periods)); 
@@ -649,7 +756,7 @@ function JJ(nPro, nAnti; pro_target=0.9, anti_target=0.7,
 end                    
 
 
-# DON'T MODIFY THIS FILE -- the source is in file ProAnti.ipynb
+# DON'T MODIFY THIS FILE -- the source is in file ProAnti.ipynb. Look there for further documentation and examples of running the code.
 
 
 
