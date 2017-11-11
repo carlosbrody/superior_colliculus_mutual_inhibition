@@ -10,9 +10,9 @@ If no axis is passed, uses gca() to work with the current axis.
 
 
 """
-function remove_xtick_labels(ax=NaN)
+function remove_xtick_labels(ax=nothing)
 
-    if isnan(ax)
+    if ax==nothing
         ax = gca()
     end
     
