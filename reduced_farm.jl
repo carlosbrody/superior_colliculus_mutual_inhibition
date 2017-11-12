@@ -76,7 +76,7 @@ extra_pars = Dict(
 :opto_times       =>   ["trial_start", "trial_start-0.1"],       # This one is for run_ntrials
 :seedrand         =>   Int64(round(time()*1000)),  # 1510426840370  Works wonders with search_range = 0.01
 :cbeta            =>   0.001,
-:search_range     =>   0.4,
+:search_range     =>   0.8,
 )
 
 
@@ -96,7 +96,7 @@ search_conditions = Dict(   # :param    default_start   search_box  bound_box
 
 search_range = extra_pars[:search_range]; 
 
-fbasename = "Temp/farm_C1_"
+fbasename = "FarmFields/farm_C2_"
 
 while true
     args = []; seed = []; bbox = Dict()

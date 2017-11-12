@@ -22,13 +22,18 @@ sudo apt-get -y install hdf5-tools
 
 wget https://julialang-s3.julialang.org/bin/linux/x64/0.5/julia-0.5.2-linux-x86_64.tar.gz
 tar xvfz julia-0.5.2-linux-x86_64.tar.gz 
-sudo ln -s /home/carlosbrody/julia-f4c6c9d4bb/bin/julia /usr/bin/julia
+sudo ln -s /home/carlosbrody/julia-f4c6c9d4bb/bin/julia /usr/bin/julia.0.5.2
+
+wget https://julialang-s3.julialang.org/bin/linux/x64/0.6/julia-0.6.1-linux-x86_64.tar.gz
+tar xvfz julia-0.6.1-linux-x86_64.tar.gz 
+sudo ln -s /home/carlosbrody/julia-0d7248e2ff/bin/julia /usr/bin/julia
+
 
 
 #
 #  PUT YOUR OWN GITHUB USERNAME AND PASSWORD HERE !!!!
 #
-git clone "http://your_github_usernam:your_github_password@github.com/carlosbrody/superior_colliculus_mutual_inhibition.git"
+git clone "http://carlosbrody:gungaDID90&@github.com/carlosbrody/superior_colliculus_mutual_inhibition.git"
 
 
 ./grow_ForwardDiffChunks.sh
