@@ -4,6 +4,8 @@
 include("pro_anti.jl")
 
 
+
+
 # DON'T MODIFY THIS FILE -- the source is in file Current Carlos Work.ipynb. Look there for further documentation and examples of running the code.
 
 
@@ -92,6 +94,13 @@ search_conditions = Dict(   # :param    default_start   search_box  bound_box
 :const_pro_bias           => [mypars[:const_pro_bias],           [-0.5, 0.5],  [-2,   2]],
 # :opto_strength            => [mypars[:opto_strength],            [0.7, 0.99],  [0,    1]],
 )
+
+
+
+
+
+# DON'T MODIFY THIS FILE -- the source is in file Current Carlos Work.ipynb. Look there for further documentation and examples of running the code.
+
 
 
 search_range = extra_pars[:search_range]; 
