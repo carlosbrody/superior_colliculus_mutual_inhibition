@@ -107,7 +107,7 @@ srand(extra_pars[:seedrand])
 
 search_range = extra_pars[:search_range]; 
 
-fbasename = "FarmFields/farm_TRASH_"
+fbasename = "FarmFields/farm_C5_"
 
 while true
     args = []; seed = []; bbox = Dict()
