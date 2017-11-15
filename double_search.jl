@@ -254,7 +254,6 @@ mypars = Dict(
 :const_add              =>          0,
 :noise                  =>          Any[],
 :input                  =>          0,
-:seedrand               =>          1510340076445,
 :start_anti             =>          [-0.5, -0.5, -0.5, -0.5],
 :start_pro              =>          [-0.5, -0.5, -0.5, -0.5],
 :rule_and_delay_period  =>          1.2,
@@ -310,7 +309,6 @@ extra_pars = Dict(
 :opto_periods     =>   String["trial_start" "trial_start-0.1"],
 :opto_targets     =>   [0.9,  0.7],
 :opto_times       =>   ["trial_start", "trial_start-0.1"],       # This one is for run_ntrials
-:seedrand         =>   Int64(round(time()*1000)),  # 1510426840370  Works wonders with search_range = 0.01
 :cbeta            =>   0.001,
 :search_range     =>   1.2,
 )
@@ -335,10 +333,14 @@ search_conditions = Dict(   # :param    default_start   search_box  bound_box
 # DON'T MODIFY THIS FILE -- the source is in file Current Carlos Work.ipynb. Look there for further documentation and examples of running the code.
 
 
+seedrand = Int64(round(time()*1000))   # 1510773892705 starts with an univertible hessian
+srand(seedrand)
 
 search_range = extra_pars[:search_range]; 
 
 fbasename = "FarmFields/farm_C4_"
+
+@printf("\n\n\nStarting with random seed %d\n\n\n", seedrand)
 
 while true
     args = []; seed = []; bbox = Dict()
@@ -370,7 +372,8 @@ while true
     extra_pars[:plot_list] = [1:10;]    
     extra_pars[:plot_condition] = 0
 
-    func2 =  (;params...) -> new_J(10, 10; verbose=false, merge(merge(mypars, extra_pars), Dict(params))...)
+    func2 =  (;params...) -> new_J(10, 10; pre_string="new_J(): ", 
+        verbose=false, merge(merge(mypars, extra_pars), Dict(params))...)
 
     # For func2:
     # This function will get the output of new_J() at each iteration, and will return "true", stopping
@@ -411,12 +414,14 @@ while true
         myfilename = next_file(fbasename, 4)
         myfilename = myfilename*".jld"
         # write file
-        save(myfilename, Dict("nPro"=>mypars[:nPro], "nAnti"=>mypars[:nAnti], 
+        save(myfilename, Dict("nPro"=>mypars[:nPro], "nAnti"=>mypars[:nAnti], "seedrand"=>seedrand,
         "mypars"=>mypars, "extra_pars"=>extra_pars, "args"=>args, "seed"=>seed, "bbox"=>bbox, 
         "pars"=>pars, "traj"=>traj, "cost"=>cost, "cpm_traj"=>cpm_traj, "ftraj"=>ftraj,
         "hP"=>hP, "hA"=>hA, "dP"=>dP, "dA"=>dA, "hBP"=>hBP, "hBA"=>hBA))
-    catch
-        @printf("\n\nWhoopsety, unkown error!   Trying new random seed.\n\n")
+    catch y
+        if isa(y, InterruptException); throw(InterruptException()); end
+        @printf("\n\nWhoopsety, unkown error!\n\n");
+        @printf("Error was :\n"); print(y); @printf("\n\nTrying new random seed.\n\n")
     end
 end
 
