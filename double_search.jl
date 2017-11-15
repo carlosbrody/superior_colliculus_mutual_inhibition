@@ -333,16 +333,18 @@ search_conditions = Dict(   # :param    default_start   search_box  bound_box
 # DON'T MODIFY THIS FILE -- the source is in file Current Carlos Work.ipynb. Look there for further documentation and examples of running the code.
 
 
-seedrand = Int64(round(time()*1000))   # 1510773892705 starts with an univertible hessian
-srand(seedrand)
+extra_pars[:seedrand] = Int64(round(1000*time()))   # 1510782006169 causes lin.alg error but then looks like it'll succeed
+srand(extra_pars[:seedrand])
 
 search_range = extra_pars[:search_range]; 
 
 fbasename = "FarmFields/farm_C4_"
 
-@printf("\n\n\nStarting with random seed %d\n\n\n", seedrand)
+@printf("\n\n\nStarting with random seed %d\n\n\n", extra_pars[:seedrand])
 
 while true
+    
+    @printf("\n\n--- new run ---\n\n")
     args = []; seed = []; bbox = Dict()
     for k in keys(search_conditions)
         search_box = search_conditions[k][2]
@@ -364,15 +366,16 @@ while true
     maxiter2 = 2000;  # for func2, the reduced search
     testruns = 10000; # Number of trials for evaluating the results of the model. 10000 is a good number 
 
+
+    # Make sure to keep the noise frozen over the search, meaning JJ() needs the seedrand parameter
     func1 =  (;params...) -> JJ(mypars[:nPro], mypars[:nAnti]; verbose=false, 
     merge(merge(mypars, extra_pars), Dict(params))...)[1]
     
     # For func2:
     extra_pars[:opto_conditions] = []    
-    extra_pars[:plot_list] = [1:10;]    
     extra_pars[:plot_condition] = 0
 
-    func2 =  (;params...) -> new_J(10, 10; pre_string="new_J(): ", 
+    func2 =  (;params...) -> new_J(40, 40; pre_string="new_J(): ", 
         verbose=false, merge(merge(mypars, extra_pars), Dict(params))...)
 
     # For func2:
@@ -386,7 +389,7 @@ while true
 
     try
         pars, traj, cost, cpm_traj, ftraj = bbox_Hessian_keyword_minimization(seed, args, bbox, func1, 
-            start_eta = 0.1, tol=1e-12, report_file = "trash",
+            start_eta = 0.1, tol=1e-12, 
             verbose=true, verbose_every=1, maxiter=maxiter1)
 
         extra_pars[:plot_list] = []
@@ -400,9 +403,7 @@ while true
                 start_eta = 0.1, tol=1e-12, verbose=true, verbose_every=1, maxiter=maxiter2)
 
             
-            seed = t_pars
-
-            pars, traj, cost, cpm_traj, ftraj = bbox_Hessian_keyword_minimization(seed, args, bbox, func1, 
+            pars, traj, cost, cpm_traj, ftraj = bbox_Hessian_keyword_minimization(t_pars, args, bbox, func1, 
                 start_eta = 0.1, tol=1e-12, 
                 verbose=true, verbose_every=1, maxiter=maxiter1)
             
@@ -423,6 +424,9 @@ while true
         @printf("\n\nWhoopsety, unkown error!\n\n");
         @printf("Error was :\n"); print(y); @printf("\n\nTrying new random seed.\n\n")
     end
+
+    # Change random seed so we don't get stuck in one loop
+    extra_pars[:seedrand] = extra_pars[:seedrand]+1
 end
 
 

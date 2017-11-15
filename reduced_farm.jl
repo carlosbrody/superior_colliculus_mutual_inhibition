@@ -15,7 +15,6 @@ mypars = Dict(
 :const_add              =>          0,
 :noise                  =>          Any[],
 :input                  =>          0,
-:seedrand               =>          1510340076445,
 :start_anti             =>          [-0.5, -0.5, -0.5, -0.5],
 :start_pro              =>          [-0.5, -0.5, -0.5, -0.5],
 :rule_and_delay_period  =>          1.2,
@@ -76,7 +75,6 @@ extra_pars = Dict(
 :opto_periods     =>   String["trial_start" "trial_start-0.1"],
 :opto_targets     =>   [0.9,  0.7],
 :opto_times       =>   ["trial_start", "trial_start-0.1"],       # This one is for run_ntrials
-:seedrand         =>   Int64(round(time()*1000)),  # 1510426840370  Works wonders with search_range = 0.01
 :cbeta            =>   0.001,
 :search_range     =>   1.2,
 )
@@ -102,10 +100,14 @@ search_conditions = Dict(   # :param    default_start   search_box  bound_box
 # DON'T MODIFY THIS FILE -- the source is in file Current Carlos Work.ipynb. Look there for further documentation and examples of running the code.
 
 
+extra_pars[:seedrand] = Int64(round(time()*1000))
+srand(extra_pars[:seedrand])
+
+@printf("\n\n\nStarting with random seed %d\n\n\n", extra_pars[:seedrand])
 
 search_range = extra_pars[:search_range]; 
 
-fbasename = "FarmFields/farm_C3_"
+fbasename = "FarmFields/farm_TRASH_"
 
 while true
     args = []; seed = []; bbox = Dict()
@@ -123,9 +125,9 @@ while true
     seed = Array{Float64}(seed)
 
 
-
-    func =  (;params...) -> JJ(mypars[:nPro], mypars[:nAnti]; verbose=false, 
-    merge(merge(mypars, extra_pars), Dict(params))...)[1]
+    # Make sure to keep the noise frozen over the search, meaning JJ() needs the seedrand parameter
+    func =  (;params...) -> JJ(mypars[:nPro], mypars[:nAnti]; verbose=true, 
+        merge(merge(mypars, extra_pars), Dict(params))...)[1]
 
     try
         pars, traj, cost, cpm_traj, ftraj = bbox_Hessian_keyword_minimization(seed, args, bbox, func, 
@@ -133,7 +135,7 @@ while true
             verbose=true, verbose_every=1, maxiter=1000)
 
 
-        cost, cost1s, cost2s, hP, hA, dP, dA, hBP, hBA = JJ(10000, 10000; verbose=false, 
+        cost, cost1s, cost2s, hP, hA, dP, dA, hBP, hBA = JJ(1000, 1000; verbose=false, 
         make_dict(args, pars, merge(merge(mypars, extra_pars)))...)
 
         myfilename = next_file(fbasename, 4)
@@ -143,9 +145,14 @@ while true
         "mypars"=>mypars, "extra_pars"=>extra_pars, "args"=>args, "seed"=>seed, "bbox"=>bbox, 
         "pars"=>pars, "traj"=>traj, "cost"=>cost, "cpm_traj"=>cpm_traj, "ftraj"=>ftraj,
         "hP"=>hP, "hA"=>hA, "dP"=>dP, "dA"=>dA, "hBP"=>hBP, "hBA"=>hBA))
-    catch
-        @printf("\n\nWhoopsety, unkown error!   Trying new random seed.\n\n")
+    catch y
+        if isa(y, InterruptException); throw(InterruptException()); end
+        @printf("\n\nWhoopsety, unkown error!\n\n");
+        @printf("Error was :\n"); print(y); @printf("\n\nTrying new random seed.\n\n")
     end
+
+    # Change the frozen noise random seed so we don't get stuck in one loop    
+    extra_pars[:seedrand] = extra_pars[:seedrand]+1
 end
 
 
