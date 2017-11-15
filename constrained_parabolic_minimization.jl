@@ -94,7 +94,8 @@ end
 
 
 """
-function constrained_parabolic_minimization(H, G, r; tol=1e-6, min_only=true, do_plot=false, 
+function x, J, lambdas, costs, niters, Dlambda = constrained_parabolic_minimization(H, G, r; tol=1e-6, 
+    min_only=true, do_plot=false, 
     verbose=false, efactor=3.0, max_efactor_tries=10, 
     lambdastepsize=0.003, minimum_tol=1e-24, tol_delta=1e-3, maxiter=200)
 
