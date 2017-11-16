@@ -300,7 +300,7 @@ using MAT
 
 """
 function bbox_Hessian_keyword_minimization(seed, args, bbox, func; start_eta=10, tol=1e-6, 
-maxiter=400, frac_cost_threshold = 0.5, verbose=false, report_file="")
+maxiter=400, frac_cost_threshold = 0.5, stopping_function = nothing, verbose=false, report_file="")
 
 Like constrained_Hessian_minimization, but uses keyword_hessian!(). 
 
@@ -317,8 +317,9 @@ Like constrained_Hessian_minimization, but uses keyword_hessian!().
                 If softbox=false, then bbox should be an nargs-by-2 matrix indicating the range for each argument,
             with the minima (first column) and maxima (second column), and entries for ALL parameters.
 
-- func        func must take only optional keyword args, and must 
+- func      func must take only optional keyword args, and must 
             take nderivs=0, difforder=0  and declare any new matrices using ForwardDiffZeros() instead of zeros().
+            [THE ABOVE PART OF THE DOCUMENTATION MUST BE UPDATED FOR JULIA 0.6]
             func must either return a scalar, or the first output it returns must be a scalar. 
             That scalar is what will be minimized. The trajectory across the minimization of 
             any further outputs that f() returns will be available in ftraj (see RETURNS below)
@@ -342,6 +343,12 @@ Like constrained_Hessian_minimization, but uses keyword_hessian!().
                 If the ratio of the actual cost reduction / expected cost reduction is less than "frac_cost_threshold", 
                 then the step is not taken and the step size is halved. Otherwise, the  step is taken, and step 
                 size goes up by 1.1.  A frac_cost_threshold=0 makes both of these checks equivalent.
+
+- stopping_function   If present, this should be a function that returns a boolean, that can take as 
+                keyword-value pairs the same args, pars that are given to func, and also takes keyword-value "cost"
+                and keyword_value "func_out". The value of cost will be the latest scalar value of func, and the
+                value of "func_out" will be a tuple with any further returns from func. `stopping_function()` is run 
+                each iteration, and if it returns true, the minimization is stopped.
 
 - verbose=false   If true, print out a report on each iteration of iteration number, radius size (eta),
                 what type jump was proposed ("Newton" means going straight to global min, "constrained" means jump has 
@@ -397,13 +404,13 @@ params, trajectory = bbox_Hessian_keyword_minimization([0.5, 0.5], ["x", "y"], [
 
 """
 function bbox_Hessian_keyword_minimization(seed, args, bbox, func; start_eta=0.1, tol=1e-6, maxiter=400,
-    frac_cost_threshold = 0.5, 
+    frac_cost_threshold = 0.5, stopping_function = nothing,
     verbose=false, verbose_level=1, verbose_every=1, softbox=true, hardbox=false, report_file="")
 
     # --- check that saving will be done to a .jld file ---
     if length(report_file)>0 && splitext(report_file)[2] != ".jld"
         if splitext(report_file)[2] == ""
-            report_file = resport_file * ".jld"
+            report_file = report_file * ".jld"
         else
             error("Sorry, report_file can only write to JLD files, the extension has to be .jld")
         end
@@ -426,6 +433,7 @@ function bbox_Hessian_keyword_minimization(seed, args, bbox, func; start_eta=0.1
     ftraj = Array{Any}(3,0)  # will hold gradient, hessian, and further_out,  per iteration
 
     further_out =[];  # We define this variable here so it will be available for stashing further outputs from func
+    stopping_func_out = false;   # Default value of stopping_func()
     
     # Now we define a wrapper around func() to do three things: (a) wallwrap parameters using the softbox method;
     # (b) return as the desired scalar the first output of func; (c) stash in further_out any further outputs of func
@@ -496,6 +504,7 @@ function bbox_Hessian_keyword_minimization(seed, args, bbox, func; start_eta=0.1
             cpm_traj[3,i] = cpm_out[4]; cpm_traj[4,i] = cpm_out[2]; #  radius error and quadratically predicted change in J
             jumptype = "not failed"
         catch y
+            if isa(y, InterruptException); throw(InterruptException()); end  # External interrupts should not be catchable
             jumptype = "failed"
             if verbose
                 @printf "Constrained parabolic minimization failed with error %s\n" y
@@ -526,6 +535,10 @@ function bbox_Hessian_keyword_minimization(seed, args, bbox, func; start_eta=0.1
 
         if jumptype != "failed"
             new_cost, new_grad, new_hess = keyword_vgh(internal_func, args, new_params)   # further_out may mutate
+            if stopping_function != nothing
+                stopping_func_out = stopping_function(; cost=cost, func_out=further_out, 
+                    make_dict(args, new_params)...)
+            end
             if verbose && verbose_level >=2
                 @printf("bhm: had new_params = : "); print_vector_g(vector_wrap(bbox, args, params)); print("\n");
                 @printf("bhm: and my bbox was : "); print(bbox); print("\n")
@@ -534,9 +547,10 @@ function bbox_Hessian_keyword_minimization(seed, args, bbox, func; start_eta=0.1
                 @printf("bhm:   new_hess :"); print_vector_g(new_hess[:]); print("\n");                                        
             end
             
-            if abs(new_cost - cost) < tol || eta < tol
+            if abs(new_cost - cost) < tol || eta < tol || stopping_func_out
                 if verbose
-                    @printf("About to break -- tol=%g, new_cost-cost=%g, eta=%g\n", tol, new_cost-cost, eta)
+                    @printf("About to break -- stop_func_out = %s, tol=%g, new_cost-cost=%g, eta=%g\n", 
+                        stopping_func_out, tol, new_cost-cost, eta)
                 end
                 break
             end
@@ -544,7 +558,11 @@ function bbox_Hessian_keyword_minimization(seed, args, bbox, func; start_eta=0.1
 
         if jumptype == "failed" || cost <= new_cost || (new_cost - cost)/expected_cost_delta <= frac_cost_threshold  
             if verbose
-                @printf("eta going down: new_cost-cost=%g and jumptype='%s'\n", new_cost-cost, jumptype)
+                @printf("eta going down: ")
+                if jumptype=="failed"; @printf("jtype=failed");
+                else                   @printf("cost (new-old)/expect = %.3f", (new_cost - cost)/expected_cost_delta)
+                end
+                @printf(" new_cost-cost=%g and jumptype='%s'\n", new_cost-cost, jumptype)
                 if verbose_level >= 2
                     nwp = vector_wrap(bbox, args, new_params); wp = vector_wrap(bbox, args, params)
                     @printf("   vvv: proposed new params were : "); print_vector_g(nwp); print("\n")
@@ -556,9 +574,10 @@ function bbox_Hessian_keyword_minimization(seed, args, bbox, func; start_eta=0.1
             end
             eta = eta/2
             costheta = NaN
-            if eta < tol
+            if eta < tol || stopping_func_out
                 if verbose
-                    @printf("About to break -- tol=%g, new_cost-cost=%g, eta=%g\n", tol, new_cost-cost, eta)
+                    @printf("About to break -- stop_func_out = %s, tol=%g, new_cost-cost=%g, eta=%g\n", 
+                        stopping_func_out, tol, new_cost-cost, eta)
                 end
                 break
             end
