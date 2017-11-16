@@ -415,7 +415,7 @@ while true
         myfilename = next_file(fbasename, 4)
         myfilename = myfilename*".jld"
         # write file
-        save(myfilename, Dict("nPro"=>mypars[:nPro], "nAnti"=>mypars[:nAnti], "seedrand"=>seedrand,
+        save(myfilename, Dict("nPro"=>mypars[:nPro], "nAnti"=>mypars[:nAnti], 
         "mypars"=>mypars, "extra_pars"=>extra_pars, "args"=>args, "seed"=>seed, "bbox"=>bbox, 
         "pars"=>pars, "traj"=>traj, "cost"=>cost, "cpm_traj"=>cpm_traj, "ftraj"=>ftraj,
         "hP"=>hP, "hA"=>hA, "dP"=>dP, "dA"=>dA, "hBP"=>hBP, "hBA"=>hBA))
