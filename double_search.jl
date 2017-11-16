@@ -396,7 +396,7 @@ while true
         cost, cost1s, cost2s, hP, hA, dP, dA, hBP, hBA = JJ(testruns, testruns; verbose=false, 
             make_dict(args, pars, merge(merge(mypars, extra_pars)))...)
 
-        if ~( abs(hBP[1]-0.9)<0.05 && abs(hBP[1]-0.7)<0.05 && dP[1] > 0.8 && dA[1] > 0.8)
+        if ~( abs(hBP[1]-0.9)<0.075 && abs(hBA[1]-0.7)<0.075 && dP[1] > 0.8 && dA[1] > 0.8)
 
             t_pars, traj, cost, cpm_traj, ftraj = bbox_Hessian_keyword_minimization(seed, args, bbox, func2, 
                 stopping_function = stopping_func, 
