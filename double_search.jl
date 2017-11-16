@@ -340,13 +340,14 @@ search_range = extra_pars[:search_range];
 
 README = """
 
-Farm C6: like farm C4, doing a double search, but keeping track of all the
-search trajectories, not ust final one.  new_J() starts from the original seed.
+Farm C7: like farm C6, doing a double search, keeping track of all the
+search trajectories, not just final one. BUT: new_J() starts from the 
+results of the first search.
 
 """
 
 if !isdir("../NewFarms"); mkdir("../NewFarms"); end
-fbasename = "../NewFarms/farm_C6_"
+fbasename = "../NewFarms/farm_C7_"
 
 @printf("\n\n\nStarting with random seed %d\n\n\n", extra_pars[:seedrand])
 
@@ -408,7 +409,7 @@ while true
         if ~( abs(hBP[1]-0.9)<0.075 && abs(hBA[1]-0.7)<0.075 && dP[1] > 0.8 && dA[1] > 0.8)
 
             ntries = ntries + 1
-            pars2, traj2, cost2, cpm_traj2, ftraj2 = bbox_Hessian_keyword_minimization(seed, args, bbox, func2, 
+            pars2, traj2, cost2, cpm_traj2, ftraj2 = bbox_Hessian_keyword_minimization(pars1, args, bbox, func2, 
                 stopping_function = stopping_func, 
                 start_eta = 0.1, tol=1e-12, verbose=true, verbose_every=1, maxiter=maxiter2)
 
