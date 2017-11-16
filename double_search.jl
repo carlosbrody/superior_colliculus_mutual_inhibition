@@ -388,6 +388,7 @@ while true
 
 
     try
+        ntries = 1
         pars, traj, cost, cpm_traj, ftraj = bbox_Hessian_keyword_minimization(seed, args, bbox, func1, 
             start_eta = 0.1, tol=1e-12, 
             verbose=true, verbose_every=1, maxiter=maxiter1)
@@ -398,6 +399,7 @@ while true
 
         if ~( abs(hBP[1]-0.9)<0.075 && abs(hBA[1]-0.7)<0.075 && dP[1] > 0.8 && dA[1] > 0.8)
 
+            ntries++
             t_pars, traj, cost, cpm_traj, ftraj = bbox_Hessian_keyword_minimization(seed, args, bbox, func2, 
                 stopping_function = stopping_func, 
                 start_eta = 0.1, tol=1e-12, verbose=true, verbose_every=1, maxiter=maxiter2)
@@ -414,8 +416,11 @@ while true
         
         myfilename = next_file(fbasename, 4)
         myfilename = myfilename*".jld"
+
+        @printf("\n\n ****** writing to file %s *******\n\n", myfilename)
+        
         # write file
-        save(myfilename, Dict("nPro"=>mypars[:nPro], "nAnti"=>mypars[:nAnti], 
+        save(myfilename, Dict("nPro"=>mypars[:nPro], "nAnti"=>mypars[:nAnti], "ntries"=>ntries,
         "mypars"=>mypars, "extra_pars"=>extra_pars, "args"=>args, "seed"=>seed, "bbox"=>bbox, 
         "pars"=>pars, "traj"=>traj, "cost"=>cost, "cpm_traj"=>cpm_traj, "ftraj"=>ftraj,
         "hP"=>hP, "hA"=>hA, "dP"=>dP, "dA"=>dA, "hBP"=>hBP, "hBA"=>hBA))
