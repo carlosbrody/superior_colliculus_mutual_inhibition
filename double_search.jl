@@ -399,7 +399,7 @@ while true
 
         if ~( abs(hBP[1]-0.9)<0.075 && abs(hBA[1]-0.7)<0.075 && dP[1] > 0.8 && dA[1] > 0.8)
 
-            ntries++
+            ntries = ntries + 1
             t_pars, traj, cost, cpm_traj, ftraj = bbox_Hessian_keyword_minimization(seed, args, bbox, func2, 
                 stopping_function = stopping_func, 
                 start_eta = 0.1, tol=1e-12, verbose=true, verbose_every=1, maxiter=maxiter2)
