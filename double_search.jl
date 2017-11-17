@@ -340,15 +340,13 @@ search_range = extra_pars[:search_range];
 
 README = """
 
-Farm C7: like farm C6, doing a double search, keeping track of all the
-search trajectories, not just final one. BUT: new_J() starts from the 
-results of the first search.
-
+Farm C8: Only do a single full search, first new_J() then full search,
+no pre-search.
 
 """
 
 if !isdir("../NewFarms"); mkdir("../NewFarms"); end
-fbasename = "../NewFarms/farm_C7_"
+fbasename = "../NewFarms/farm_C8_"
 # If we wanted a unique identifier per processor run the following line would help:
 # if ~isnull(tryparse(Int64, ARGS[1])); fbasename = fbasename * ARGS[1] * "_"; end
 
@@ -400,33 +398,24 @@ while true
 
 
     try
-        ntries = 1
-        pars1, traj1, cost1, cpm_traj1, ftraj1 = bbox_Hessian_keyword_minimization(seed, args, bbox, func1, 
-            start_eta = 0.1, tol=1e-12, 
-            verbose=true, verbose_every=1, maxiter=maxiter1)
+        ntries = 2
 
         extra_pars[:plot_list] = []
+
+        # First with func2 for new_J()
+        pars2, traj2, cost2, cpm_traj2, ftraj2 = bbox_Hessian_keyword_minimization(seed, 
+            args, bbox, func2, 
+            stopping_function = stopping_func, 
+            start_eta = 0.1, tol=1e-12, verbose=true, verbose_every=1, maxiter=maxiter2)
+
+        # Then with func1 for JJ()
+        pars3, traj3, cost3, cpm_traj3, ftraj3 = bbox_Hessian_keyword_minimization(pars2, 
+            args, bbox, func1, 
+            start_eta = 0.1, tol=1e-12, 
+            verbose=true, verbose_every=1, maxiter=maxiter1)
+            
         cost, cost1s, cost2s, hP, hA, dP, dA, hBP, hBA = JJ(testruns, testruns; verbose=false, 
-            make_dict(args, pars1, merge(merge(mypars, extra_pars)))...)
-
-        if ~( abs(hBP[1]-0.9)<0.075 && abs(hBA[1]-0.7)<0.075 && dP[1] > 0.8 && dA[1] > 0.8)
-
-            ntries = ntries + 1
-            pars2, traj2, cost2, cpm_traj2, ftraj2 = bbox_Hessian_keyword_minimization(pars1, 
-                args, bbox, func2, 
-                stopping_function = stopping_func, 
-                start_eta = 0.1, tol=1e-12, verbose=true, verbose_every=1, maxiter=maxiter2)
-
-            
-            pars3, traj3, cost3, cpm_traj3, ftraj3 = bbox_Hessian_keyword_minimization(pars2, 
-                args, bbox, func1, 
-                start_eta = 0.1, tol=1e-12, 
-                verbose=true, verbose_every=1, maxiter=maxiter1)
-            
-            cost, cost1s, cost2s, hP, hA, dP, dA, hBP, hBA = JJ(testruns, testruns; verbose=false, 
-                make_dict(args, pars3, merge(merge(mypars, extra_pars)))...)
-            
-        end
+            make_dict(args, pars3, merge(merge(mypars, extra_pars)))...)
         
         myfilename = next_file(fbasename, 4)
         myfilename = myfilename*".jld"
@@ -434,21 +423,13 @@ while true
         @printf("\n\n ****** writing to file %s *******\n\n", myfilename)
         
         # write file
-        if ntries==1
-            save(myfilename, Dict("README"=>README, "nPro"=>mypars[:nPro], "nAnti"=>mypars[:nAnti], "ntries"=>ntries, 
+        save(myfilename, Dict("README"=>README, "nPro"=>mypars[:nPro], "nAnti"=>mypars[:nAnti], "ntries"=>ntries, 
             "mypars"=>mypars, "extra_pars"=>extra_pars, "args"=>args, "seed"=>seed, "bbox"=>bbox, 
-            "pars1"=>pars1, "traj1"=>traj1, "cost1"=>cost1, "cpm_traj1"=>cpm_traj1, "ftraj1"=>ftraj1,
-            "cost"=>cost, "cost1s"=>cost1s, "cost2s"=>cost2s,
-            "hP"=>hP, "hA"=>hA, "dP"=>dP, "dA"=>dA, "hBP"=>hBP, "hBA"=>hBA))
-        else
-            save(myfilename, Dict("README"=>README, "nPro"=>mypars[:nPro], "nAnti"=>mypars[:nAnti], "ntries"=>ntries, 
-            "mypars"=>mypars, "extra_pars"=>extra_pars, "args"=>args, "seed"=>seed, "bbox"=>bbox, 
-            "pars1"=>pars1, "traj1"=>traj1, "cost1"=>cost1, "cpm_traj1"=>cpm_traj1, "ftraj1"=>ftraj1,
             "pars2"=>pars2, "traj2"=>traj2, "cost2"=>cost2, "cpm_traj2"=>cpm_traj2, "ftraj2"=>ftraj2,
             "pars3"=>pars3, "traj3"=>traj3, "cost3"=>cost3, "cpm_traj3"=>cpm_traj3, "ftraj3"=>ftraj3,
             "cost"=>cost, "cost1s"=>cost1s, "cost2s"=>cost2s,
             "hP"=>hP, "hA"=>hA, "dP"=>dP, "dA"=>dA, "hBP"=>hBP, "hBA"=>hBA))
-        end
+
     catch y
         if isa(y, InterruptException); throw(InterruptException()); end
         @printf("\n\nWhoopsety, unkown error!\n\n");
