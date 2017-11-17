@@ -385,8 +385,10 @@ while true
     extra_pars[:opto_conditions] = []    
     extra_pars[:plot_condition] = 0
 
+    # new_J() has to be allowed to return all its outputs, so that
+    # stopping_func can use some of them
     func2 =  (;params...) -> new_J(40, 40; pre_string="new_J(): ", 
-        verbose=false, merge(merge(mypars, extra_pars), Dict(params))...)[1]
+        verbose=false, merge(merge(mypars, extra_pars), Dict(params))...)
 
     # For func2:
     # This function will get the output of new_J() at each iteration, and will return "true", stopping
@@ -425,7 +427,7 @@ while true
         # write file
         save(myfilename, Dict("README"=>README, "nPro"=>mypars[:nPro], "nAnti"=>mypars[:nAnti], "ntries"=>ntries, 
             "mypars"=>mypars, "extra_pars"=>extra_pars, "args"=>args, "seed"=>seed, "bbox"=>bbox, 
-            "pars2"=>pars2, "traj2"=>traj2, "cost2"=>cost2, "cpm_traj2"=>cpm_traj2, "ftraj2"=>ftraj2,
+            "pars2"=>pars2, "traj2"=>traj2, "cost2"=>cost2, "cpm_traj2"=>cpm_traj2, 
             "pars3"=>pars3, "traj3"=>traj3, "cost3"=>cost3, "cpm_traj3"=>cpm_traj3, "ftraj3"=>ftraj3,
             "cost"=>cost, "cost1s"=>cost1s, "cost2s"=>cost2s,
             "hP"=>hP, "hA"=>hA, "dP"=>dP, "dA"=>dA, "hBP"=>hBP, "hBA"=>hBA))
