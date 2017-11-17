@@ -470,7 +470,7 @@ function bbox_Hessian_keyword_minimization(seed, args, bbox, func; start_eta=0.1
     hess_cost_delta     = 0   # this will hold the Newtorn prediction
     chess_cost_delta    = 0   # this will hold the constrained prediction
     
-    i=0  # here so variable i is available outside the loop
+    i=new_params=new_cost=new_grad=new_hess=0  # here so these variables are available outside the loop
     for i in [1:maxiter;]
         if i > size(trajectory, 2)
             trajectory = [trajectory zeros(2+length(params), traj_increment)]
@@ -536,7 +536,7 @@ function bbox_Hessian_keyword_minimization(seed, args, bbox, func; start_eta=0.1
         if jumptype != "failed"
             new_cost, new_grad, new_hess = keyword_vgh(internal_func, args, new_params)   # further_out may mutate
             if stopping_function != nothing
-                stopping_func_out = stopping_function(; cost=cost, func_out=further_out, 
+                stopping_func_out = stopping_function(; cost=new_cost, func_out=further_out, 
                     make_dict(args, new_params)...)
             end
             if verbose && verbose_level >=2
@@ -604,6 +604,20 @@ function bbox_Hessian_keyword_minimization(seed, args, bbox, func; start_eta=0.1
             end
         end
     end
+
+    if stopping_func_out                    
+        # The last params were the good ones!
+        params = new_params
+        cost = new_cost
+        grad = new_grad
+        hess = new_hess
+    
+        i = i+1
+        trajectory[1:2, i]   = [eta;cost]
+        trajectory[3:end, i] = vector_wrap(bbox, args, params)
+        ftraj = [ftraj [grad, hess, further_out]]
+    end
+    
 
     trajectory = trajectory[:,1:i]; cpm_traj = cpm_traj[:,1:i]
     if length(report_file)>0
