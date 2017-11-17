@@ -347,7 +347,7 @@ results of the first search.
 """
 
 if !isdir("../NewFarms"); mkdir("../NewFarms"); end
-fbasename = "../NewFarms/farm_C6_"
+fbasename = "../NewFarms/farm_C7_"
 # If we wanted a unique identifier per processor run the following line would help:
 # if ~isnull(tryparse(Int64, ARGS[1])); fbasename = fbasename * ARGS[1] * "_"; end
 
