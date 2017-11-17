@@ -333,7 +333,7 @@ search_conditions = Dict(   # :param    default_start   search_box  bound_box
 # DON'T MODIFY THIS FILE -- the source is in file Current Carlos Work.ipynb. Look there for further documentation and examples of running the code.
 
 
-extra_pars[:seedrand] = Int64(round(1000*time()))   # 1510782006169 causes lin.alg error but then looks like it'll succeed
+extra_pars[:seedrand] = 1510848964674 # Int64(round(1000*time()))   # 1510782006169 causes lin.alg error but then looks like it'll succeed
 srand(extra_pars[:seedrand])
 
 search_range = extra_pars[:search_range]; 
@@ -348,6 +348,8 @@ results of the first search.
 
 if !isdir("../NewFarms"); mkdir("../NewFarms"); end
 fbasename = "../NewFarms/farm_C7_"
+# If we wanted a unique identifier per processor run the following line would help:
+# if ~isnull(tryparse(Int64, ARGS[1])); fbasename = fbasename * ARGS[1] * "_"; end
 
 @printf("\n\n\nStarting with random seed %d\n\n\n", extra_pars[:seedrand])
 
@@ -409,12 +411,14 @@ while true
         if ~( abs(hBP[1]-0.9)<0.075 && abs(hBA[1]-0.7)<0.075 && dP[1] > 0.8 && dA[1] > 0.8)
 
             ntries = ntries + 1
-            pars2, traj2, cost2, cpm_traj2, ftraj2 = bbox_Hessian_keyword_minimization(pars1, args, bbox, func2, 
+            pars2, traj2, cost2, cpm_traj2, ftraj2 = bbox_Hessian_keyword_minimization(pars1, 
+                args, bbox, func2, 
                 stopping_function = stopping_func, 
                 start_eta = 0.1, tol=1e-12, verbose=true, verbose_every=1, maxiter=maxiter2)
 
             
-            pars3, traj3, cost3, cpm_traj3, ftraj3 = bbox_Hessian_keyword_minimization(pars2, args, bbox, func1, 
+            pars3, traj3, cost3, cpm_traj3, ftraj3 = bbox_Hessian_keyword_minimization(pars2, 
+                args, bbox, func1, 
                 start_eta = 0.1, tol=1e-12, 
                 verbose=true, verbose_every=1, maxiter=maxiter1)
             
@@ -429,13 +433,21 @@ while true
         @printf("\n\n ****** writing to file %s *******\n\n", myfilename)
         
         # write file
-        save(myfilename, Dict("README"=>README, "nPro"=>mypars[:nPro], "nAnti"=>mypars[:nAnti], "ntries"=>ntries, 
-        "mypars"=>mypars, "extra_pars"=>extra_pars, "args"=>args, "seed"=>seed, "bbox"=>bbox, 
-        "pars1"=>pars1, "traj1"=>traj1, "cost1"=>cost1, "cpm_traj1"=>cpm_traj1, "ftraj1"=>ftraj1,
-        "pars2"=>pars2, "traj2"=>traj2, "cost2"=>cost2, "cpm_traj2"=>cpm_traj2, "ftraj2"=>ftraj2,
-        "pars3"=>pars3, "traj3"=>traj3, "cost3"=>cost3, "cpm_traj3"=>cpm_traj3, "ftraj3"=>ftraj3,
-        "cost"=>cost, "cost1s"=>cost1s, "cost2s"=>cost2s,
-        "hP"=>hP, "hA"=>hA, "dP"=>dP, "dA"=>dA, "hBP"=>hBP, "hBA"=>hBA))
+        if ntries==1
+            save(myfilename, Dict("README"=>README, "nPro"=>mypars[:nPro], "nAnti"=>mypars[:nAnti], "ntries"=>ntries, 
+            "mypars"=>mypars, "extra_pars"=>extra_pars, "args"=>args, "seed"=>seed, "bbox"=>bbox, 
+            "pars1"=>pars1, "traj1"=>traj1, "cost1"=>cost1, "cpm_traj1"=>cpm_traj1, "ftraj1"=>ftraj1,
+            "cost"=>cost, "cost1s"=>cost1s, "cost2s"=>cost2s,
+            "hP"=>hP, "hA"=>hA, "dP"=>dP, "dA"=>dA, "hBP"=>hBP, "hBA"=>hBA))
+        else
+            save(myfilename, Dict("README"=>README, "nPro"=>mypars[:nPro], "nAnti"=>mypars[:nAnti], "ntries"=>ntries, 
+            "mypars"=>mypars, "extra_pars"=>extra_pars, "args"=>args, "seed"=>seed, "bbox"=>bbox, 
+            "pars1"=>pars1, "traj1"=>traj1, "cost1"=>cost1, "cpm_traj1"=>cpm_traj1, "ftraj1"=>ftraj1,
+            "pars2"=>pars2, "traj2"=>traj2, "cost2"=>cost2, "cpm_traj2"=>cpm_traj2, "ftraj2"=>ftraj2,
+            "pars3"=>pars3, "traj3"=>traj3, "cost3"=>cost3, "cpm_traj3"=>cpm_traj3, "ftraj3"=>ftraj3,
+            "cost"=>cost, "cost1s"=>cost1s, "cost2s"=>cost2s,
+            "hP"=>hP, "hA"=>hA, "dP"=>dP, "dA"=>dA, "hBP"=>hBP, "hBA"=>hBA))
+        end
     catch y
         if isa(y, InterruptException); throw(InterruptException()); end
         @printf("\n\nWhoopsety, unkown error!\n\n");
