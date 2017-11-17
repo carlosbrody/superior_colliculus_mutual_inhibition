@@ -333,21 +333,20 @@ search_conditions = Dict(   # :param    default_start   search_box  bound_box
 # DON'T MODIFY THIS FILE -- the source is in file Current Carlos Work.ipynb. Look there for further documentation and examples of running the code.
 
 
-extra_pars[:seedrand] = 1510848964674 # Int64(round(1000*time()))   # 1510782006169 causes lin.alg error but then looks like it'll succeed
+extra_pars[:seedrand] = Int64(round(1000*time()))   # 1510782006169 causes lin.alg error but then looks like it'll succeed
 srand(extra_pars[:seedrand])
 
 search_range = extra_pars[:search_range]; 
 
 README = """
 
-Farm C7: like farm C6, doing a double search, keeping track of all the
-search trajectories, not just final one. BUT: new_J() starts from the 
-results of the first search.
+Farm C6: like farm C4, doing a double search, but keeping track of all the
+search trajectories, not ust final one.  new_J() starts from the original seed.
 
 """
 
 if !isdir("../NewFarms"); mkdir("../NewFarms"); end
-fbasename = "../NewFarms/farm_C7_"
+fbasename = "../NewFarms/farm_C6_"
 # If we wanted a unique identifier per processor run the following line would help:
 # if ~isnull(tryparse(Int64, ARGS[1])); fbasename = fbasename * ARGS[1] * "_"; end
 
@@ -387,7 +386,7 @@ while true
     extra_pars[:plot_condition] = 0
 
     func2 =  (;params...) -> new_J(40, 40; pre_string="new_J(): ", 
-        verbose=false, merge(merge(mypars, extra_pars), Dict(params))...)
+        verbose=false, merge(merge(mypars, extra_pars), Dict(params))...)[1]
 
     # For func2:
     # This function will get the output of new_J() at each iteration, and will return "true", stopping
@@ -411,7 +410,7 @@ while true
         if ~( abs(hBP[1]-0.9)<0.075 && abs(hBA[1]-0.7)<0.075 && dP[1] > 0.8 && dA[1] > 0.8)
 
             ntries = ntries + 1
-            pars2, traj2, cost2, cpm_traj2, ftraj2 = bbox_Hessian_keyword_minimization(pars1, 
+            pars2, traj2, cost2, cpm_traj2, ftraj2 = bbox_Hessian_keyword_minimization(seed, 
                 args, bbox, func2, 
                 stopping_function = stopping_func, 
                 start_eta = 0.1, tol=1e-12, verbose=true, verbose_every=1, maxiter=maxiter2)
