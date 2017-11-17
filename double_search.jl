@@ -340,13 +340,14 @@ search_range = extra_pars[:search_range];
 
 README = """
 
-Farm C8: Only do a single full search, first new_J() then full search,
-no pre-search.
+Farm C7: like farm C6, doing a double search, keeping track of all the
+search trajectories, not just final one. BUT: new_J() starts from the 
+results of the first search.
 
 """
 
 if !isdir("../NewFarms"); mkdir("../NewFarms"); end
-fbasename = "../NewFarms/farm_C8_"
+fbasename = "../NewFarms/farm_C7_"
 # If we wanted a unique identifier per processor run the following line would help:
 # if ~isnull(tryparse(Int64, ARGS[1])); fbasename = fbasename * ARGS[1] * "_"; end
 
@@ -385,10 +386,10 @@ while true
     extra_pars[:opto_conditions] = []    
     extra_pars[:plot_condition] = 0
 
-    # new_J() has to be allowed to return all its outputs, so that
-    # stopping_func can use some of them
+    # new_J() has to be allowed to return all its outputs, so that 
+    # stopping_func can use some of them 
     func2 =  (;params...) -> new_J(40, 40; pre_string="new_J(): ", 
-        verbose=false, merge(merge(mypars, extra_pars), Dict(params))...)
+        verbose=false, merge(merge(mypars, extra_pars), Dict(params))...)[1]
 
     # For func2:
     # This function will get the output of new_J() at each iteration, and will return "true", stopping
@@ -400,24 +401,33 @@ while true
 
 
     try
-        ntries = 2
-
-        extra_pars[:plot_list] = []
-
-        # First with func2 for new_J()
-        pars2, traj2, cost2, cpm_traj2, ftraj2 = bbox_Hessian_keyword_minimization(seed, 
-            args, bbox, func2, 
-            stopping_function = stopping_func, 
-            start_eta = 0.1, tol=1e-12, verbose=true, verbose_every=1, maxiter=maxiter2)
-
-        # Then with func1 for JJ()
-        pars3, traj3, cost3, cpm_traj3, ftraj3 = bbox_Hessian_keyword_minimization(pars2, 
-            args, bbox, func1, 
+        ntries = 1
+        pars1, traj1, cost1, cpm_traj1, ftraj1 = bbox_Hessian_keyword_minimization(seed, args, bbox, func1, 
             start_eta = 0.1, tol=1e-12, 
             verbose=true, verbose_every=1, maxiter=maxiter1)
-            
+
+        extra_pars[:plot_list] = []
         cost, cost1s, cost2s, hP, hA, dP, dA, hBP, hBA = JJ(testruns, testruns; verbose=false, 
-            make_dict(args, pars3, merge(merge(mypars, extra_pars)))...)
+            make_dict(args, pars1, merge(merge(mypars, extra_pars)))...)
+
+        if ~( abs(hBP[1]-0.9)<0.075 && abs(hBA[1]-0.7)<0.075 && dP[1] > 0.8 && dA[1] > 0.8)
+
+            ntries = ntries + 1
+            pars2, traj2, cost2, cpm_traj2, ftraj2 = bbox_Hessian_keyword_minimization(pars1, 
+                args, bbox, func2, 
+                stopping_function = stopping_func, 
+                start_eta = 0.1, tol=1e-12, verbose=true, verbose_every=1, maxiter=maxiter2)
+
+            
+            pars3, traj3, cost3, cpm_traj3, ftraj3 = bbox_Hessian_keyword_minimization(pars2, 
+                args, bbox, func1, 
+                start_eta = 0.1, tol=1e-12, 
+                verbose=true, verbose_every=1, maxiter=maxiter1)
+            
+            cost, cost1s, cost2s, hP, hA, dP, dA, hBP, hBA = JJ(testruns, testruns; verbose=false, 
+                make_dict(args, pars3, merge(merge(mypars, extra_pars)))...)
+            
+        end
         
         myfilename = next_file(fbasename, 4)
         myfilename = myfilename*".jld"
@@ -425,13 +435,21 @@ while true
         @printf("\n\n ****** writing to file %s *******\n\n", myfilename)
         
         # write file
-        save(myfilename, Dict("README"=>README, "nPro"=>mypars[:nPro], "nAnti"=>mypars[:nAnti], "ntries"=>ntries, 
+        if ntries==1
+            save(myfilename, Dict("README"=>README, "nPro"=>mypars[:nPro], "nAnti"=>mypars[:nAnti], "ntries"=>ntries, 
             "mypars"=>mypars, "extra_pars"=>extra_pars, "args"=>args, "seed"=>seed, "bbox"=>bbox, 
+            "pars1"=>pars1, "traj1"=>traj1, "cost1"=>cost1, "cpm_traj1"=>cpm_traj1, "ftraj1"=>ftraj1,
+            "cost"=>cost, "cost1s"=>cost1s, "cost2s"=>cost2s,
+            "hP"=>hP, "hA"=>hA, "dP"=>dP, "dA"=>dA, "hBP"=>hBP, "hBA"=>hBA))
+        else
+            save(myfilename, Dict("README"=>README, "nPro"=>mypars[:nPro], "nAnti"=>mypars[:nAnti], "ntries"=>ntries, 
+            "mypars"=>mypars, "extra_pars"=>extra_pars, "args"=>args, "seed"=>seed, "bbox"=>bbox, 
+            "pars1"=>pars1, "traj1"=>traj1, "cost1"=>cost1, "cpm_traj1"=>cpm_traj1, "ftraj1"=>ftraj1,
             "pars2"=>pars2, "traj2"=>traj2, "cost2"=>cost2, "cpm_traj2"=>cpm_traj2, 
             "pars3"=>pars3, "traj3"=>traj3, "cost3"=>cost3, "cpm_traj3"=>cpm_traj3, "ftraj3"=>ftraj3,
             "cost"=>cost, "cost1s"=>cost1s, "cost2s"=>cost2s,
             "hP"=>hP, "hA"=>hA, "dP"=>dP, "dA"=>dA, "hBP"=>hBP, "hBA"=>hBA))
-
+        end
     catch y
         if isa(y, InterruptException); throw(InterruptException()); end
         @printf("\n\nWhoopsety, unkown error!\n\n");
@@ -441,5 +459,6 @@ while true
     # Change random seed so we don't get stuck in one loop
     extra_pars[:seedrand] = extra_pars[:seedrand]+1
 end
+
 
 
