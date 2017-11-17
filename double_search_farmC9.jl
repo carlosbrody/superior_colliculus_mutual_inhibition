@@ -333,7 +333,7 @@ search_conditions = Dict(   # :param    default_start   search_box  bound_box
 # DON'T MODIFY THIS FILE -- the source is in file Current Carlos Work.ipynb. Look there for further documentation and examples of running the code.
 
 ftraj2 = []; cost2 = [];
-extra_pars[:seedrand] = 1510958290269 # Int64(round(1000*time()))   # 1510782006169 causes lin.alg error but then looks like it'll succeed
+extra_pars[:seedrand] = Int64(round(1000*time()))   # 1510782006169 causes lin.alg error but then looks like it'll succeed
 srand(extra_pars[:seedrand])
 
 search_range = extra_pars[:search_range]; 
