@@ -454,7 +454,6 @@ while true
         save(myfilename, Dict("README"=>README, "nPro"=>mypars[:nPro], "nAnti"=>mypars[:nAnti], "ntries"=>ntries, 
             "start_pars"=>start_pars, "qu_out"=>qu_out,
             "mypars"=>mypars, "extra_pars"=>extra_pars, "args"=>args, "seed"=>seed, "bbox"=>bbox, 
-            "pars2"=>pars2, "traj2"=>traj2, "cost2"=>cost2, "cpm_traj2"=>cpm_traj2, 
             "pars3"=>pars3, "traj3"=>traj3, "cost3"=>cost3, "cpm_traj3"=>cpm_traj3, "ftraj3"=>ftraj3,
             "cost"=>cost, "cost1s"=>cost1s, "cost2s"=>cost2s,
             "hP"=>hP, "hA"=>hA, "dP"=>dP, "dA"=>dA, "hBP"=>hBP, "hBA"=>hBA))
