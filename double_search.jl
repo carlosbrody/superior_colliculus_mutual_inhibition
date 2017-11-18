@@ -439,7 +439,7 @@ while true
 
         pars3, traj3, cost3, cpm_traj3, ftraj3 = bbox_Hessian_keyword_minimization(start_pars, 
             args, bbox, func1, 
-            start_eta = 0.1, tol=1e-12, 
+            start_eta = 0.01, tol=1e-12, 
             verbose=true, verbose_every=1, maxiter=maxiter1)
             
         cost, cost1s, cost2s, hP, hA, dP, dA, hBP, hBA = JJ(testruns, testruns; verbose=false, 
