@@ -411,10 +411,11 @@ while true
             start_eta = 0.1, tol=1e-12, verbose=true, verbose_every=1, maxiter=maxiter2)
 
         # If this resulted in a place that look good, use it, otherwise start afresh:
-        if stopping_func(;cost=cost2, func_out=ftraj2[3,end]); start_pars=pars2; else start_pars=seed; end
+        my_stop_func_out = stopping_func(;cost=cost2, func_out=ftraj2[3,end])
+        if  my_stop_func_out; start_pars=pars2; else start_pars=seed; end
 
         # Then with func1 for JJ()
-        pars3, traj3, cost3, cpm_traj3, ftraj3 = bbox_Hessian_keyword_minimization(pars2, 
+        pars3, traj3, cost3, cpm_traj3, ftraj3 = bbox_Hessian_keyword_minimization(start_pars, 
             args, bbox, func1, 
             start_eta = 0.1, tol=1e-12, 
             verbose=true, verbose_every=1, maxiter=maxiter1)
@@ -429,6 +430,7 @@ while true
         
         # write file
         save(myfilename, Dict("README"=>README, "nPro"=>mypars[:nPro], "nAnti"=>mypars[:nAnti], "ntries"=>ntries, 
+            "my_stop_func_out"=>my_stop_func_out,
             "mypars"=>mypars, "extra_pars"=>extra_pars, "args"=>args, "seed"=>seed, "bbox"=>bbox, 
             "pars2"=>pars2, "traj2"=>traj2, "cost2"=>cost2, "cpm_traj2"=>cpm_traj2, 
             "pars3"=>pars3, "traj3"=>traj3, "cost3"=>cost3, "cpm_traj3"=>cpm_traj3, "ftraj3"=>ftraj3,
