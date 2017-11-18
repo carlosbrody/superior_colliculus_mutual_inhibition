@@ -3,8 +3,16 @@
 
 README_TOP = """
 
-File to try a non-opto regular search; if that doesn't work, try first using few trials
-and a target V[1]-V[4] using new_J() to find seed params; and then try again from there.
+Code for doing a minimization (no opto) in which we first do a quick search
+with few trials, not on %correct but instead on specific differences between 
+V[1] and V[4], for example for V[1]-V[4]=0.1 on Pro trials and =-0.1 on Anti 
+trials.
+
+We stop that quick pre-search when the binarized hits for Pro and for Anti are
+both >= 0.7; and it is at those params that we then run the usual minimization.
+
+This doesn't make 100% of minimization runs successful, but it does seem to
+increase the hit rate. 
 
 """
 
@@ -251,12 +259,59 @@ end
 """
     pars, [pro_targ_doff, anti_targ_diff] = quick_search(ntrials, seed, args, bbox; 
         BP_target=0.7, pro_diffs_targets=[0.1, 0.2, 0.3, 0.4], anti_diffs_targets=nothing,
-        model_params=nothing, verbose=true, maxiter=1000)
+        model_params=nothing, verbose=true, maxiter=500)
+
+runs a series of minimizations with new_J() and the passed model params, iterating over the
+list of target V[1]-V[4] differences in pro_diffs_targets and anti_diffs_targets. As soon as it
+finds parameters that give binarized %correct of at least BP_target (for both Pro and Anti),
+returns those values.  If it can't find good param values, returns the original seed.
+
+# PARAMETERS
+
+- ntrials    The number of Pro and number of Anti trials to use with new_J()
+
+- seed       A vector with starting paramter values
+
+- args       A vector of strings, indicating the name of the keyword-value params
+             that correspond to the entries in seed
+
+- bbox       A Dict() indicating a bounding box, as used by bbox_Hessian_keyword_minimization()
+
+
+# OBLIGATORY KEYWORD-VALUE PARAM:
+
+- model_params   The paramaters for the ProAnti model that will be passed on to new_J(). Obligatory param.
+
+
+# OPTIONAL PARAMS:
+
+- BP-target    The binarized fraction correct target, for both Pro and Anti trials. When this 
+             is reached, we return.
+
+- pro_diffs_targets   A vector, representing a list of target V[1]-V[4] end-of-Pro-trial values to 
+            train for.  Training attempts proceed in sequence, from the first to the last. If success is found
+            with an early one, later ones are not tried.
+
+- anti_diffs_targets   Like pro_diffs_targets, but indicates the target V[4]-V[1] end-of-Anti-trials
+            values to train for.  The default value, "nothing", means use the same targets as for Pro.  
+            (Note that +0.1 for Pro means V[1]>V[4], while +0.1 for Anti means V[4]>V[1])
+
+- verbose   If true, prints diagnostic info out to screen during minimizations
+
+- maxiter   Maximum number of iterations to run during each minimization attempt
+
+
+# RETURNS:
+
+- pars      If a good set of parameter values is found, returns those; otherwise returns seed
+
+- qu_out    A 1x2 vector with the pro_diffs_target value and the anti_diffs_target value that
+            produced success. If success was not found, returns zeros(1,2)
 
 """
 function quick_search(ntrials, seed, args, bbox; 
     BP_target=0.7, pro_diffs_targets=[0.1, 0.2, 0.3, 0.4], anti_diffs_targets=nothing,
-    model_params=nothing, verbose=true, maxiter=1000)
+    model_params=nothing, verbose=true, maxiter=500)
    
     if model_params==nothing; error("You need to specify model_params"); end
     if anti_diffs_targets == nothing; anti_diffs_targets = pro_diffs_targets; end
@@ -286,7 +341,7 @@ function quick_search(ntrials, seed, args, bbox;
         end
     end    
 
-    return seed, [0, 0]
+    return copy(seed), [0, 0]
 end
 
 
@@ -420,7 +475,7 @@ while true
 
     maxiter1 = 1000;   # for func1, the regular search
     maxiter2 = 500;    # for the quick_search
-    testruns = 10000; # Number of trials for evaluating the results of the model. 10000 is a good number 
+    testruns = 10000;  # Number of trials for evaluating the results of the model. 10000 is a good number 
 
     # For func2:
     extra_pars[:opto_conditions] = []    
@@ -432,19 +487,23 @@ while true
         merge(merge(mypars, extra_pars), Dict(params))...)[1]
     
     try
-        ntries = 2
+        ntries = 2  # old ans unnecessary; should just delete from here and from save
 
+        # Initial quick search to find good seed param values
         start_pars, qu_out = quick_search(40, seed, args, bbox; model_params=merge(mypars, extra_pars),
             maxiter=maxiter2)
 
+        # Then full minimization
         pars3, traj3, cost3, cpm_traj3, ftraj3 = bbox_Hessian_keyword_minimization(start_pars, 
             args, bbox, func1, 
             start_eta = 0.01, tol=1e-12, 
             verbose=true, verbose_every=1, maxiter=maxiter1)
             
+        # evaluate the result with many trials, for accuracy
         cost, cost1s, cost2s, hP, hA, dP, dA, hBP, hBA = JJ(testruns, testruns; verbose=false, 
             make_dict(args, pars3, merge(merge(mypars, extra_pars)))...)
         
+        # Write out the results
         myfilename = next_file(fbasename, 4)
         myfilename = myfilename*".jld"
 
@@ -454,17 +513,20 @@ while true
         save(myfilename, Dict("README"=>README, "nPro"=>mypars[:nPro], "nAnti"=>mypars[:nAnti], "ntries"=>ntries, 
             "start_pars"=>start_pars, "qu_out"=>qu_out,
             "mypars"=>mypars, "extra_pars"=>extra_pars, "args"=>args, "seed"=>seed, "bbox"=>bbox, 
-            "pars3"=>pars3, "traj3"=>traj3, "cost3"=>cost3, "cpm_traj3"=>cpm_traj3, "ftraj3"=>ftraj3,
+                        "pars3"=>pars3, "traj3"=>traj3, "cost3"=>cost3, "cpm_traj3"=>cpm_traj3, "ftraj3"=>ftraj3,
             "cost"=>cost, "cost1s"=>cost1s, "cost2s"=>cost2s,
             "hP"=>hP, "hA"=>hA, "dP"=>dP, "dA"=>dA, "hBP"=>hBP, "hBA"=>hBA))
 
     catch y
+        # Interrupts should not get caught:
         if isa(y, InterruptException); throw(InterruptException()); end
+
+        # Other errors get caught and a warning is issued but then we run again
         @printf("\n\nWhoopsety, unkown error!\n\n");
         @printf("Error was :\n"); print(y); @printf("\n\nTrying new random seed.\n\n")
     end
 
-    # Change random seed so we don't get stuck in one loop
+    # Change random seed before next iteration so we don't get stuck in one loop
     extra_pars[:seedrand] = extra_pars[:seedrand]+1
 end
 
