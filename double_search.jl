@@ -1,4 +1,4 @@
-# DON'T MODIFY THIS FILE -- the source is in file Current Carlos Work.ipynb. Look there for further documentation and examples of running the code.
+# DON'T MODIFY THIS FILE -- the source is in file Pre Search for speeding up ProAnti training.ipynb. Look there for further documentation and examples of running the code.
 
 
 README_TOP = """
@@ -19,7 +19,7 @@ increase the hit rate.
 include("pro_anti.jl")
 
 
-# DON'T MODIFY THIS FILE -- the source is in file Current Carlos Work.ipynb. Look there for further documentation and examples of running the code.
+# DON'T MODIFY THIS FILE -- the source is in file Pre Search for speeding up ProAnti training.ipynb. Look there for further documentation and examples of running the code.
 
 
 """
@@ -253,7 +253,7 @@ function new_J(nPro, nAnti; pro_target_diff=0.1, anti_target_diff=0.1,
 end                    
 
 
-# DON'T MODIFY THIS FILE -- the source is in file Current Carlos Work.ipynb. Look there for further documentation and examples of running the code.
+# DON'T MODIFY THIS FILE -- the source is in file Pre Search for speeding up ProAnti training.ipynb. Look there for further documentation and examples of running the code.
 
 
 """
@@ -345,7 +345,7 @@ function quick_search(ntrials, seed, args, bbox;
 end
 
 
-# DON'T MODIFY THIS FILE -- the source is in file Current Carlos Work.ipynb. Look there for further documentation and examples of running the code.
+# DON'T MODIFY THIS FILE -- the source is in file Pre Search for speeding up ProAnti training.ipynb. Look there for further documentation and examples of running the code.
 
 
 
@@ -430,7 +430,7 @@ search_conditions = Dict(   # :param    default_start   search_box  bound_box
 
 
 
-# DON'T MODIFY THIS FILE -- the source is in file Current Carlos Work.ipynb. Look there for further documentation and examples of running the code.
+# DON'T MODIFY THIS FILE -- the source is in file Pre Search for speeding up ProAnti training.ipynb. Look there for further documentation and examples of running the code.
 
 ftraj2 = []; cost2 = [];
 extra_pars[:seedrand] = Int64(round(1000*time()))   # 1510782006169 causes lin.alg error but then looks like it'll succeed

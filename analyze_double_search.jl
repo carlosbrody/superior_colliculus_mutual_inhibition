@@ -1,9 +1,9 @@
-# DON'T MODIFY THIS FILE -- the source is in file Current Carlos Work.ipynb. Look there for further documentation and examples of running the code.
+# DON'T MODIFY THIS FILE -- the source is in file Pre Search for speeding up ProAnti training.ipynb. Look there for further documentation and examples of running the code.
 
 
 
 
-# DON'T MODIFY THIS FILE -- the source is in file Current Carlos Work.ipynb. Look there for further documentation and examples of running the code.
+# DON'T MODIFY THIS FILE -- the source is in file Pre Search for speeding up ProAnti training.ipynb. Look there for further documentation and examples of running the code.
 
 
 using JLD
@@ -25,7 +25,7 @@ for i=1:nruns;
 end
 
 
-# DON'T MODIFY THIS FILE -- the source is in file Current Carlos Work.ipynb. Look there for further documentation and examples of running the code.
+# DON'T MODIFY THIS FILE -- the source is in file Pre Search for speeding up ProAnti training.ipynb. Look there for further documentation and examples of running the code.
 
 
 using StatsBase

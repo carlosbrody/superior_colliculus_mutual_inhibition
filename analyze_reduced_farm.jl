@@ -12,7 +12,7 @@ include("pro_anti.jl")
 
 
 """
-function show_run(run_name, ntrials=100; further_pars...)
+hBP, hBA, d = function show_run(run_name, ntrials=100; farmdir="FarmFields", further_pars...)
 
 Given a string representing the filename of a run generated in reduced_farm.jl
 (for example, "farm_C3_0027.jld"), tries to load that file from within "FarmFields/"
@@ -21,19 +21,39 @@ and indicates in those figures the corresponding number of binarized hits.
 
 Any further parameters override the contents of the farm and are passed on to 
 run_ntrials(), so for example you can set rule_and_delay_period=0.2
+
+# RETURNS:
+
+- hBP, hBA   binarized Pro % hit and Anti % hit
+
+- d          the raw dictionary obtained from first loading the file.
+
 """
-function show_run(run_name, ntrials=100; further_pars...)
+function show_run(run_name, ntrials=100; farmdir="FarmFields", further_pars...)
 
     pygui(true)
     figure(1); clf();
     figure(2); clf();
 
-    d = load("FarmFields/" * run_name)
+    if endswith(farmdir, "/"); farmdir=farmdir[1:end-1]; end;
+    
+    if endswith(run_name, ".jld")
+        d = load(farmdir * "/" * run_name)
 
-    extra_pars = d["extra_pars"]
-    mypars     = d["mypars"]
-    args       = d["args"]
-    pars       = d["pars"]
+        extra_pars = d["extra_pars"]
+        mypars     = d["mypars"]
+        args       = d["args"]
+        pars       = d["pars"]
+    elseif endswith(run_name, ".mat")                                
+        d = matread(farmdir * "/" * run_name)
+        
+        extra_pars = Dict()
+        mypars     = symbol_key_ize(d["model_params"])
+        args       = d["args"]
+        pars       = d["pars"]
+    else
+        error("Whoa, I only know how to load .mat and .jld files")
+    end
 
     delete!(extra_pars, :plot_list)   # we want our own plot_list
     delete!(extra_pars, :seedrand)    # don't use the farm's seedrand. (Could change this if wanted)
@@ -54,33 +74,43 @@ function show_run(run_name, ntrials=100; further_pars...)
     figure(1); subplot(3,1,1); title(@sprintf("%s: binarized Pro  hits = %.1f %%\n", run_name, hBP))
     figure(2); subplot(3,1,1); title(@sprintf("%s: binarized Anti hits = %.1f %%\n", run_name, hBA))
     
-    return hBP, hBA
+    return hBP, hBA, d
 end
+
 
 
 
 # DON'T MODIFY THIS FILE -- the source is in file Current Carlos Work.ipynb. Look there for further documentation and examples of running the code.
 
 
-# IDENTIFY GOOD RUNS FROM C3 FARM
+# IDENTIFY GOOD RUNS FROM FARM
 
 I = results = files = 0
 
-recompute_me = false; if recompute_me
+farm_id = "C4"; farmdir = "FarmFields"
+farm_id = "C6"; farmdir = "../NewFarms"
+farm_id = "C10"; farmdir = "../NewFarms"
+
+recompute_me = true; if recompute_me || !isfile("Temp/" * farm_id * "_results.jld")
     results = zeros(0,4)
     files = []
-    for f in filter(x -> startswith(x, "farm_C3_"), readdir("FarmFields/"))
-        hBP, hBA, dP, dA= load("FarmFields/" * f, "hBP", "hBA", "dP", "dA")
+    for f in filter(x -> startswith(x, "farm_" * farm_id * "_"), readdir(farmdir * "/"))
+
+        hBP, hBA, dP, dA= load(farmdir * "/" * f, "hBP", "hBA", "dP", "dA")
         results = [results; [hBP hBA dP dA]]; 
         files   = [files ; f]
+        if length(files)>71; break; end;
     end
     
-    I = find((results[:,1] .> 0.9) .& (results[:,2] .> 0.65) .& (results[:,3].>0.85) .& (results[:,4].>0.85))
+    I = find((results[:,1] .> 0.85) .& (results[:,2] .> 0.65) .& (results[:,3].>0.9) .& (results[:,4].>0.9) .&
+                ((results[:,1]-results[:,2]) .> 0.1) )
 
-    @save "Temp/C3_results.jld" results files I
+    @save "Temp/" * farm_id * "_results.jld" results files I
 else
-    I, results, files = load("Temp/C3_results.jld", "I", "results", "files");
+    I, results, files = load("Temp/" * farm_id *"_results.jld", "I", "results", "files");
 end
+
+@printf("%.2f %% good runs out of %d\n", 100*length(I)/length(files), length(files))
 
 
 
@@ -111,9 +141,9 @@ end
 
 
 # show_run("farm_C3_0027.jld", 400; opto_times=["trial_start", "trial_end"], opto_strength=0.75)
-# show_run("farm_C3_0027.jld", 400; opto_times=["target_start-0.5", "target_start"], opto_strength=0.4, 
-#    const_pro_bias=0.02476, anti_rule_strength=0.05)
-show_run("farm_C3_0027.jld", 400; opto_times=["target_start+0.15", "target_end"], opto_strength=0.4, 
+# show_run("farm_C3_0027.jld", 400; opto_times=["target_start-0.5", "target_start"], opto_strength=0, 
+#   const_pro_bias=0, anti_rule_strength=0.05)
+show_run("farm_C3_0027.jld", 400; opto_times=["target_start+0.016", "target_end"], opto_strength=0.4, 
     const_pro_bias=0.02476, anti_rule_strength=0.054)
 
 
