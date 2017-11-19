@@ -112,7 +112,7 @@ search_range = extra_pars[:search_range];
 
 README = """
 
-Farm C12: An attempt at opto without any pre-search yet
+Farm C13: An attempt at opto without any pre-search yet
 
 """
 
@@ -131,7 +131,7 @@ extra_pars[:opto_targets] = [
 ftraj2 = []; cost2 = [];
 
 if !isdir("../NewFarms"); mkdir("../NewFarms"); end
-fbasename = "../NewFarms/farm_C12_"
+fbasename = "../NewFarms/farm_C13_"
 # If we wanted a unique identifier per processor run the following line would help:
 # if ~isnull(tryparse(Int64, ARGS[1])); fbasename = fbasename * ARGS[1] * "_"; end
 
