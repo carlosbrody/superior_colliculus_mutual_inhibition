@@ -1,4 +1,4 @@
-# DON'T MODIFY THIS FILE -- the source is in file Current Carlos Work.ipynb
+# DON'T MODIFY THIS FILE -- the source is in file Current Carlos Work.ipynb. Look there for further documentation and examples of running the code.
 
 
 # In its own cell so we can run it just once
@@ -7,7 +7,7 @@ include("pro_anti.jl")   # Loads all the necessary pre-requisites
 
 
 
-# DON'T MODIFY THIS FILE -- the source is in file Current Carlos Work.ipynb
+# DON'T MODIFY THIS FILE -- the source is in file Current Carlos Work.ipynb. Look there for further documentation and examples of running the code.
 
 
 model_params, F, nPro, nAnti = load_run("farm_LD0003"; farmdir="goodfarms")
@@ -28,7 +28,7 @@ display([titles; epochs hP hA dP dA hBP hBA])
 
 
 
-# DON'T MODIFY THIS FILE -- the source is in file Current Carlos Work.ipynb
+# DON'T MODIFY THIS FILE -- the source is in file Current Carlos Work.ipynb. Look there for further documentation and examples of running the code.
 
 
 # Now scale things to make dt and tau are much larger, and involve 0.25 x the timesteps
@@ -65,7 +65,7 @@ mypars[:opto_periods] = [
 
 
 
-# DON'T MODIFY THIS FILE -- the source is in file Current Carlos Work.ipynb
+# DON'T MODIFY THIS FILE -- the source is in file Current Carlos Work.ipynb. Look there for further documentation and examples of running the code.
 
 
 # And run with these params.  
@@ -87,7 +87,7 @@ display([titles; epochs hP hA dP dA hBP hBA])
 
 
 
-# DON'T MODIFY THIS FILE -- the source is in file Current Carlos Work.ipynb
+# DON'T MODIFY THIS FILE -- the source is in file Current Carlos Work.ipynb. Look there for further documentation and examples of running the code.
 
 
 # Finally, display some trajectories:
@@ -97,7 +97,9 @@ pygui(true)
 # This example is with opto during the delay
 
 mypars = merge(mypars, Dict(
-:opto_times => ["target_start/2"    "target_start"]
+# :opto_times => ["target_start/2"    "target_start"],
+:opto_times => [0    0],
+:sigma=>0.01
 ))
 
 

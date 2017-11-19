@@ -1,4 +1,4 @@
-# DON'T MODIFY THIS FILE -- the source is in file ProAnti.ipynb
+# DON'T MODIFY THIS FILE -- the source is in file ProAnti.ipynb. Look there for further documentation and examples of running the code.
 
 
 include("pro_anti.jl")
@@ -11,7 +11,7 @@ for k in keys(A); print(k); print("  "); end
 A
 
 
-# DON'T MODIFY THIS FILE -- the source is in file ProAnti.ipynb
+# DON'T MODIFY THIS FILE -- the source is in file ProAnti.ipynb. Look there for further documentation and examples of running the code.
 
 
 bbox = Dict(:sW=>[0 3], :vW=>[-3 3], :hW=>[-3 3], :dW=>[-3 3], :constant_excitation=>[-2 2],
@@ -32,7 +32,7 @@ value, grad, hess = keyword_vgh(standard_func, A["args"], A["myseed"])
 
 
 
-# DON'T MODIFY THIS FILE -- the source is in file ProAnti.ipynb
+# DON'T MODIFY THIS FILE -- the source is in file ProAnti.ipynb. Look there for further documentation and examples of running the code.
 
 
 pars, traj, cost, cpm_traj = bbox_Hessian_keyword_minimization(A["myseed"], A["args"], bbox, standard_func,

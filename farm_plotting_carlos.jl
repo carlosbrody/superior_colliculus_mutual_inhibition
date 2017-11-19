@@ -1,36 +1,19 @@
-# DON'T MODIFY THIS FILE -- the source is in file ProAnti.ipynb
+# DON'T MODIFY THIS FILE -- the source is in file ProAnti.ipynb. Look there for further documentation and examples of running the code.
 
-
-# If running this in the notebook, you'll have to run the cell below defining load_run() 
-# before you can run this one
 
 # for fname in filter(x -> startswith(x, "farm_"), readdir("goodfarms"))
 
-function plot_farm(fname)
+
+"""
+plot_farm(fname, farmdir="goodfarm")
+
+Loads and runs ten trials of a farm that is assumed to have 5 different opto conditions in its
+opto_periods (control, full, rule, delay, target/choice). Plots in figure 1 ten trials from each
+of control, delay, and target/choice
+"""
+function plot_farm(fname, farmdir="goodfarm")
     model_params, F, nPro, nAnti = load_run(fname, farmdir="goodfarms");
 
-    # proFullVs = Array{Array{Float64}}(3,1)
-
-    proVs, antiVs, proFullVs, antiFullVs = 
-          run_ntrials(10, 10; plot_list=[1:10;], opto_times=model_params[:opto_periods][1,:], model_params...);
-    figure(1); subplot(3,1,1); title("PRO -- control")
-    figure(2); subplot(3,1,1); title("ANTI -- control")
-    proVs, antiVs, proFullVs, antiFullVs = 
-          run_ntrials(10, 10; plot_list=[1:10;], opto_times=model_params[:opto_periods][4,:], 
-            profig=3, antifig=4, model_params...);
-    figure(3); subplot(3,1,1); title("PRO -- delay")
-    figure(4); subplot(3,1,1); title("ANTI -- delay")
-    proVs, antiVs, proFullVs, antiFullVs = 
-          run_ntrials(10, 10; plot_list=[1:10;], opto_times=model_params[:opto_periods][5,:], 
-            profig=5, antifig=6, model_params...);
-    figure(5); subplot(3,1,1); title("PRO -- choice")
-    figure(6); subplot(3,1,1); title("ANTI -- choice")
-end
-
-function plot_farm2(fname)
-    model_params, F, nPro, nAnti = load_run(fname, farmdir="goodfarms");
-
-    # proFullVs = Array{Array{Float64}}(3,1)
 
     figure(1); clf();
     ax_set = Dict("pro_Vax"=>subplot(5,3,1), "pro_Dax"=>subplot(5,3,4), 
@@ -51,7 +34,13 @@ function plot_farm2(fname)
           run_ntrials(10, 10; plot_list=[1:10;], opto_times=model_params[:opto_periods][5,:], 
         ax_set=ax_set, profig=1, antifig=1, clearfig=false, plot_Us=false, model_params...);
     
+
+    subplot(5,3,1); title("(control)")
+    subplot(5,3,2); title("PRO (delay)")
+    subplot(5,3,3); title("(target")
+    subplot(5,3,11); title("ANTI")
 end
+
 
 function histoit(F)
     hP = zeros(5,1)
@@ -74,20 +63,20 @@ function histoit(F)
 end
 
 
-# DON'T MODIFY THIS FILE -- the source is in file ProAnti.ipynb
+# DON'T MODIFY THIS FILE -- the source is in file ProAnti.ipynb. Look there for further documentation and examples of running the code.
 
 
 pygui(true)
 
 for resname in filter(x -> startswith(x, "res_"), readdir("../for_carlos_without_runs/goodfarms"))
     F = matread("../for_carlos_without_runs/goodfarms/" * resname)
-    histoit(F)
+    # histoit(F)
     fname = F["orig_file"]
     plot_farm(fname)
     
     @printf("==> This was %s\n\n", fname)
     @printf("Type anything to go on to next run, type q to quit\n")
-    q = readline()
+    q = chomp(readline())
     if startswith(q, "q") || startswith(q, "Q")
         break
     end
