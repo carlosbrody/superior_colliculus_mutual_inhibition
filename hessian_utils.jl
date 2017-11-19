@@ -1,4 +1,4 @@
-# DON'T MODIFY THIS FILE -- the source is in file Cost Function Minimization and Hessian Utilities.ipynb
+# DON'T MODIFY THIS FILE -- the source is in file Cost Function Minimization and Hessian Utilities.ipynb. Look there for further documentation and examples of running the code.
 
 
 include("constrained_parabolic_minimization.jl")
@@ -285,7 +285,7 @@ end
 
 
 
-# DON'T MODIFY THIS FILE -- the source is in file Cost Function Minimization and Hessian Utilities.ipynb
+# DON'T MODIFY THIS FILE -- the source is in file Cost Function Minimization and Hessian Utilities.ipynb. Look there for further documentation and examples of running the code.
 
 
 using ForwardDiff
@@ -405,7 +405,7 @@ else
 end
 
 
-# DON'T MODIFY THIS FILE -- the source is in file Cost Function Minimization and Hessian Utilities.ipynb
+# DON'T MODIFY THIS FILE -- the source is in file Cost Function Minimization and Hessian Utilities.ipynb. Look there for further documentation and examples of running the code.
 
 
 
@@ -608,7 +608,7 @@ function keyword_hessian!(out, func, args, x0)
 end
 
 
-# DON'T MODIFY THIS FILE -- the source is in file Cost Function Minimization and Hessian Utilities.ipynb
+# DON'T MODIFY THIS FILE -- the source is in file Cost Function Minimization and Hessian Utilities.ipynb. Look there for further documentation and examples of running the code.
 
 
 """
@@ -881,7 +881,7 @@ function trust_region_Hessian_minimization(seed, func; start_eta=10, tol=1e-15, 
 end
 
 
-# DON'T MODIFY THIS FILE -- the source is in file Cost Function Minimization and Hessian Utilities.ipynb
+# DON'T MODIFY THIS FILE -- the source is in file Cost Function Minimization and Hessian Utilities.ipynb. Look there for further documentation and examples of running the code.
 
 
 
@@ -986,7 +986,7 @@ end
   
 
 
-# DON'T MODIFY THIS FILE -- the source is in file Cost Function Minimization and Hessian Utilities.ipynb
+# DON'T MODIFY THIS FILE -- the source is in file Cost Function Minimization and Hessian Utilities.ipynb. Look there for further documentation and examples of running the code.
 
 
 

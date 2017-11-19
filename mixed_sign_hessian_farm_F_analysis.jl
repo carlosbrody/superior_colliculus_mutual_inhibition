@@ -1,4 +1,4 @@
-# DON'T MODIFY THIS FILE -- the source is in file ProAnti.ipynb
+# DON'T MODIFY THIS FILE -- the source is in file ProAnti.ipynb. Look there for further documentation and examples of running the code.
 
 
 """
@@ -46,7 +46,7 @@ walled, free = id_pars_at_walls(Dict(:a=>[1, 2], :b=>[0.1, 0.2]), ["c", "a", ["b
 walled, free = id_pars_at_walls(bbox, args, pars; tol=1e-1)
 
 
-# DON'T MODIFY THIS FILE -- the source is in file ProAnti.ipynb
+# DON'T MODIFY THIS FILE -- the source is in file ProAnti.ipynb. Look there for further documentation and examples of running the code.
 
 
 # ========  This is copied from the code for farm F, telling us how it was run ==============================
@@ -94,7 +94,7 @@ xlabel("cost at standard beta=0.01")
 ylabel("number of iterations run")
 
 
-# DON'T MODIFY THIS FILE -- the source is in file ProAnti.ipynb
+# DON'T MODIFY THIS FILE -- the source is in file ProAnti.ipynb. Look there for further documentation and examples of running the code.
 
 
 
