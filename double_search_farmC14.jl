@@ -467,7 +467,7 @@ while true
         # --- No search, just start at the indicated position:
         # seed = [seed ; search_conditions[k][1]]
         # --- search within the full indicated search box
-        seed = [seed ; rand()*diff(my_bbox) + my_bbox[1]]
+        seed = [seed ; rand()*(my_bbox[2]-my_bbox[1]) + my_bbox[1]]
         bbox = merge(bbox, Dict(k => Array{Float64}(search_conditions[k][3])))
     end
     args = Array{String}(args)
