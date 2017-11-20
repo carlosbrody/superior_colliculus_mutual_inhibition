@@ -1,6 +1,61 @@
 # DON'T MODIFY THIS FILE -- the source is in file General Utilities.ipynb. Look there for further documentation and examples of running the code.
 
 
+
+"""
+    ax = axisWidthChange(factor; lock="c", ax=nothing)
+"""
+function axisWidthChange(factor; lock="c", ax=nothing)
+    if ax==nothing; ax=gca(); end
+    x, y, w, h = ax[:get_position]()[:bounds]
+    
+    if lock=="l"; 
+    elseif lock=="c"; x = x + w*(1-factor)/2; 
+    elseif lock=="r"; x = x + w*(1-factor);
+    else error("I don't know lock type ", lock)
+    end
+    
+    w = w*factor;
+    ax[:set_position]([x, y, w, h])
+    
+    return ax
+end
+   
+
+"""
+ax = axisHeightChange(factor; lock="c", ax=nothing)
+"""
+function axisHeightChange(factor; lock="c", ax=nothing)
+    if ax==nothing; ax=gca(); end
+    x, y, w, h = ax[:get_position]()[:bounds]
+    
+    if lock=="b"; 
+    elseif lock=="c"; y = y + h*(1-factor)/2; 
+    elseif lock=="t"; y = y + h*(1-factor);
+    else error("I don't know lock type ", lock)
+    end
+    
+    h = h*factor;
+    ax[:set_position]([x, y, w, h])
+    
+    return ax
+end
+
+
+"""
+   ax = axisMove(xd, yd; ax=nothing)
+"""
+function axisMove(xd, yd; ax=nothing)
+    if ax==nothing; ax=gca(); end
+    x, y, w, h = ax[:get_position]()[:bounds]
+
+    x += xd
+    y += yd
+    
+    ax[:set_position]([x, y, w, h])
+    return ax
+end
+
 """
 [] = remove_xtick_labels(ax=NaN)
 
