@@ -8,17 +8,19 @@
 
 using JLD
 
+standard  = "C15"
+pre_search = "C14"
+
 nruns = 0;
-for f in filter(x -> startswith(x, "farm_C10_"), readdir("../NewFarms")); nruns += 1; end
+for f in filter(x -> startswith(x, "farm_" * standard * "_"), readdir("../NewFarms")); nruns += 1; end
 @printf("%d runs found\n", nruns)
 
 outs = zeros(nruns,3)
 for i=1:nruns;
     myname = @sprintf("%d", i)
     while length(myname)<4; myname = "0" * myname; end
-    print()
-    outs[i,1] = load("../NewFarms/farm_C6_" * myname * ".jld", "traj1")[2,end]
-    traj3, qu_out = load("../NewFarms/farm_C10_" * myname * ".jld", "traj3", "qu_out")
+    outs[i,1] = load("../NewFarms/farm_" * standard * "_" * myname * ".jld", "traj3")[2,end]
+    traj3, qu_out = load("../NewFarms/farm_" * pre_search * "_" * myname * ".jld", "traj3", "qu_out")
     outs[i,2] = traj3[2,end]
     outs[i,3] = qu_out[1]
     if rem(i,10)==0; @printf("  did run %d\n", i); end
@@ -58,9 +60,10 @@ ylabel("fraction of runs")
 pre_fail = outs[outs[:,3].==0,2]
 pre_succ = outs[.!(outs[:,3].==0),2]
 
-text(-0.000925, 0.85, 
+ylim(-0.002, 0.095)
+text(-0.000925, 0.06, 
     @sprintf("Success rate after pre-search fail is %.2f%%\n", 100*length(find(pre_fail.<-0.0009))/length(pre_fail)))
-text(-0.000925, 0.7, 
+text(-0.000925, 0.07, 
     @sprintf("Success rate after pre-search success is %.2f%%\n", 100*length(find(pre_succ.<-0.0009))/length(pre_succ)))
 
 

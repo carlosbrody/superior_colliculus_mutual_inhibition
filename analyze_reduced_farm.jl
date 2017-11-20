@@ -85,14 +85,16 @@ end
 
 # IDENTIFY GOOD RUNS FROM FARM
 
+using JLD
 I = results = files = 0
 
 farm_id = "C4"; farmdir = "FarmFields"
 farm_id = "C6"; farmdir = "../NewFarms"
-farm_id = "C10"; farmdir = "../NewFarms"
+farm_id = "C11"; farmdir = "../NewFarms"
 
 recompute_me = true; if recompute_me || !isfile("Temp/" * farm_id * "_results.jld")
     results = zeros(0,4)
+
     files = []
     for f in filter(x -> startswith(x, "farm_" * farm_id * "_"), readdir(farmdir * "/"))
 
