@@ -88,10 +88,10 @@ extra_pars = Dict(
 
 
 search_conditions = Dict(   # :param    default_start   search_box  bound_box
-:vW     =>                   [mypars[:vW],                       [-0.5, 0.5],  [-5,   5]], 
-:hW     =>                   [mypars[:hW],                       [-0.5, 0.5],  [-5,   5]],
-:dW     =>                   [mypars[:dW],                       [-0.5, 0.5],  [-5,   5]],
-:sW     =>                   [mypars[:sW],                       [0,    0.5],  [-5,   5]],
+:vW     =>                   [mypars[:vW],                       [-0.5, 0.5],  [-3,   3]], 
+:hW     =>                   [mypars[:hW],                       [-0.5, 0.5],  [-3,   3]],
+:dW     =>                   [mypars[:dW],                       [-0.5, 0.5],  [-3,   3]],
+:sW     =>                   [mypars[:sW],                       [0,    0.5],  [0,    3]],
 :sigma  =>                   [0.11,                              [0.1,  0.2],  [-2,   2]],
 :constant_excitation      => [mypars[:constant_excitation],      [-1,     1],  [-30, 30]], 
 :target_period_excitation => [mypars[:target_period_excitation], [0.001,0.5],  [-30  30]],
