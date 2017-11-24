@@ -10,7 +10,7 @@ function axisWidthChange(factor; lock="c", ax=nothing)
     x, y, w, h = ax[:get_position]()[:bounds]
     
     if lock=="l"; 
-    elseif lock=="c"; x = x + w*(1-factor)/2; 
+    elseif lock=="c" || lock=="m"; x = x + w*(1-factor)/2; 
     elseif lock=="r"; x = x + w*(1-factor);
     else error("I don't know lock type ", lock)
     end
@@ -30,7 +30,7 @@ function axisHeightChange(factor; lock="c", ax=nothing)
     x, y, w, h = ax[:get_position]()[:bounds]
     
     if lock=="b"; 
-    elseif lock=="c"; y = y + h*(1-factor)/2; 
+    elseif lock=="c" || lock=="m"; y = y + h*(1-factor)/2; 
     elseif lock=="t"; y = y + h*(1-factor);
     else error("I don't know lock type ", lock)
     end
@@ -55,6 +55,7 @@ function axisMove(xd, yd; ax=nothing)
     ax[:set_position]([x, y, w, h])
     return ax
 end
+
 
 """
 [] = remove_xtick_labels(ax=NaN)
@@ -90,6 +91,39 @@ function remove_xtick_labels(ax=nothing)
 end
 
 
+
+"""
+[] = remove_ytick_labels(ax=NaN)
+
+Given an axis object, or an array of axes objects, replaces each ytick label string with the empty string "". 
+
+If no axis is passed, uses gca() to work with the current axis.
+
+
+"""
+function remove_ytick_labels(ax=nothing)
+
+    if ax==nothing
+        ax = gca()
+    end
+    
+    if typeof(ax) <: Array
+        for i=1:length(ax)
+            remove_ytick_labels(ax[i])
+        end
+        return
+    end
+    
+    nlabels = length(ax[:yaxis][:get_ticklabels]())
+
+    newlabels = Array{String,1}(nlabels)
+    for i=1:length(newlabels);
+        newlabels[i] = ""
+    end
+    
+    ax[:yaxis][:set_ticklabels](newlabels)
+    return
+end
 
 
 
@@ -235,6 +269,32 @@ function next_file(fbasename, ndigits)
     else
         return myfile * myname
     end
+end
+
+
+"""
+    fstring = num2fixed_string(n, ndigits)
+
+Returns a string version of a positive integer, with
+however many leading zeros are necessary to have
+ndigits characters.
+
+"""
+function num2fixed_string(n, ndigits)
+    if ndigits<=0
+        error("ndigits must be bigger than zero")
+    end
+    
+    if n<0
+        error("n must be positive")
+    end
+    
+    myname = @sprintf("%d", n)
+    while length(myname)<ndigits
+        myname = "0"*myname
+    end
+    
+    return myname
 end
 
 
