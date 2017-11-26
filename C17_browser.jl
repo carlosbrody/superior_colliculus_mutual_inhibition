@@ -161,7 +161,11 @@ function plot_PCA(res; threshold=-0.0002, fignum=2, pc_offset=0, plot_unsuccessf
     plot(Vparams[I,end-pc_offset],   Vparams[I,end-1-pc_offset], "r.")
     xlabel(@sprintf("PCA %d (%.2f%%)", pc_offset+1, pv[end-pc_offset]))
     ylabel(@sprintf("PCA %d (%.2f%%)", pc_offset+2, pv[end-1-pc_offset]))
-    legend(["unsuccessful", "successful"])
+    if plot_unsuccessful
+        legend(["unsuccessful", "successful"])
+    else
+        legend(["successful"])
+    end
     # ylim(-3.5, 3)
 
     subplot(2,2,4); axisMove(0.05, 0); axisHeightChange(0.9, lock="b")
@@ -285,7 +289,7 @@ C, V, D, Vparams, I, nI  = plot_PCA(res; threshold=threshold,
 
 # --- now run the data browser ---
 
-BP = []    # Declare this outside so the BP variable is available outside the function
+global BP = []    # Declare this outside so the BP variable is available outside the function
 
 function restart_figure2()
     C, V, D, Vparams, I, nI  = plot_PCA(res; threshold=threshold, 
@@ -360,8 +364,11 @@ function restart_figure2()
     legend(hs[4,1:3], ["current", "1 ago", "2 ago"])
 end
 
-@printf("\n\n***Type restart_figure2() into the Julia prompt to start having fun***\n\n")
-@printf("Clicking on any red dot in figure 2 will bring up 20 trials of the\n")
+# Make figure 2 clickable:
+restart_figure2()
+
+
+@printf("\n\nClicking on any red dot in figure 2 will bring up 20 trials of the\n")
 @printf("corresponding run on figure 3.\n\n")
 @printf("The blue dot is the current farm displayed; green is one click ago;\n")
 @printf("and magenta is two clicks ago.\n\n")
