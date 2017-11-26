@@ -285,6 +285,8 @@ C, V, D, Vparams, I, nI  = plot_PCA(res; threshold=threshold,
 
 # --- now run the data browser ---
 
+BP = []    # Declare this outside so the BP variable is available outside the function
+
 function restart_figure2()
     C, V, D, Vparams, I, nI  = plot_PCA(res; threshold=threshold, 
         pc_offset=0, plot_unsuccessful=false);
@@ -303,11 +305,14 @@ function restart_figure2()
     ax4 = subplot(2,2,4); hs = [hs ; [plot(0, 0, "b.") plot(0, 0, "g.") plot(0, 0, "m.")]]
 
 
-    BP = []
-
     function event_callback()
         bpe = BP[:buttonlist]()
-        if length(bpe)>0 && bpe[1][1] != nothing        
+        # Remove any leading buttonpresses that were not within axes:
+        while length(bpe)>0 && bpe[1][1] == nothing
+            bpe = bpe[2:end]
+        end
+        # If there are any remaining button presses, deal with them:
+        if length(bpe)>0        
 
             if bpe[1][1]==ax1
                 J = (Vparams[I,end]   - bpe[1][2]).^2 + (Vparams[I,end-2] - bpe[1][3]).^2            
@@ -342,13 +347,16 @@ function restart_figure2()
             hs[3,1][:set_xdata](vpars[end  ]); hs[3,1][:set_ydata](vpars[end-1])
             hs[4,1][:set_xdata](vpars[end-2]); hs[4,1][:set_ydata](vpars[end-3])
 
-            BP[:clear_buttonlist]()
+            # If we just sorted out a button press on figure 2, make sure figure 2 
+            # is the current figure again after dealing with the button press:
             figure(2)
         end
+        # Clear the button press list after we have dealt with it:
+        BP[:clear_buttonlist]()
     end
 
 
-    BP = kbMonitorModule.kb_monitor(figure(2), callback=event_callback)
+    global BP = kbMonitorModule.kb_monitor(figure(2), callback=event_callback)
     legend(hs[4,1:3], ["current", "1 ago", "2 ago"])
 end
 
