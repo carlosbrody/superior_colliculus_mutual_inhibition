@@ -3,6 +3,7 @@
 
 include("pro_anti.jl")
 
+using HDF5
 using PyCall
 # The following line is PyCall-ese for "add the current directory to the Python path"
 unshift!(PyVector(pyimport("sys")["path"]), "")
@@ -13,7 +14,12 @@ unshift!(PyVector(pyimport("sys")["path"]), "")
 # DON'T MODIFY THIS FILE -- the source is in file Current Carlos Work.ipynb. Look there for further documentation and examples of running the code.
 
 
-using HDF5
+####################################################################
+#                                                                  
+#   Define some helper functions for loading farms,
+#   plotting histograms over the parameters, and so on.
+#
+####################################################################
 
 """
     results = farmload(farm_id; farmdir="../NewFarms", verbose=true, verbose_every=10)
@@ -263,15 +269,25 @@ end
 # DON'T MODIFY THIS FILE -- the source is in file Current Carlos Work.ipynb. Look there for further documentation and examples of running the code.
 
 
+####################################################################
+#                                                                  
+#   Now use farmload() to load a summary of the farms into variable res
+#   run histo_params() on it to put histograms up on figure 1
+#
+#   Note that default for histo_params() and plot_PCA() is to use training
+#   cost ("tcost") not testing cost ("cost)
+#
+####################################################################
+
 # --- Load the data, plot histograms, and show the PCA scatter
 
 # The following line 
 # res = farmload("C17", verbose=true, farmdir=["../Farms024" "../Farms025" "../Farms026"])
 res = farmload("C17", verbose=true, farmdir="MiniFarms")
 
-threshold = -0.0002
+threshold = -0.0002  # Cost below this is needed to count as a successful run 
 
-histo_params(res; threshold=threshold, nbins=10)
+histo_params(res; threshold=threshold, nbins=10, fignum=1)
 I  = find(res["tcost"].<threshold)
 nI = find(res["tcost"] .>= threshold)
 
@@ -279,28 +295,41 @@ nI = find(res["tcost"] .>= threshold)
 100*length(I)/length(res["tcost"]))
 
 
-C, V, D, Vparams, I, nI  = plot_PCA(res; threshold=threshold, 
-    pc_offset=0, plot_unsuccessful=false);
-
 
 
 # DON'T MODIFY THIS FILE -- the source is in file Current Carlos Work.ipynb. Look there for further documentation and examples of running the code.
 
 
-# --- now run the data browser ---
+####################################################################
+#                                                                  
+#   MAIN DATA BROWSER FUNCTION
+#
+####################################################################
+
 
 global BP = []    # Declare this outside so the BP variable is available outside the function
 
-function restart_figure2()
+"""
+    restart_figure2(res ; testruns=20)
+
+Given a variable res containing a summary of farm runs (as produced by farmload()), 
+puts up a plot of run paramaters in the first four PCs, and makes it clickable:
+clicking on any of the points in the PCA space will brung up testrun individual new runs
+using plot_farm() in figure 3.
+
+"""
+function restart_figure2(res ; testruns=20)
+    # First put up the PCA plot
     C, V, D, Vparams, I, nI  = plot_PCA(res; threshold=threshold, 
-        pc_offset=0, plot_unsuccessful=false);
+        pc_offset=0, plot_unsuccessful=false, fignum=2);
 
     files = res["files"]
     mu = mean(res["params"],1)
     sd = std( res["params"],1)
 
 
-    # Set up the default blue dot    
+    # Set up initial blue, green, and magenta dots; as the user clicks
+    # the will follow along
     hs = []; 
     figure(2)
     ax1 = subplot(2,2,1); hs = [hs ; [plot(0, 0, "b.") plot(0, 0, "g.") plot(0, 0, "m.")]]
@@ -309,7 +338,10 @@ function restart_figure2()
     ax4 = subplot(2,2,4); hs = [hs ; [plot(0, 0, "b.") plot(0, 0, "g.") plot(0, 0, "m.")]]
 
 
+    # Now the function that will get called after every key press or button press in the PCA
+    # figure
     function event_callback()
+        # Get the list of button presses in the figure:
         bpe = BP[:buttonlist]()
         # Remove any leading buttonpresses that were not within axes:
         while length(bpe)>0 && bpe[1][1] == nothing
@@ -318,6 +350,10 @@ function restart_figure2()
         # If there are any remaining button presses, deal with them:
         if length(bpe)>0        
 
+            # We know which axes go with which principal components from knowing how
+            # plot_PCA is written-- but it would be better if we didn't have to know
+            # that in order to write this function:
+            #  J will be a list of squared distances to points on the clicked axis
             if bpe[1][1]==ax1
                 J = (Vparams[I,end]   - bpe[1][2]).^2 + (Vparams[I,end-2] - bpe[1][3]).^2            
             elseif bpe[1][1]==ax2
@@ -329,15 +365,18 @@ function restart_figure2()
             else
                 error("Which axes did this buttonpress come from???")
             end
+            # We're going to go to the red point closest to the clicked position
             idx = indmin(J)
 
             @printf("---- FILE %s: -----\n", files[I[idx]])
-            pars = plot_farm(files[I[idx]], testruns=20, fignum=3)
+            pars = plot_farm(files[I[idx]], testruns=testruns, fignum=3)
             # pars = load(files[I[idx]], "pars3")
             pars = (pars-mu')./sd'
             vpars = inv(V)*pars
             # print("\n"); print(vpars); print("\n")
 
+            # The dot in column 3 will get the coords of the dot in column 2;
+            # the dot on column 2 will get the coords of the dot in column 1.
             for row=1:4
                 for from=2:-1:1
                     to = from+1
@@ -346,26 +385,28 @@ function restart_figure2()
                 end
             end
 
+            # And then the dot in column 1 gets the coords of the red dot closestto the clicked point:
             hs[1,1][:set_xdata](vpars[end  ]); hs[1,1][:set_ydata](vpars[end-2])
             hs[2,1][:set_xdata](vpars[end-1]); hs[2,1][:set_ydata](vpars[end-3])
             hs[3,1][:set_xdata](vpars[end  ]); hs[3,1][:set_ydata](vpars[end-1])
             hs[4,1][:set_xdata](vpars[end-2]); hs[4,1][:set_ydata](vpars[end-3])
 
-            # If we just sorted out a button press on figure 2, make sure figure 2 
-            # is the current figure again after dealing with the button press:
+            # If we just sorted out a button press on figure 2, (e.g., ran plot_farm()
+            # onto figure 3), now make sure figure 2 
+            # is the current figure again after having dealt with the button press:
             figure(2)
         end
         # Clear the button press list after we have dealt with it:
         BP[:clear_buttonlist]()
     end
 
-
+    # When we are first run, set up the button press monitor:
     global BP = kbMonitorModule.kb_monitor(figure(2), callback=event_callback)
     legend(hs[4,1:3], ["current", "1 ago", "2 ago"])
 end
 
-# Make figure 2 clickable:
-restart_figure2()
+# Bring up PCA plot in figure 2 and make it clickable:
+restart_figure2(res)
 
 
 @printf("\n\nClicking on any red dot in figure 2 will bring up 20 trials of the\n")
