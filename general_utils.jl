@@ -478,7 +478,9 @@ function install_nearest_point_callback(fighandle, user_callback)
         # We've dealt with the buttonclick, clear the buttonlist
         BP[:clear_buttonlist]()
 
-        user_callback((dx,dy), sqrt(minJ), handle, ax)
+        if minJ != nothing
+            user_callback((dx,dy), r, handle, ax)
+        end
     end
 
     BP = kbMonitorModule.kb_monitor(fighandle, callback = point_nearest_to_click)
