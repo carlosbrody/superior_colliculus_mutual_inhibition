@@ -1,4 +1,8 @@
 """
+kbMonitorModule.py -- This module contains a single class, kb_monitor.
+
+To get documentation, ask for help on kbMonitorModule.kb_monitor.
+
 """
 
         
