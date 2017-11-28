@@ -1,20 +1,6 @@
 # DON'T MODIFY THIS FILE -- the source is in file Current Carlos Work.ipynb. Look there for further documentation and examples of running the code.
 
 
-README_TOP = """
-
-Code for doing a minimization (no opto) in which we first do a quick search
-with few trials, not on %correct but instead on specific differences between 
-V[1] and V[4], for example for V[1]-V[4]=0.1 on Pro trials and =-0.1 on Anti 
-trials.
-
-We stop that quick pre-search when the binarized hits for Pro and for Anti are
-both >= 0.7; and it is at those params that we then run the usual minimization.
-
-This doesn't make 100% of minimization runs successful, but it does seem to
-increase the hit rate. 
-
-"""
 
 include("pro_anti.jl")
 
