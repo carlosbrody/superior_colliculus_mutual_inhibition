@@ -411,7 +411,7 @@ not show up.  The function will simply fail to work. So be careful and debug wit
 
         - r           A scalar, indicating the Euclidean distance between the clicked location and xy
 
-        - linehandle  A matplotlib handle to a Lines2D object (e.g., the result of plot([1,2], [3, 10])).
+        - linehandle  A matplotlib handle to a Lines2D object (e.g., the result of plot([1,2], [3, 10])) or a PathCollection object (as returned by scatter()).
 
         - axhandle    A matplotlib handle to the axis (e.g., the result of gca()) in which the event occurred.
 
@@ -466,6 +466,11 @@ function install_nearest_point_callback(fighandle, user_callback)
                 # But only consider line objects:
                 if contains(pystring(ch[i]), "lines.Line2D")
                     D = ch[i][:get_data]()    # D will be a Tuple with xdata, ydata vectors
+                elseif contains(pystring(ch[i]), "PathCollection")
+                    D = ch[i][:get_offsets]()    # D will be a matrix with xdata, ydata columns
+                    D = (D[:,1], D[:,2])         # Turn it into a Tuple like for Line2D objects
+                end
+                if contains(pystring(ch[i]), "lines.Line2D") || contains(pystring(ch[i]), "PathCollection")
                     J = (D[1] - x).^2 + (D[2] - y).^2
                     ix = indmin(J)
                     if idx == nothing || J[ix] < minJ   # if we did not yet have a minimum candidate or this one is better
@@ -474,13 +479,13 @@ function install_nearest_point_callback(fighandle, user_callback)
                     end
                 end
             end
+
+            if minJ != nothing
+                user_callback((dx,dy), sqrt(minJ), handle, ax)
+            end
         end
         # We've dealt with the buttonclick, clear the buttonlist
         BP[:clear_buttonlist]()
-
-        if minJ != nothing
-            user_callback((dx,dy), sqrt(minJ), handle, ax)
-        end
     end
 
     BP = kbMonitorModule.kb_monitor(fighandle, callback = point_nearest_to_click)
