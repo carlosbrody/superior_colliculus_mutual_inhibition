@@ -479,7 +479,7 @@ function install_nearest_point_callback(fighandle, user_callback)
         BP[:clear_buttonlist]()
 
         if minJ != nothing
-            user_callback((dx,dy), r, handle, ax)
+            user_callback((dx,dy), sqrt(minJ), handle, ax)
         end
     end
 
