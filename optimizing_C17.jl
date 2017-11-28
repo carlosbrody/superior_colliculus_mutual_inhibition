@@ -118,7 +118,7 @@ if ~isdir(optim_dir); mkdir(optim_dir); end
 f = readdir(source_dir)
 
 while length(f) > 0
-    @printf("\n\n*** %s: grabbing file %s ***\n\n", my_run_number, f[1])
+    @printf("\n\n*** %s %d: grabbing file %s ***\n\n", my_run_number, Dates.format(now(), "e, dd u yyyy HH:MM:SS"), f[1])
     mypars, extra_pars, args, seed, test_cost = load(source_dir * "/" * f[1], 
         "mypars", "extra_pars", "args", "pars3", "cost")
     rm(source_dir * "/" * f[1])
