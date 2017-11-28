@@ -368,3 +368,154 @@ end
 
 
 
+# DON'T MODIFY THIS FILE -- the source is in file General Utilities.ipynb. Look there for further documentation and examples of running the code.
+
+
+using PyPlot
+using PyCall
+# If the Python path does not already have the local directory in it
+if PyVector(pyimport("sys")["path"])[1] != ""
+    # Then the following line is PyCall-ese for "add the current directory to the Python path"
+    unshift!(PyVector(pyimport("sys")["path"]), "")
+end
+# We use Python to enable callbacks from the figures:
+@pyimport kbMonitorModule
+
+
+
+__permanent_BP_store = []   # The user doesn't need to worry about this variable, it is here to ensure that 
+                            # kbMonitorModule.kb_monitor objects created inside the install_nearest_callback() 
+                            # function do not get deleted upon exit of that function
+
+"""
+    BP = install_nearest_point_callback(fighandle, user_callback)
+
+This function makes the figure indicated by fighandle interactive: any time the mouse is clicked 
+while pointing inside any of the axes of the figure, the function user_callback() will be called,
+and will be passed parameters that indicate which of the points drawn in the axis is the one
+closest to the clicked point, in Euclidean data units.
+
+**WARNING** because this runs through PyCall, any errors in your user_callback function will sadly
+not show up.  The function will simply fail to work. So be careful and debug with lots of print statements.
+
+
+# PARAMETERS:
+
+- fighandle       A matplotlib figure handle, e.g. the result of figure(2)
+
+- user_callback   A function, which must take 4 parameters exactly. These will be passed to it as:
+
+* PARAMETERS OF YOUR FUNCTION USER_CALLBACK:
+
+        - xy          A 2-element tuple, indicating the (x,y) position of the drawn point closest to the clicked point
+
+        - r           A scalar, indicating the Euclidean distance between the clicked location and xy
+
+        - linehandle  A matplotlib handle to a Lines2D object (e.g., the result of plot([1,2], [3, 10])).
+
+        - axhandle    A matplotlib handle to the axis (e.g., the result of gca()) in which the event occurred.
+
+# RETURNS:
+
+- BP     A PyCall.PyObject kbMonitorModule_kb_monitor object. This object contains the underlying engine
+         linking the figure to the callback function. To disconnect that link, call "disconnect(BP)".
+
+# EXAMPLE:
+
+pygui(true)
+
+```jldoctest
+function mycallback(xy, r, h, ax)
+    @printf("(%.3f,%.3f), r=%3f ", xy[1], xy[2], r);
+    print(h)
+    print(ax)
+    print("\n")
+end
+
+BP = install_nearest_point_callback(figure(2), mycallback)
+plot([2,2])
+```
+
+"""
+function install_nearest_point_callback(fighandle, user_callback)
+    
+    function point_nearest_to_click(BP)
+        bpe = BP[:buttonlist]()
+        # Remove any leading clicks that weren't inside an axis:
+        while length(bpe)>0 && bpe[1][1]==nothing
+            bpe = bpe[2:end]
+        end
+
+        if length(bpe)>0
+            ax = BP[:buttonlist]()[1][1]   # the axis we're working with
+            x  = BP[:buttonlist]()[1][2]   # the x of the clicked point
+            y  = BP[:buttonlist]()[1][3]   # the y of the clicked point
+
+            ch = ax[:get_children]()       # all children of the axis
+
+            idx    = nothing    # this'll be the index of the data point closest to the clickpoint
+            minJ   = nothing    # the smallest squared distance between data point and clickpoint found so far
+            handle = nothing    # the matplotlib handle of the line object for which the closes data point is found
+            dx     = nothing    # closest data point x position
+            dy     = nothing    # closest data point y position
+
+            # Look over all children of the axis:
+            for i=1:length(ch)
+                # But only consider line objects:
+                if contains(pystring(ch[i]), "lines.Line2D")
+                    D = ch[i][:get_data]()    # D will be a Tuple with xdata, ydata vectors
+                    J = (D[1] - x).^2 + (D[2] - y).^2
+                    ix = indmin(J)
+                    if idx == nothing || J[ix] < minJ   # if we did not yet have a minimum candidate or this one is better
+                        idx = ix; minJ = J[ix]; handle = ch[i]   # store our candidate
+                        dx = D[1][ix]; dy = D[2][ix]
+                    end
+                end
+            end
+        end
+        # We've dealt with the buttonclick, clear the buttonlist
+        BP[:clear_buttonlist]()
+
+        user_callback((dx,dy), sqrt(minJ), handle, ax)
+    end
+
+    BP = kbMonitorModule.kb_monitor(fighandle, callback = point_nearest_to_click)
+    global __permanent_BP_store = [__permanent_BP_store ; BP]
+
+    return BP
+end
+
+
+"""
+    remove_BP(BP::PyCall.PyObject)
+
+Disconnects a kbMonitorModule.kb_monitor object from its figure
+"""
+function remove_BP(BP::PyCall.PyObject)
+    if contains(pystring(BP), "kbMonitorModule.kb_monitor")
+        BP[:__del__]()
+        
+        i = find(__permanent_BP_store .== BP)
+        if length(i)>0;  
+            i = i[1]; 
+            global __permanent_BP_store = __permanent_BP_store[[1:(i-1) ; (i+1):end]]
+        end
+    end
+end
+
+
+"""
+    remove_all_BPs()
+
+    Disconnects *all* kbMonitorModule.kb_monitor objects from their figures.
+"""
+function remove_all_BPs()
+    for BP in __permanent_BP_store
+        BP[:__del__]()
+    end
+    
+    global __permanent_BP_store = []
+end
+
+
+
