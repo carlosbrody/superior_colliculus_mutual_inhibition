@@ -104,10 +104,10 @@ Attempt to optimize the C17 farms, starting from all ending points that had
 test costs <= 0.
 """
 
-if ~isnull(tryparse(Int64, ARGS[1])); my_run_number = tryparse(Int64, ARGS[1]); 
+if ~isnull(tryparse(Int64, ARGS[1])); my_run_number = parse(Int64, ARGS[1]); 
 else                                  my_run_number = 1; 
 end
-if ~isnull(tryparse(Int64, ARGS[2])); tot_n_runs    = tryparse(Int64, ARGS[2]); 
+if ~isnull(tryparse(Int64, ARGS[2])); tot_n_runs    = parse(Int64, ARGS[2]); 
 else                                  tot_n_runs = 1; 
 end
 
@@ -123,7 +123,7 @@ nloops = 0
 
 while my_run_number + (nloops*tot_n_runs) <= length(f)
     myfile = f[my_run_number + (nloops*tot_n_runs)]
-    @printf("\n\n*** %s %d: grabbing file %s ***\n\n", my_run_number, 
+    @printf("\n\n*** %d %s: grabbing file %s ***\n\n", my_run_number, 
         Dates.format(now(), "e, dd u yyyy HH:MM:SS"), myfile)
     mypars, extra_pars, args, seed, test_cost = load(source_dir * "/" * myfile, 
         "mypars", "extra_pars", "args", "pars3", "cost")
@@ -132,7 +132,7 @@ while my_run_number + (nloops*tot_n_runs) <= length(f)
         mypars[:nPro]  = 1600
         mypars[:nAnti] = 1600
 
-        maxiter1 = 2 # 1000;   # for func1, the regular search
+        maxiter1 = 1000;   # for func1, the regular search
         testruns = 10000;  # Number of trials for evaluating the results of the model. 10000 is a good number 
 
         func1 =  (;params...) -> JJ(mypars[:nPro], mypars[:nAnti]; verbose=false, 
