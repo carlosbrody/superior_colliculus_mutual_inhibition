@@ -14,8 +14,8 @@ endif
 
 set j=1
 while ( $j <= $argv[2] )
-   echo "Will run:  julia $argv[1] $j > julia_outs_$j &"
-   julia $argv[1] $j > julia_outs_$j &
+   echo "Will run:  julia $argv[1] $j $argv[2] > julia_outs_$j &"
+   julia $argv[1] $j $argv[2] > julia_outs_$j &
    sleep 3
    @ j++
 end
