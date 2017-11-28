@@ -72,7 +72,6 @@ extra_pars = Dict(
 :search_range     =>   1.2,
 )
 
-
 search_conditions = Dict(   # :param    default_start   search_box  bound_box
 :vW     =>                   [mypars[:vW],                       [-0.5, 0.5],  [-5,   5]], 
 :hW     =>                   [mypars[:hW],                       [-0.5, 0.5],  [-5,   5]],
@@ -89,112 +88,89 @@ search_conditions = Dict(   # :param    default_start   search_box  bound_box
 )
 
 
+bbox = Dict()
+for k in keys(search_conditions)
+    bbox = merge(bbox, Dict(k=>search_conditions[k][3]))
+end
+bbox
+
 
 
 # DON'T MODIFY THIS FILE -- the source is in file Current Carlos Work.ipynb. Look there for further documentation and examples of running the code.
 
 
-extra_pars[:seedrand] = Int64(round(1000*time()))   
-srand(extra_pars[:seedrand])
-search_range = extra_pars[:search_range]; 
-
 README = """
-
-Farm C17: Like C16, with opto_strength and pro_rule_stregth and anti_rule_strength as 
-trainable parameters, but with reasonable bounds on the appropriate parameters,
-not no bounds at all.
-
+Attempt to optimize the C17 farms, starting from all ending points that had
+test costs <= 0.
 """
 
-extra_pars[:opto_periods]  = String[
-    "trial_start-0.1"     "trial_start-0.2" ; 
-    "target_start-0.4"    "target_start" ; 
-    "target_start+0.016"  "target_end" ; 
-]
-
-extra_pars[:opto_targets] = [
-    0.9   0.7  ;
-    0.85  0.5  ;
-    0.9   0.7  ;
-]
-
-ftraj2 = []; cost2 = [];
-
-if !isdir("../NewFarms"); mkdir("../NewFarms"); end
-fbasename = "../NewFarms/farm_C17_"
-# If we wanted a unique identifier per processor run the following line would help:
-# if ~isnull(tryparse(Int64, ARGS[1])); fbasename = fbasename * ARGS[1] * "_"; end
-
-@printf("\n\n\nStarting with random seed %d\n\n\n", extra_pars[:seedrand])
-
-while true
-    
-    @printf("\n\n--- new run ---\n\n")
-    args = []; seed = []; bbox = Dict()
-    for k in keys(search_conditions)
-        search_box = search_conditions[k][2]
-        args = [args; String(k)]
-        # --- search within the indicated search range:
-        myseed = search_conditions[k][1] + search_range*(rand()-0.5)*diff(search_box); myseed = myseed[1]
-        if myseed > search_box[2]; myseed = search_box[2]; end
-        if myseed < search_box[1]; myseed = search_box[1]; end
-        seed = [seed ;  myseed]
-        # --- No search, just start at the indicated position:
-        # seed = [seed ; search_conditions[k][1]]
-        # --- search within the full indicated search box
-        # seed = [seed ; rand()*diff(search_box) + search_box[1]]
-        bbox = merge(bbox, Dict(k => Array{Float64}(search_conditions[k][3])))
-    end
-    args = Array{String}(args)
-    seed = Array{Float64}(seed)
-
-
-    maxiter1 = 1000;   # for func1, the regular search
-    testruns = 10000;  # Number of trials for evaluating the results of the model. 10000 is a good number 
-
-
-    # Make sure to keep the noise frozen over the search, meaning JJ() needs the seedrand parameter
-    func1 =  (;params...) -> JJ(mypars[:nPro], mypars[:nAnti]; verbose=false, 
-        merge(merge(mypars, extra_pars), Dict(params))...)[1]
-    
-    try
-        pars3, traj3, cost3, cpm_traj3, ftraj3 = bbox_Hessian_keyword_minimization(seed, 
-            args, bbox, func1, 
-            start_eta = 0.01, tol=1e-12, 
-            verbose=true, verbose_every=1, maxiter=maxiter1)
-            
-        # evaluate the result with many trials, for accuracy
-        cost, cost1s, cost2s, hP, hA, dP, dA, hBP, hBA = JJ(testruns, testruns; verbose=false, 
-            make_dict(args, pars3, merge(merge(mypars, extra_pars)))...)
-        
-        # Write out the results
-        myfilename = next_file(fbasename, 4)
-        myfilename = myfilename*".jld"
-
-        @printf("\n\n ****** writing to file %s *******\n\n", myfilename)
-        
-        # write file
-        save(myfilename, Dict("README"=>README, "nPro"=>mypars[:nPro], "nAnti"=>mypars[:nAnti], 
-            "mypars"=>mypars, "extra_pars"=>extra_pars, "args"=>args, "seed"=>seed, "bbox"=>bbox, 
-            "search_conditions"=>search_conditions,
-            "pars3"=>pars3, "traj3"=>traj3, "cost3"=>cost3, "cpm_traj3"=>cpm_traj3, "ftraj3"=>ftraj3,
-            "cost"=>cost, "cost1s"=>cost1s, "cost2s"=>cost2s,
-            "hP"=>hP, "hA"=>hA, "dP"=>dP, "dA"=>dA, "hBP"=>hBP, "hBA"=>hBA))
-
-    catch y
-        # Interrupts should not get caught:
-        if isa(y, InterruptException); throw(InterruptException()); end
-
-        # Other errors get caught and a warning is issued but then we run again
-        @printf("\n\nWhoopsety, unkown error!\n\n");
-        @printf("Error was :\n"); print(y); @printf("\n\nTrying new random seed.\n\n")
-    end
-
-    # Change random seed before next iteration so we don't get stuck in one loop
-    extra_pars[:seedrand] = extra_pars[:seedrand]+1
+if ~isnull(tryparse(Int64, ARGS[1])); my_run_number = parse(Int64, ARGS[1]); 
+else                                  my_run_number = 1; 
 end
+if ~isnull(tryparse(Int64, ARGS[2])); tot_n_runs    = parse(Int64, ARGS[2]); 
+else                                  tot_n_runs = 1; 
+end
+
+source_dir = "Available_C17_Farms"
+optim_dir  = "Optimized_C17_Farms"
+cost_threshold = 0   # only work with test costs less than this
+
+if ~isdir(optim_dir); mkdir(optim_dir); end
+
+
+f = readdir(source_dir)
+nloops = 0
+
+while my_run_number + (nloops*tot_n_runs) <= length(f)
+    myfile = f[my_run_number + (nloops*tot_n_runs)]
+    @printf("\n\n*** %d %s: grabbing file %s ***\n\n", my_run_number, 
+        Dates.format(now(), "e, dd u yyyy HH:MM:SS"), myfile)
+    mypars, extra_pars, args, seed, test_cost = load(source_dir * "/" * myfile, 
+        "mypars", "extra_pars", "args", "pars3", "cost")
+
+    if test_cost <= 0
+        mypars[:nPro]  = 1600
+        mypars[:nAnti] = 1600
+
+        maxiter1 = 1000;   # for func1, the regular search
+        testruns = 10000;  # Number of trials for evaluating the results of the model. 10000 is a good number 
+
+        func1 =  (;params...) -> JJ(mypars[:nPro], mypars[:nAnti]; verbose=false, 
+            merge(merge(mypars, extra_pars), Dict(params))...)[1]
+
+        try
+            pars3, traj3, cost3, cpm_traj3, ftraj3 = bbox_Hessian_keyword_minimization(seed, 
+                args, bbox, func1, 
+                start_eta = 0.01, tol=1e-12, 
+                verbose=true, verbose_every=1, maxiter=maxiter1)
+
+            # evaluate the result with many trials, for accuracy
+            cost, cost1s, cost2s, hP, hA, dP, dA, hBP, hBA = JJ(testruns, testruns; verbose=false, 
+                make_dict(args, pars3, merge(merge(mypars, extra_pars)))...)
+
+            # Write out the results
+            myfilename = optim_dir * "/" * myfile
+
+            @printf("\n\n ****** writing to file %s *******\n\n", myfilename)
+
+            # write file
+            save(myfilename, Dict("README"=>README, "nPro"=>mypars[:nPro], "nAnti"=>mypars[:nAnti], 
+                "mypars"=>mypars, "extra_pars"=>extra_pars, "args"=>args, "seed"=>seed, 
+                "pars3"=>pars3, "traj3"=>traj3, "cost3"=>cost3, "cpm_traj3"=>cpm_traj3, "ftraj3"=>ftraj3,
+                "cost"=>cost, "cost1s"=>cost1s, "cost2s"=>cost2s,
+                "hP"=>hP, "hA"=>hA, "dP"=>dP, "dA"=>dA, "hBP"=>hBP, "hBA"=>hBA))
+
+        catch y
+            # Interrupts should not get caught:
+            if isa(y, InterruptException); throw(InterruptException()); end
+
+            # Other errors get caught and a warning is issued but then we run again
+            @printf("\n\nWhoopsety, unkown error!\n\n");
+            @printf("Error was :\n"); print(y); @printf("\n\nTrying new random seed.\n\n")
+        end
+    end
     
-
-
+    nloops += 1
+end
 
 
