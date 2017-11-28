@@ -393,7 +393,7 @@ __permanent_BP_store = []   # The user doesn't need to worry about this variable
 This function makes the figure indicated by fighandle interactive: any time the mouse is clicked 
 while pointing inside any of the axes of the figure, the function user_callback() will be called,
 and will be passed parameters that indicate which of the points drawn in the axis is the one
-closest to the clicked point, in Euclidean data units.
+closest to the clicked point (closest in Euclidean data units).
 
 **WARNING** because this runs through PyCall, any errors in your user_callback function will sadly
 not show up.  The function will simply fail to work. So be careful and debug with lots of print statements.
