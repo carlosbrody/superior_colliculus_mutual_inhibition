@@ -418,7 +418,9 @@ not show up.  The function will simply fail to work. So be careful and debug wit
 # RETURNS:
 
 - BP     A PyCall.PyObject kbMonitorModule_kb_monitor object. This object contains the underlying engine
-         linking the figure to the callback function. To disconnect that link, call "disconnect(BP)".
+linking the figure to the callback function. To disconnect that link, call "remove_BP(BP)". To disconnect
+*all* existing BP-function links, call "remove_all_BPs()".
+
 
 # EXAMPLE:
 
