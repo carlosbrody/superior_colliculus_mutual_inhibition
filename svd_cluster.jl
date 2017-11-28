@@ -218,6 +218,21 @@ function SVD_analysis()
     # Here is the interesting part!    
     c_labels = [cn args]
 
+    # Lets do the same analysis with svd-dim3
+    # u3 is orthogonal to u1, so we dont expect to get the same thing
+    unorm3 = copy(u[:,3])
+    unorm3 -= mean(unorm3)
+    unorm3 /= std(unorm3)
+    x3 = [unorm3 p];
+    C3 = cov(x3);
+    cn3 = C3[1,2:end]/norm(C3[1,2:end]);
+    c3_labels = [cn3 args]
+
+    # From the svd1/3 scatter, we see the vector that most separates clusters is svd1-svd3
+    bifn_vec = cn-cn3;
+    bifn_vec = bifn_vec/norm(bifn_vec);
+    bifn_labels = [bifn_vec args]
+   
     return F, nanrows, r_all
 end
 
