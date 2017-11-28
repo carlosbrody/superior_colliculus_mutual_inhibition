@@ -104,8 +104,11 @@ Attempt to optimize the C17 farms, starting from all ending points that had
 test costs <= 0.
 """
 
-if ~isnull(tryparse(Int64, ARGS[1])); my_run_number = ARGS[1]; 
-else                                  my_run_number=""; 
+if ~isnull(tryparse(Int64, ARGS[1])); my_run_number = tryparse(Int64, ARGS[1]); 
+else                                  my_run_number = 1; 
+end
+if ~isnull(tryparse(Int64, ARGS[2])); tot_n_runs    = tryparse(Int64, ARGS[2]); 
+else                                  tot_n_runs = 1; 
 end
 
 source_dir = "Available_C17_Farms"
@@ -116,12 +119,14 @@ if ~isdir(optim_dir); mkdir(optim_dir); end
 
 
 f = readdir(source_dir)
+nloops = 0
 
-while length(f) > 0
-    @printf("\n\n*** %s %d: grabbing file %s ***\n\n", my_run_number, Dates.format(now(), "e, dd u yyyy HH:MM:SS"), f[1])
-    mypars, extra_pars, args, seed, test_cost = load(source_dir * "/" * f[1], 
+while my_run_number + (nloops*tot_n_runs) <= length(f)
+    myfile = f[my_run_number + (nloops*tot_n_runs)]
+    @printf("\n\n*** %s %d: grabbing file %s ***\n\n", my_run_number, 
+        Dates.format(now(), "e, dd u yyyy HH:MM:SS"), myfile)
+    mypars, extra_pars, args, seed, test_cost = load(source_dir * "/" * myfile, 
         "mypars", "extra_pars", "args", "pars3", "cost")
-    rm(source_dir * "/" * f[1])
 
     if test_cost <= 0
         mypars[:nPro]  = 1600
@@ -144,7 +149,7 @@ while length(f) > 0
                 make_dict(args, pars3, merge(merge(mypars, extra_pars)))...)
 
             # Write out the results
-            myfilename = optim_dir * "/" * f[1]
+            myfilename = optim_dir * "/" * myfile
 
             @printf("\n\n ****** writing to file %s *******\n\n", myfilename)
 
@@ -165,7 +170,7 @@ while length(f) > 0
         end
     end
     
-    f = readdir(source_dir)
+    nloops += 1
 end
 
 
