@@ -33,7 +33,7 @@ function load_farm_params(farm_id; farmdir="MiniFarms", verbose=true, verbose_ev
 end
 
 # returns avgerage external trajectory for each node in 4 conditions (hit/miss X pro/anti)
-function run_farm(filename; testruns=400, overrideDict=Dict(),all_conditions=false)
+function run_farm(filename; testruns=200, overrideDict=Dict(),all_conditions=false)
     mypars, extra_pars, args, pars3 = load(filename, "mypars", "extra_pars", "args", "pars3")
     numConditions = 1;
     if all_conditions
@@ -109,19 +109,65 @@ function SVD_analysis()
     r_ma = r_all[:,304*3+1:end];
 
     # F[:U], F[:S], F[:Vt]
-    F_all = svdfact(r_all);
+    m = mean(r_all,1);
+    r_all = r_all - repmat(m, size(r_all,1),1);
+    F = svdfact(r_all);
 
+    # do PCA for the hell of it
+    C = cov(r_all);
+    vals, vecs = eig(C);
+    vtotal = sum(vals)
+    vc  = cumsum(vals);
+    varexp = vc./vtotal;
+    varexp = flipdim(varexp,1);
+
+    S = copy(F[:S]);
+    S = S.^2;
+    stotal = sum(S);
+    S = flipdim(S,1);
+    sc = cumsum(S);
+    svarexp = sc./stotal;
+    svarexp = flipdim(svarexp,1);
+
+    figure()
+    plot(1-varexp)
+    plot(1-svarexp)
+    title("Cumulative Variance explained PCA and SVD")
+
+    figure()
+    plot(vals)
+    plot(S/(size(r_all,2)))
+    title("Variance explained in each dimension")
+
+    figure()
+    u = copy(F[:U])
+    scatter(u[:,1],u[:,2])
+    title("SVD U columns 1 and 2")
+    
+    tcost = copy(results["tcost"])
+    tcost = tcost[!nanrows];
+    tcost = convert(Array{Float64,1}, tcost);
+    tcost = -tcost;
+    tcost = tcost - minimum(tcost);
+    tcost = tcost./maximum(tcost);
+    figure()
+    scatter(u[:,1],u[:,2],s=tcost)
+
+    
+    return F, nanrows, r_all
 end
+
+
 
 function plot_SVD_approx(rank, condition, F)
     figure()
     S = copy(F[:S]);
-    S[rank+1:end] = 0;    
-    low_rank = F[:U] * Diagonal(S)* F[:Vt];
+#    S[rank+1:end] = 0;    
+#    low_rank = F[:U] * Diagonal(S)* F[:Vt];
     U = copy(F[:U])
     Vt = copy(F[:Vt])
 
-    neural_dex = 1;
+    neural_dex = rank;
     if condition     == "hit-pro"
         cdex = 0;
     elseif condition == "miss-pro"
@@ -145,7 +191,7 @@ function plot_SVD_approx(rank, condition, F)
     plot(-node3)
     plot(-node4)
     title(condition)
-    return low_rank, U, S, Vt 
+ #   return low_rank, U, S, Vt 
 end
 
 
