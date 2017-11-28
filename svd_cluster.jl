@@ -1,4 +1,6 @@
 # Set of functions for doing SVD clustering on neural trajectories
+# BASIC PIPELINE:
+# SVD_analysis()
 
 # I have no fucking idea why I need to include these, but load() won't work unless I do!
 include("pro_anti.jl")
@@ -90,19 +92,20 @@ function build_response_matrix(results)
     return response_matrix
 end
 
-
+# Main workhorse function. I use as a script
 function SVD_analysis()
     # Load responses from all models
     response, results = load("SVD_response_matrix.jld", "response","results")
 
-
-    # need to filter out NaN rows (not sure why some are bad! Maybe make no mistakes?)
+    # need to filter out NaN rows 
+    # Some farms in some conditions have no errors, so we have NaNs
     nanrows = any(isnan(response),2);
     r_all = response[!vec(nanrows),:];
 
     # Sort out responses in each condition
     # Each is 4 nodes x 76 timesteps = 304 
     # node 1, 2, 3, 4 is the same ordering as run_nTrials
+    # just here for documenting purposes.
     r_hp = r_all[:,1:304];
     r_mp = r_all[:,304*2+1:2*304];
     r_ha = r_all[:,304*2+1:3*304];
@@ -113,7 +116,7 @@ function SVD_analysis()
     r_all = r_all - repmat(m, size(r_all,1),1);
     F = svdfact(r_all);
 
-    # do PCA for the hell of it
+    # do PCA for the hell of it, compute variance explained
     C = cov(r_all);
     vals, vecs = eig(C);
     vtotal = sum(vals)
@@ -121,6 +124,7 @@ function SVD_analysis()
     varexp = vc./vtotal;
     varexp = flipdim(varexp,1);
 
+    # compute variance explained from SVD
     S = copy(F[:S]);
     S = S.^2;
     stotal = sum(S);
@@ -129,21 +133,31 @@ function SVD_analysis()
     svarexp = sc./stotal;
     svarexp = flipdim(svarexp,1);
 
+    # Cumulative variance explained. Most in < 20 dimensions
     figure()
     plot(1-varexp)
     plot(1-svarexp)
     title("Cumulative Variance explained PCA and SVD")
+    xlabel("dim")
+    ylabel("cumulative var explained")
 
+    # PCA and SVD have the same variance explained
     figure()
     plot(vals)
     plot(S/(size(r_all,2)))
     title("Variance explained in each dimension")
+    xlabel("dim")
+    ylabel("var explained")
 
+    # make scatter plot against SVD loadings
     figure()
     u = copy(F[:U])
     scatter(u[:,1],u[:,2])
     title("SVD U columns 1 and 2")
+    ylabel("SVD Dim 2")
+    xlabel("SVD Dim 1")   
     
+    # Same scatter plot with dot size proportional to cost
     tcost = copy(results["tcost"])
     tcost = tcost[!nanrows];
     tcost = convert(Array{Float64,1}, tcost);
@@ -152,8 +166,58 @@ function SVD_analysis()
     tcost = tcost./maximum(tcost);
     figure()
     scatter(u[:,1],u[:,2],s=tcost)
-
+    title("SVD U columns 1 and 2")
+    ylabel("SVD Dim 2")
+    xlabel("SVD Dim 1")   
     
+    # look at histograms of loadings into each dimension. Dim 1 strongly bimodal
+    figure()
+    h = plt[:hist](u[:,1],40)
+    ylabel("SVD Dim 1")
+    xlabel("count")
+  
+    # Dim 2 unimodal
+    figure()
+    h = plt[:hist](u[:,2],40)
+    ylabel("SVD Dim 2")
+    xlabel("count")
+
+    # Dim 3 slightly bimodal  
+    figure()
+    h = plt[:hist](u[:,3],40)
+    ylabel("SVD Dim 3")
+    xlabel("count")
+    # all higher dimensions strongly unimodal
+    
+    # Because dim 1 and 3 are bimodal, lets scatter with respect to them
+    figure()
+    scatter(u[:,1],u[:,3])
+    title("SVD U columns 1 and 3")
+    # Looks like maybe three clusters?
+    ylabel("SVD Dim 3")
+    xlabel("SVD Dim 1")   
+
+    # We don't see clustering of parameters, so lets look for what parameters correlate with svd dim 1 and 3
+    p = copy(results["params"])
+    p = p[!vec(nanrows),:]
+    # gotta z-score parameters
+    for i=1:size(p,2)
+        p[:,i] -= mean(p[:,i])
+        p[:,i] /= std(p[:,i])
+    end
+    unorm = copy(u[:,1])
+    unorm -= mean(unorm)
+    unorm /= std(unorm)
+    x = [unorm p];
+    # compute covariance between each parameter and svd dim 1 
+    C = cov(x);
+    # Grab parameter labels
+    args = load(results["files"][1],"args");
+    # Make it a unit vector
+    cn = C[1,2:end]/norm(C[1,2:end]);
+    # Here is the interesting part!    
+    c_labels = [cn args]
+
     return F, nanrows, r_all
 end
 
@@ -224,9 +288,4 @@ function plot_psth(r_all, neural_dex)
     plot(r_all[neural_dex,cdex*numtsC+1+3*numts:cdex*numtsC+4*numts])
 
 end
-# BASIC PIPELINE:
-# results  = load_farm_params("C17")
-# response = build_response_matrix(results)
-# SVD_analysis()
-
 
