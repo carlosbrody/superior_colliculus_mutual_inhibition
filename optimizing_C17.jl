@@ -104,6 +104,10 @@ Attempt to optimize the C17 farms, starting from all ending points that had
 test costs <= 0.
 """
 
+if ~isnull(tryparse(Int64, ARGS[1])); my_run_number = ARGS[1]; 
+else                                  my_run_number=""; 
+end
+
 source_dir = "Available_C17_Farms"
 optim_dir  = "Optimized_C17_Farms"
 cost_threshold = 0   # only work with test costs less than this
@@ -114,6 +118,7 @@ if ~isdir(optim_dir); mkdir(optim_dir); end
 f = readdir(source_dir)
 
 while length(f) > 0
+    @printf("\n\n*** %s: grabbing file %s ***\n\n", my_run_number, f[1])
     mypars, extra_pars, args, seed, test_cost = load(source_dir * "/" * f[1], 
         "mypars", "extra_pars", "args", "pars3", "cost")
     rm(source_dir * "/" * f[1])
