@@ -111,7 +111,7 @@ if ~isnull(tryparse(Int64, ARGS[2])); tot_n_runs    = parse(Int64, ARGS[2]);
 else                                  tot_n_runs = 1; 
 end
 
-source_dir = "Available_C17_Farms"
+source_dir = "MiniFarms"
 optim_dir  = "Optimized_C17_Farms"
 cost_threshold = 0   # only work with test costs less than this
 
