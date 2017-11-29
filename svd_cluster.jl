@@ -237,6 +237,9 @@ function SVD_analysis()
 end
 
  ##svd plotter
+"""
+    SVD_interactive(;threshold =-0.0002, plot_option=1, plot_bad_farms=true)
+"""
 function SVD_interactive(;threshold =-0.0002, plot_option=1, plot_bad_farms=true)
     response, results = load("SVD_response_matrix.jld", "response","results");
     nanrows = any(isnan(response),2);
@@ -294,12 +297,133 @@ end
 
 
 """
-    params = plot_farm(filename; testruns=400, fignum=3, overrideDict=Dict())
+    SVD_interactive2(;threshold =-0.0002, plot_option=1, plot_bad_farms=true)
 """
-function plot_farm(filename; testruns=400, fignum=3, overrideDict=Dict())
+function SVD_interactive2(;threshold =-0.0002, plot_option=1, plot_bad_farms=true)
+
+    response, results = load("SVD_response_matrix.jld", "response","results");
+    nanrows = any(isnan(response),2);
+
+    # filter for good farms
+    tcost = results["tcost"];
+    disp_cost = copy(tcost);
+    tcost = tcost[!vec(nanrows),:];
+    badcost = tcost .>= threshold;
+    
+    r_all = response[!vec(nanrows),:];
+
+    m = mean(r_all,1);
+    r_all = r_all - repmat(m, size(r_all,1),1);
+    F = svdfact(r_all);
+    u = copy(F[:U]); 
+
+    u1 = u[:,1];
+    u2 = u[:,2];
+    u3 = u[:,3];
+    u1good = u1[!vec(badcost),:];
+    u2good = u2[!vec(badcost),:];
+    u3good = u3[!vec(badcost),:];
+
+    files = results["files"];
+    files = files[!vec(nanrows),:];
+
+    function mycallback(xy, r, h, ax)
+        if ax[:get_title]() == "SVD U columns 3 and 1"
+            myX = 3; myY = 1
+        elseif ax[:get_title]() == "SVD U columns 2 and 1"
+            myX = 2; myY = 1
+        else
+            @printf("mycallback: Don't know this axis, returning\n"); return
+        end
+        index = find((u[:,myX] .== xy[1]) .& (u[:,myY] .== xy[2]))
+        if length(index)==0; @printf("mycallback: Couldn't figure out the nearest point, returning\n"); return; end
+        @printf("You selected farm # %d", index[1])  
+        print("\n")
+        filename = files[index[1]]
+        print(filename)
+        print("\n")
+        print(disp_cost[index[1]])
+        print("\n")
+        print("\n")
+
+        # Set all green dots to have the appropriate x and y data:
+        objs = figure(100)[:findobj]()
+        for o in objs
+            if typeof(o) == PyCall.PyObject && contains(pystring(o), "Line2D") && o[:get_color]()=="g"
+                if o[:axes][:get_title]() == "SVD U columns 3 and 1"
+                    o[:set_xdata](u[index[1],3])
+                    o[:set_ydata](u[index[1],1])
+                    o[:set_visible](true)
+                elseif o[:axes][:get_title]() == "SVD U columns 2 and 1"
+                    o[:set_xdata](u[index[1],2])
+                    o[:set_ydata](u[index[1],1])
+                    o[:set_visible](true)
+                end
+            end                
+        end
+        
+       
+        if plot_option == 1
+            plot_farm(filename)
+        else
+            plot_farm2(filename)
+        end
+        print("\n")
+
+    end   
+    pygui(true)
+    figure(100); clf();
+    BP = install_nearest_point_callback(figure(100), mycallback)
+    subplot(1,2,1)
+    if plot_bad_farms
+        plot(u[:,3],u[:,1],"bo")
+    end
+    plot(u3good, u1good, "ro")
+    title("SVD U columns 3 and 1")
+    ylabel("SVD Dim 1")
+    xlabel("SVD Dim 3")   
+    plot(0, 0, "go")[1][:set_visible](false)
+
+    subplot(1,2,2)
+    if plot_bad_farms
+        plot(u[:,2],u[:,1],"bo")
+    end
+    plot(u2good, u1good, "ro")
+    title("SVD U columns 2 and 1")
+    xlabel("SVD Dim 2")   
+    plot(0, 0, "go")[1][:set_visible](false)
+    remove_ytick_labels()
+end
+
+
+plot_farm_trials = 10
+
+"""
+    params = plot_farm(filename; testruns=nothing, fignum=3, overrideDict=Dict())
+
+    Plots multiple trials from a single run of a farm.
+
+# PARAMETERS
+
+- filename    The filename of the .jld file containing the run, to be loaded
+
+# OPTIONAL PARAMETERS
+
+- testruns    Number of trials to run. Defaults to global plot_farm_trials.
+
+- fignum      Figure to put the plot up in.
+
+- overrideDict   A dictionary containing any model parameter values that will
+              override any values loaded from the file.  For example
+              `overrideDict = Dict(:sigma=>0.001)` will run with that value
+              of sigma, no whater what the file said.
+
+"""
+function plot_farm(filename; testruns=nothing, fignum=3, overrideDict=Dict())
+
+    if testruns == nothing; testruns = plot_farm_trials; end
 
     mypars, extra_pars, args, pars3 = load(filename, "mypars", "extra_pars", "args", "pars3")
-
 
     pygui(true)
     figure(fignum); clf();
@@ -341,6 +465,7 @@ function plot_farm(filename; testruns=400, fignum=3, overrideDict=Dict())
         end
         
         figure(fignum)[:canvas][:draw]()
+        pause(0.001)
     end
 
     for a=1:length(args)
@@ -353,7 +478,7 @@ end
 
 
 # Stripped down plotting that works on 0.5.2
-function plot_farm2(filename; testruns=20, overrideDict=Dict())
+function plot_farm2(filename; testruns=10, overrideDict=Dict())
 
     mypars, extra_pars, args, pars3 = load(filename, "mypars", "extra_pars", "args", "pars3")
 
@@ -374,7 +499,7 @@ function plot_farm2(filename; testruns=20, overrideDict=Dict())
 
         # The plot_list should be the one we give it below, not whatever was in the stored parameters
         delete!(these_pars, :plot_list)
-        proVs, antiVs = run_ntrials(testruns, testruns; plot_list=[1:20;], plot_Us=false,
+        proVs, antiVs = run_ntrials(testruns, testruns; plot_list=[1:10;], plot_Us=false,
         merge(make_dict(args, pars3, these_pars), overrideDict)...);
 
         hBP = length(find(proVs[1,:]  .> proVs[4,:])) /size(proVs, 2)
