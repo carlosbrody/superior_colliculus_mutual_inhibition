@@ -240,30 +240,56 @@ end
 """
     SVD_interactive(;threshold =-0.0002, plot_option=1, plot_bad_farms=true)
 """
-function SVD_interactive(;threshold =-0.0002, plot_option=1, plot_bad_farms=true)
+function SVD_interactive(;threshold =-0.0002, plot_option=1, plot_bad_farms=true, compute_good_only=false)
+    # get response matrix
     response, results = load("SVD_response_matrix.jld", "response","results");
+    # set up filter by nan
     nanrows = any(isnan(response),2);
 
     # filter for good farms
     tcost = results["tcost"];
-    disp_cost = copy(tcost);
-    tcost = tcost[!vec(nanrows),:];
+    if !compute_good_only
+        tcost = tcost[!vec(nanrows),:];
+        disp_cost = copy(tcost);
+    end
     badcost = tcost .>= threshold;
     
-    r_all = response[!vec(nanrows),:];
+    # if we are computing SVD only on the good farms, update nanrows and disp_cost
+    if compute_good_only
+        nanrows = nanrows | badcost;
+        disp_cost = tcost[!vec(nanrows),:];
+    end    
 
+    # Filter response matrix
+    r_all = response[!vec(nanrows),:];
     m = mean(r_all,1);
     r_all = r_all - repmat(m, size(r_all,1),1);
     F = svdfact(r_all);
     u = copy(F[:U]); 
-
     u1 = u[:,1];
     u2 = u[:,3];
-    u1good = u1[!vec(badcost),:];
-    u2good = u2[!vec(badcost),:];
+
+    # Make list of just good farms
+    if compute_good_only
+        # nanrows filter already selects for good farms
+        u1good = u1;
+        u2good = u2;
+    else
+        # remove bad tcost farms
+        u1good = u1[!vec(badcost),:];
+        u2good = u2[!vec(badcost),:];
+    end
 
     files = results["files"];
     files = files[!vec(nanrows),:];
+
+size(nanrows)
+size(badcost)
+size(u1)
+size(u1good)
+size(disp_cost)
+size(files)
+
     function mycallback(xy, r, h, ax)
         index = find(u1 .== xy[1])
         @printf("You selected farm # %d", index[1])  
@@ -299,33 +325,85 @@ end
 """
     SVD_interactive2(;threshold =-0.0002, plot_option=1, plot_bad_farms=false)
 """
-function SVD_interactive2(;threshold =-0.0002, plot_option=1, plot_bad_farms=false)
-
+function SVD_interactive2(;threshold =-0.0002, plot_option=1, plot_bad_farms=false, compute_good_only=false)
+    # get response matrix
     response, results = load("SVD_response_matrix.jld", "response","results");
+    # set up filter by nan
     nanrows = any(isnan(response),2);
 
     # filter for good farms
     tcost = results["tcost"];
-    disp_cost = copy(tcost);
-    tcost = tcost[!vec(nanrows),:];
+    if !compute_good_only
+        tcost = tcost[!vec(nanrows),:];
+        disp_cost = copy(tcost);
+    end
     badcost = tcost .>= threshold;
     
-    r_all = response[!vec(nanrows),:];
+    # if we are computing SVD only on the good farms, update nanrows and disp_cost
+    if compute_good_only
+        nanrows = nanrows | badcost;
+        disp_cost = tcost[!vec(nanrows),:];
+    end    
 
+    # Filter response matrix
+    r_all = response[!vec(nanrows),:];
     m = mean(r_all,1);
     r_all = r_all - repmat(m, size(r_all,1),1);
     F = svdfact(r_all);
     u = copy(F[:U]); 
-
     u1 = u[:,1];
     u2 = u[:,2];
     u3 = u[:,3];
-    u1good = u1[!vec(badcost),:];
-    u2good = u2[!vec(badcost),:];
-    u3good = u3[!vec(badcost),:];
 
+    # Make list of just good farms
+    if compute_good_only
+        # nanrows filter already selects for good farms
+        u1good = u1;
+        u2good = u2;
+        u3good = u3;
+    else
+        # remove bad tcost farms
+        u1good = u1[!vec(badcost),:];
+        u2good = u2[!vec(badcost),:];
+        u3good = u3[!vec(badcost),:];
+    end
     files = results["files"];
     files = files[!vec(nanrows),:];
+
+size(nanrows)
+size(badcost)
+size(u1)
+size(u1good)
+size(disp_cost)
+size(files)
+
+# Old Carlos Code. Here in case Alex screwed up something (11/29/2017)
+#    response, results = load("SVD_response_matrix.jld", "response","results");
+#    nanrows = any(isnan(response),2);
+
+#   # filter for good farms
+#    tcost = results["tcost"];
+#    disp_cost = copy(tcost);
+#    tcost = tcost[!vec(nanrows),:];
+#    badcost = tcost .>= threshold;
+    
+#    r_all = response[!vec(nanrows),:];
+#
+#    m = mean(r_all,1);
+#    r_all = r_all - repmat(m, size(r_all,1),1);
+#    F = svdfact(r_all);
+#    u = copy(F[:U]); 
+#
+#    u1 = u[:,1];
+#    u2 = u[:,2];
+#    u3 = u[:,3];
+#    u1good = u1[!vec(badcost),:];
+#    u2good = u2[!vec(badcost),:];
+#    u3good = u3[!vec(badcost),:];
+
+#    files = results["files"];
+#    files = files[!vec(nanrows),:];
+
 
     function mycallback(xy, r, h, ax)
         if ax[:get_title]() == "SVD U columns 3 and 1"
@@ -335,7 +413,14 @@ function SVD_interactive2(;threshold =-0.0002, plot_option=1, plot_bad_farms=fal
         else
             @printf("mycallback: Don't know this axis, returning\n"); return
         end
-        index = find((u[:,myX] .== xy[1]) .& (u[:,myY] .== xy[2]))
+        if plot_option == 1
+            index = find((u[:,myX] .== xy[1]) .& (u[:,myY] .== xy[2]))
+        else
+            # Alex: guess the .& operator isn't supported in Julia 0.5.2.
+            # I know, I know, I should upgrade to 0.6....
+            index = find((u[:,myX] .== xy[1]))
+        end
+
         if length(index)==0; @printf("mycallback: Couldn't figure out the nearest point, returning\n"); return; end
         @printf("You selected farm # %d", index[1])  
         print("\n")
@@ -486,6 +571,9 @@ function plot_farm2(filename; testruns=10, overrideDict=Dict())
     
     pstrings = ["CONTROL", "DELAY OPTO", "CHOICE OPTO"]
     for period = 1:3
+        f1 = period;
+        f2 = period + length(pstrings);
+ 
         these_pars = merge(mypars, extra_pars);
         these_pars = merge(these_pars, Dict(
         # :opto_strength=>0.3, 
@@ -499,13 +587,15 @@ function plot_farm2(filename; testruns=10, overrideDict=Dict())
 
         # The plot_list should be the one we give it below, not whatever was in the stored parameters
         delete!(these_pars, :plot_list)
-        proVs, antiVs = run_ntrials(testruns, testruns; plot_list=[1:10;], plot_Us=false,
-        merge(make_dict(args, pars3, these_pars), overrideDict)...);
+        proVs, antiVs = run_ntrials(testruns, testruns; plot_list=[1:10;], plot_Us=false,profig=f1,antifig=f2, merge(make_dict(args, pars3, these_pars), overrideDict)...);
 
         hBP = length(find(proVs[1,:]  .> proVs[4,:])) /size(proVs, 2)
         hBA = length(find(antiVs[4,:] .> antiVs[1,:]))/size(antiVs,2)
         # @printf("period %d:  hBP=%.2f%%, hBA=%.2f%%\n\n", period, 100*hBP, 100*hBA)
-      
+        figure(f1)
+        title("pro "*pstrings[period]) 
+        figure(f2)
+        title("anti "*pstrings[period]) 
     end
 
     for a=1:length(args)
