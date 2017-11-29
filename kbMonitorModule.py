@@ -39,7 +39,7 @@ class kb_monitor:
         BP = kbMonitorModule.kb_monitor(figure(1), callback=my_callback_func)
 
     """
-    def __init__(self, fig, callback=None):
+    def __init__(self, fig, callback=None, userData=None):
         """
         Create and return an instance of a key and button monitor, attached to a specific figure
         
@@ -51,6 +51,7 @@ class kb_monitor:
         """
         self.__myfig = fig
         self.__user_callback = callback
+        self.__user_data     = userData
         self.__keys_pressed = []
         self.__buttons_pressed = []
         self.__bcid = fig.canvas.mpl_connect('button_press_event', self.__button_callback)        
@@ -101,10 +102,41 @@ class kb_monitor:
         return self.__buttons_pressed
         
     def clear_keylist(self):
+        """
+            PARAMS:
+                None
+            RETURNS:
+                None -- but clears the internal list of keys pressed               
+        """        
         self.__keys_pressed = []
         
     def clear_buttonlist(self):
+        """
+            PARAMS:
+                None
+            RETURNS:
+                None -- but clears the internal list of buttons clicked               
+        """        
         self.__buttons_pressed = []
+        
+    def set_userdata(self, userData):
+        """
+            PARAMS:
+                userData, information to be stored internally
+            RETURNS:
+                None
+        """
+        self.__user_Data = userData
+
+    def get_userdata(self):
+        """
+            PARAMS:
+                None
+            RETURNS:
+                whatever was stored internally as the user Data.
+        """
+        return self.__user_Data
+        
         
     def __del__(self):
         self.__myfig.canvas.mpl_disconnect(self.__bcid)
