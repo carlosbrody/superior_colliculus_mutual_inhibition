@@ -297,9 +297,9 @@ end
 
 
 """
-    SVD_interactive2(;threshold =-0.0002, plot_option=1, plot_bad_farms=true)
+    SVD_interactive2(;threshold =-0.0002, plot_option=1, plot_bad_farms=false)
 """
-function SVD_interactive2(;threshold =-0.0002, plot_option=1, plot_bad_farms=true)
+function SVD_interactive2(;threshold =-0.0002, plot_option=1, plot_bad_farms=false)
 
     response, results = load("SVD_response_matrix.jld", "response","results");
     nanrows = any(isnan(response),2);
