@@ -388,7 +388,7 @@ __permanent_BP_store = []   # The user doesn't need to worry about this variable
                             # function do not get deleted upon exit of that function
 
 """
-    BP = install_nearest_point_callback(fighandle, user_callback)
+BP = install_nearest_point_callback(fighandle, user_callback; user_data=nothing)
 
 This function makes the figure indicated by fighandle interactive: any time the mouse is clicked 
 while pointing inside any of the axes of the figure, the function user_callback() will be called,
@@ -405,6 +405,11 @@ not show up.  The function will simply fail to work. So be careful and debug wit
 
 - user_callback   A function, which must take 4 parameters exactly. These will be passed to it as:
 
+# OPTIONAL PARAMETERS:
+
+- user_data       Data to be stored internally and made available to the callback function
+
+
 * PARAMETERS OF YOUR FUNCTION USER_CALLBACK:
 
         - xy          A 2-element tuple, indicating the (x,y) position of the drawn point closest to the clicked point
@@ -414,6 +419,10 @@ not show up.  The function will simply fail to work. So be careful and debug wit
         - linehandle  A matplotlib handle to a Lines2D object (e.g., the result of plot([1,2], [3, 10])) or a PathCollection object (as returned by scatter()).
 
         - axhandle    A matplotlib handle to the axis (e.g., the result of gca()) in which the event occurred.
+
+        - user_data   If `install_nearest_point_callback()` was called user_data set to something, then 
+                      your function will be called with *five* parameters, and the last one will be the contents of
+                      the user_data
 
 # RETURNS:
 
@@ -439,7 +448,7 @@ plot([2,2])
 ```
 
 """
-function install_nearest_point_callback(fighandle, user_callback)
+function install_nearest_point_callback(fighandle, user_callback; user_data=nothing)
     
     function point_nearest_to_click(BP)
         bpe = BP[:buttonlist]()
@@ -481,14 +490,18 @@ function install_nearest_point_callback(fighandle, user_callback)
             end
 
             if minJ != nothing
-                user_callback((dx,dy), sqrt(minJ), handle, ax)
+                if BP[:get_userdata]() == nothing
+                    user_callback((dx,dy), sqrt(minJ), handle, ax)
+                else
+                    user_callback((dx,dy), sqrt(minJ), handle, ax, BP[:get_userdata]())
+                end
             end
         end
         # We've dealt with the buttonclick, clear the buttonlist
         BP[:clear_buttonlist]()
     end
 
-    BP = kbMonitorModule.kb_monitor(fighandle, callback = point_nearest_to_click)
+    BP = kbMonitorModule.kb_monitor(fighandle, callback = point_nearest_to_click, userData=user_data)
     global __permanent_BP_store = [__permanent_BP_store ; BP]
 
     return BP

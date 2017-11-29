@@ -9,8 +9,9 @@ To get documentation, ask for help on kbMonitorModule.kb_monitor.
 
 class kb_monitor:    
     """
-    An instance of this class sets up monitoring of keystrokes and button presses in a figure.
+    BP = kbMonitorModule.kb_monitor(fig, callback=None, userData=None)
     
+    An instance of this class sets up monitoring of keystrokes and button presses in a figure.    
     Create as kb_monitor(fig) where fig is a matplotlib.pyplot figure handle; after this, calling 
     the methods keylist() or buttonlist() will return lists of the keys and the buttons pressed,
     respectively.
@@ -126,7 +127,7 @@ class kb_monitor:
             RETURNS:
                 None
         """
-        self.__user_Data = userData
+        self.__user_data = userData
 
     def get_userdata(self):
         """
@@ -135,7 +136,7 @@ class kb_monitor:
             RETURNS:
                 whatever was stored internally as the user Data.
         """
-        return self.__user_Data
+        return self.__user_data
         
         
     def __del__(self):
