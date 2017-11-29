@@ -10,17 +10,41 @@ using HDF5
 # DON'T MODIFY THIS FILE -- the source is in file Current Carlos Work.ipynb. Look there for further documentation and examples of running the code.
 
 
+
 ####################################################################
 #                                                                  
 #   Define some helper functions for loading farms,
-#   plotting histograms over the parameters, and so on.
+#   plotting histograms over the parameters, and managing
+#   with GUI interactivity.
 #
 ####################################################################
 
 """
-    results = farmload(farm_id; farmdir="../NewFarms", verbose=true, verbose_every=10)
+results = farmload(farm_id; farmdir="../NewFarms", verbose=true, verbose_every=10)
 
 Package and return a summary of results from a number of runs.
+
+# PARAMETERS:
+
+- filename     farm_id  (e.g., "C17"); .jld files containing this pattern will be loaded
+
+# OPTIONAL PARAMETERS:
+
+- farmdir      Directory in which the files are found
+
+- verbose      If true, print a brief progress report every verbose_every files loaded
+
+- verbose_every  Used if verbose==true (see above)
+
+# RETURNS:
+
+A dictionary with the keys "tcost" (vector or training costs), "cost" (vector of test costs), 
+"dirs" (vector directories in which files  are found), "files" (vector of filenames, including 
+paths), "qu_out" (deprecated for farm C17 and other non-pre-search farms), "params"" (nruns-by-
+nparams matrix of paramters), "args" (nparams-long vector of parameter names).
+
+Note that most values are nruns-long vectors but "args" is only nparams-long, because they are
+the same names across all the runs.
 """
 function farmload(farm_id; farmdir="../NewFarms", verbose=true, verbose_every=50)
 
@@ -67,6 +91,10 @@ end
 
 """
     myres = selectize(res, I)
+
+Given res, the output of `farmload()` and a vector of indices into an nruns-long
+vector, returns a version of res in which only those indices are present in the
+values -- i.e., vectors will now be length(I)-long, not nruns-long.
 """
 function selectize(res, I)
     myres = Dict()
@@ -83,6 +111,8 @@ end
 
 """
     Data structure for parameter and cost histograms
+
+`histo_params()` returns one of these objects; used to manage GUI handling.
 """
 type histo_data
     names::Array{String}
@@ -93,14 +123,22 @@ type histo_data
 end
 
 
-HD = []
+
 
 """
-HD = histo_params(args, params, tcosts, costs; fignum=1, nbins=10)
+HD = histo_params(args, params, tcosts, costs, files; fignum=1, nbins=10)
 
 Histogram each parameter. params should be nentries-by-length(args) in size.
 args should be a vector of strings. tcosts and costs should be nentries in length,
-and represent traing costm, and test cost, respectively.
+and represent trainig cost, and test cost, respectively. files should be a vector
+of filenames.
+
+# OPTIONAL PARAMS
+
+- fignum   The figure in which histograms will be plotted.
+
+- nbins    The number of bins to use in each histogram.
+
 """
 function histo_params(args, params, tcosts, costs, files; fignum=1, nbins=10, linewidth=3)
 
@@ -154,6 +192,11 @@ end
 
 """
     histo_params(res; threshold=-0.0001, further_params...)
+
+Wrapper that calls the other histo_params method, after first selecting for
+only  runs that have a test cost less than threshold.  further_params are passed
+on to the other histo_params method.
+
 """
 function histo_params(res; threshold=-0.0001, further_params...)
     args   = res["args"]
@@ -164,11 +207,37 @@ function histo_params(res; threshold=-0.0001, further_params...)
     
     I = find(cost.<threshold)
     
-    return histo_params(args, params[I,:], tcost[I], cost[I], files[I,:]; further_params...)
+    return histo_params(args, params[I,:], tcost[I], cost[I], files[I,:]; Dict(further_params)...)
 end
+
 
 """
     histo_highlight(filename, HD::histo_data)
+
+Assuming that histo_params was called, and returned the HD that is passed to this function,
+this function will put up a vertical bar at the values corresponding to the run indicated
+by filename.
+
+Will put up to three bars, blue for the most recent one asked for; green for one call ago
+to this function; and magenta for the time the function was called two calls ago. That allows
+keeping track of a sequence of requested values.
+
+This function can be used for GUI interactivity-- if a button click selects a run, the
+corresponding filename can then be used with this function to highlight that run in the
+histograms.
+
+# EXAMPLE:
+
+```jldoctest
+res = farmload("C17", farmdir="MiniFarms")
+
+HD = histo_params(res)
+I = find(res["cost].<-0.0001)  # to match what histo_params shows
+
+histo_highlight(res["files"][I[1]], HD)
+histo_highlight(res["files"][I[2]], HD)
+histo_highlight(res["files"][I[3]], HD)
+```
 """
 function histo_highlight(filename, HD::histo_data)
     idx = find(HD.files .== filename)
@@ -187,7 +256,11 @@ function histo_highlight(filename, HD::histo_data)
 end
 
 
+"""
+Data structure for PCA scatterplots
 
+`plot_PCA()` returns one of these objects; used to manage GUI handling.
+"""
 type PCAplot_data
     # --- stuff about the data that is plotted:
     mu::Array{Float64}   # This vector of means is subtracted from a params vector
@@ -208,8 +281,39 @@ type PCAplot_data
 end
 
 
+
+
+
+"""
+    PCA_highlight(filename, PC::PCAplot_data)
+
+Assuming that `PCA_plot()` was called, and returned the PC that is passed to this function,
+this function will put up a colored dot, across all axes, at the values corresponding to the run 
+indicated by filename.
+
+Will put up to three dots, blue for the most recent one asked for; green for one call ago
+to this function; and magenta for the time the function was called two calls ago. That allows
+keeping track of a sequence of requested values.
+
+This function can be used for GUI interactivity-- if a button click selects a run, the
+corresponding filename can then be used with this function to highlight that run in the
+scatterplots.
+
+# EXAMPLE:
+
+```jldoctest
+res = farmload("C17", farmdir="MiniFarms")
+
+PC = plot_PCA(res)
+I = find(res["tcost].<-0.0002)  # to match what histo_params shows
+
+PCA_highlight(res["files"][I[1]], PC)
+PCA_highlight(res["files"][I[2]], PC)
+PCA_highlight(res["files"][I[3]], PC)
+```
+"""
 function PCA_highlight(fname, PC::PCAplot_data)
-    idx = find(PC.files .== filename)
+    idx = find(PC.files .== fname)
     if length(idx)==0; @printf("PCA_highlight: Couldn't find filename %s, returning\n", fname); return; end
 
     Vparams = PC.Vparams[idx,:]
@@ -222,7 +326,7 @@ function PCA_highlight(fname, PC::PCAplot_data)
                 from = to-1
                 PC.dotHandles[i,to][:set_xdata](PC.dotHandles[i,from][:get_xdata]())
                 PC.dotHandles[i,to][:set_ydata](PC.dotHandles[i,from][:get_ydata]())
-                PC.dotHandles[i,to][:set_vsiible](PC.dotHandles[i,from][:get_visible]())
+                PC.dotHandles[i,to][:set_visible](PC.dotHandles[i,from][:get_visible]())
             end
             # And then the dot in column 1 gets the coords of the red dot closest to the clicked point:
             myX = PC.axisPCs[i,1]; myY = PC.axisPCs[i,2]
@@ -231,172 +335,167 @@ function PCA_highlight(fname, PC::PCAplot_data)
             PC.dotHandles[i,1][:set_visible](true)
         end
     end
-    # axes(PC.axisHandles[end])
-    legend(hs[end,1:3], ["current", "1 ago", "2 ago"])
+    axes(PC.axisHandles[end])    
+    legend(PC.dotHandles[end,1:3], ["current", "1 ago", "2 ago"])
     pause(0.001)
 end
 
-let PC
 
-    # This PC will exist only within this let block, but will be persistent thanks
-    # to exporting a function that uses it
-    
-    PC = PCAplot_data([], [], [], [], [], [], [], [], [], [], [], [], [], nothing)
+"""
+    event_callback(xy, r, linehandle, axhandle, PC::PCAplot_data)
 
-    global plot_PCA
-    
-    function event_callback(BP)
-        # Get the list of button presses in the figure:
-        bpe = BP[:buttonlist]()
-        # Remove any leading buttonpresses that were not within axes:
-        while length(bpe)>0 && bpe[1][1] == nothing
-            bpe = bpe[2:end]
-        end
-        # If there are any remaining button presses, deal with them:
-        if length(bpe)>0        
-            J = nothing; Vparams = PC.Vparams
-            for i=1:length(PC.axisHandles)
-                if bpe[1][1]==PC.axisHandles[i]
-                    myX = PC.axisPCs[i,1]; myY = PC.axisPCs[i,2]
-                    J = (Vparams[PC.I,end-(myX-1)]   - bpe[1][2]).^2 + (Vparams[PC.I,end-(myY-1)] - bpe[1][3]).^2            
-                end
-            end
-            if J==nothing; error("Which axes did this buttonpress come from???"); end
-            # We're going to go to the red point closest to the clicked position
-            idx = indmin(J)
-            
-            
-            # Move our non-red dots along:
-            if length(PC.dotHandles) > 0            
-                # The dot in column X will get the coords of the dot in column X-1:
-                for i=1:length(PC.axisHandles)
-                    for to=size(PC.dotHandles,2):-1:2
-                        from = to-1
-                        PC.dotHandles[i,to][:set_xdata](PC.dotHandles[i,from][:get_xdata]())
-                        PC.dotHandles[i,to][:set_ydata](PC.dotHandles[i,from][:get_ydata]())
-                        PC.dotHandles[i,to][:set_vsiible](PC.dotHandles[i,from][:get_visible]())
-                    end
-                    # And then the dot in column 1 gets the coords of the red dot closest to the clicked point:
-                    myX = PC.axisPCs[i,1]; myY = PC.axisPCs[i,2]
-                    PC.dotHandles[i,1][:set_xdata](Vparams[PC.I[idx], end-(myX-1)])
-                    PC.dotHandles[i,1][:set_ydata](Vparams[PC.I[idx], end-(myY-1)])   
-                    PC.dotHandles[i,1][:set_visible](true)
-                end
-            end
-            pause(0.001)
-            
-            # If there is a user callback, call it:
-            if PC.callback != nothing
-                PC.callback(PC, BP, PC.files[PC.I[idx]])
-            end
-        
-            # If the user callback moved focus off of this figure, bring it back here:
-            figure(BP[:figure_handle]()[:number])       
-        end
-        
-        # Clear the button press list after we have dealt with it:
-        
-        BP[:clear_buttonlist]()
-    
-        
-        end # --- end of event_callback() ---
-    
-    @doc """
-        PC = plot_PCA(res; threshold=-0.0002, fignum=2)
-
-    """ function plot_PCA(res; threshold=-0.0002, fignum=2, pc_offset=0, plot_unsuccessful=true,
-            use_all_runs_for_PCA=false, unsuccessful_threshold=nothing, select_on_test=false,
-            user_callback=nothing)
-
-        if unsuccessful_threshold==nothing
-            unsuccessful_threshold = threshold
-        end
-
-        # Get the runs' costs and do selection on them:
-        tcost = res["tcost"]; cost = res["cost"]
-        if select_on_test
-            PC.I  = I  = find(cost .< threshold)
-            PC.nI = nI = find(cost .>= unsuccessful_threshold)
-        else
-            PC.I  = I  = find(tcost .< threshold)
-            PC.nI = nI = find(tcost .>= unsuccessful_threshold)
-        end
-
-        if !use_all_runs_for_PCA
-            # Use the successful runs (sparams) to define PCA space
-            sparams = copy(res["params"][I,:])
-            for i=1:size(sparams,2)
-                sparams[:,i] -= mean(sparams[:,i])
-                sparams[:,i] /= std(sparams[:,i])
-            end
-            C = sparams'*sparams/size(sparams,1)
-            D,V = eig(C)
-            pv = 100*D/sum(D)
-        end
-
-        # Then z-score everybody
-        params = copy(res["params"]); nruns = size(params,1)
-        PC.mu = mean(params,1);
-        params = params - ones(nruns,1)*PC.mu
-        PC.sd = std(params,1);
-        params = params ./ (ones(nruns,1)*PC.sd)
-
-        if use_all_runs_for_PCA
-            C = params'*params/nruns
-            D,V = eig(C)
-            pv = 100*D/sum(D)
-        end
-        PC.V = V
-
-        # parameters in the eigen-coords:
-        PC.Vparams = Vparams = (inv(V)*params')'
-
-        figure(fignum); clf(); 
-        ax1 = subplot(2,2,1); axisHeightChange(0.9, lock="t")
-        ax2 = subplot(2,2,2); axisMove(0.05, 0); axisHeightChange(0.9, lock="t")
-        ax3 = subplot(2,2,3); axisHeightChange(0.9, lock="b")
-        ax4 = subplot(2,2,4); axisMove(0.05, 0); axisHeightChange(0.9, lock="b")
-        PC.axisHandles = [ax1, ax2, ax3, ax4]
-        PC.axisPCs = [1 2 ; 3 2 ; 1 3 ; 3 4] + pc_offset
-
-        for i=1:length(PC.axisHandles)
-            axes(PC.axisHandles[i])
+Internal function used by `PCA_plot()` to enable GUI interactivity.
+This function is responsible for turning the position of the 
+selected data point into the corresponding filename, and then
+calling the callback that was registered with `PCA_plot()` (if any was)
+"""
+function event_callback(xy, r, linehandle, axhandle, PC::PCA_plot_data)
+    idx = nothing
+    # Let's go through the axes finding our axis
+    for i=1:length(PC.axisHandles)
+        if axhandle == PC.axisHandles[i]            
             myX = PC.axisPCs[i,1]; myY = PC.axisPCs[i,2]
-            if plot_unsuccessful
-                plot(Vparams[nI,end-(myX-1)],  Vparams[nI,end-(myY-1)], "g.", markersize=10)
-            end
-            plot(Vparams[I,end-(myX-1)],  Vparams[I,end-(myY-1)], "r.", markersize=10)
-            xlabel(@sprintf("PCA %d (%.2f%%)", myX, pv[end-(myX-1)]))
-            ylabel(@sprintf("PCA %d (%.2f%%)", myY, pv[end-(myY-1)]))        
+            # and now find the index of the point at xy
+            idx = find((PC.Vparams[:, end-(myX-1)].==xy[1]) .& (PC.Vparams[:, end-(myY-1)].==xy[2]))
+            if length(idx)==0; @printf("event_callback: Couldn't find point, returning\n"); end;
+            idx = idx[1]
         end
-
-        
-        # Add the non-red dots:
-        hs = []
-        for i=1:length(PC.axisHandles)
-            axes(PC.axisHandles[i]); hs = [hs ; [plot(0, 0, "c.") plot(0, 0, "b.") plot(0, 0, "m.")]]
-        end
-        for h in hs; h[:set_markersize](11); h[:set_visible](false); end
-        PC.dotHandles = hs
-        legend(hs[end,1:3], ["current", "1 ago", "2 ago"])
-        PC.callback = user_callback
-        PC.files = res["files"]
-        
-        axes(ax3)
-        if plot_unsuccessful; legend(["unsuccessful", "successful"])
-        else                  legend(["successful"])
-        end
-
-        PC.BP = kbMonitorModule.kb_monitor(figure(fignum), callback = event_callback)
-
-        return PC 
     end
+    
+    @printf("You selected file %s\n", PC.files[idx]); pause(0.0001)    
+    
+    # If there is a user callback, call it:
+    if PC.callback != nothing
+        PC.callback(PC.files[idx], PC)
+    end        
+end 
+    
+
+
+"""
+    PC = plot_PCA(res; threshold=-0.0002, fignum=2, pc_offset=0, plot_unsuccessful=true,
+        use_all_runs_for_PCA=false, unsuccessful_threshold=nothing, select_on_test=false,
+        user_callback=nothing)
+
+Computes the principal components for a matrix of parameter values across many runs, and puts
+up several scatterplots of the run parameter values projected onto these principal 
+components. In addition, enables GUI interactivity: users can associate a callback function
+with buttonclicks on the figure.
+
+# PARAMETERS:
+
+- res     A dictionary, in the format of the output of `farmload()`
+
+# OPTIONAL PARAMETERS:
+
+- threshold   costs below this are considered "successful" runs
+
+- unsuccessful_threshold   costs above this are considered "UNsuccessful" runs
+                        This value defaults to whatever threshold is.  If the two thresholds are
+                        different, farms with costs in between, in the "no man's land", are not plotted.
+
+- plot_unsuccessful     If true, dots for unsuccessful runs are shown, otherwise not.
+
+- use_all_runs_for_PCA   If true, all runs, whether successful or not, are used to compute the PCs.
+                        If false, only the successful runs.
+
+- select_on_test        If true, the relevant cost is "cost", the testing cost. If false, uses
+                        "tcost", the trainign cost.
+
+- pc_offset             Shows PCs from pc_offset+1 to pc_offset+4
+
+- user_callback  
+""" 
+function plot_PCA(res; threshold=-0.0002, fignum=2, pc_offset=0, plot_unsuccessful=true,
+    use_all_runs_for_PCA=false, unsuccessful_threshold=nothing, select_on_test=false,
+    user_callback=nothing)
+
+    if unsuccessful_threshold==nothing
+        unsuccessful_threshold = threshold
+    end
+
+    PC = PCAplot_data([], [], [], [], [], [], [], [], [], [], [], [], nothing, nothing)
+
+    # Get the runs' costs and do selection on them:
+    tcost = res["tcost"]; cost = res["cost"]
+    if select_on_test
+        PC.I  = I  = find(cost .< threshold)
+        PC.nI = nI = find(cost .>= unsuccessful_threshold)
+    else
+        PC.I  = I  = find(tcost .< threshold)
+        PC.nI = nI = find(tcost .>= unsuccessful_threshold)
+    end
+
+    if !use_all_runs_for_PCA
+        # Use the successful runs (sparams) to define PCA space
+        sparams = copy(res["params"][I,:])
+        for i=1:size(sparams,2)
+            sparams[:,i] -= mean(sparams[:,i])
+            sparams[:,i] /= std(sparams[:,i])
+        end
+        C = sparams'*sparams/size(sparams,1)
+        D,V = eig(C)
+        pv = 100*D/sum(D)
+    end
+
+    # Then z-score everybody
+    params = copy(res["params"]); nruns = size(params,1)
+    PC.mu = mean(params,1);
+    params = params - ones(nruns,1)*PC.mu
+    PC.sd = std(params,1);
+    params = params ./ (ones(nruns,1)*PC.sd)
+
+    if use_all_runs_for_PCA
+        C = params'*params/nruns
+        D,V = eig(C)
+        pv = 100*D/sum(D)
+    end
+    PC.V = V
+
+    # parameters in the eigen-coords:
+    PC.Vparams = Vparams = (inv(V)*params')'
+
+    figure(fignum); clf(); 
+    ax1 = subplot(2,2,1); axisHeightChange(0.9, lock="t")
+    ax2 = subplot(2,2,2); axisMove(0.05, 0); axisHeightChange(0.9, lock="t")
+    ax3 = subplot(2,2,3); axisHeightChange(0.9, lock="b")
+    ax4 = subplot(2,2,4); axisMove(0.05, 0); axisHeightChange(0.9, lock="b")
+    PC.axisHandles = [ax1, ax2, ax3, ax4]
+    PC.axisPCs = [1 2 ; 3 2 ; 1 3 ; 3 4] + pc_offset
+
+    for i=1:length(PC.axisHandles)
+        axes(PC.axisHandles[i])
+        myX = PC.axisPCs[i,1]; myY = PC.axisPCs[i,2]
+        if plot_unsuccessful
+            plot(Vparams[nI,end-(myX-1)],  Vparams[nI,end-(myY-1)], "g.", markersize=10)
+        end
+        plot(Vparams[I,end-(myX-1)],  Vparams[I,end-(myY-1)], "r.", markersize=10)
+        xlabel(@sprintf("PCA %d (%.2f%%)", myX, pv[end-(myX-1)]))
+        ylabel(@sprintf("PCA %d (%.2f%%)", myY, pv[end-(myY-1)]))        
+    end
+
+        
+    # Add the non-red dots:
+    hs = []
+    for i=1:length(PC.axisHandles)
+        axes(PC.axisHandles[i]); hs = [hs ; [plot(0, 0, "c.") plot(0, 0, "b.") plot(0, 0, "m.")]]
+    end
+    for h in hs; h[:set_markersize](11); h[:set_visible](false); end
+    PC.dotHandles = hs
+    legend(hs[end,1:3], ["current", "1 ago", "2 ago"])
+    PC.callback = user_callback
+    PC.files = res["files"]
+        
+    axes(ax3)
+    if plot_unsuccessful; legend(["unsuccessful", "successful"])
+    else                  legend(["successful"]) 
+    end
+
+    install_nearest_point_callback(figure(fignum), event_callback, user_data=PC)
+
+    return PC 
 end
 
-
-
-
-# DON'T MODIFY THIS FILE -- the source is in file Current Carlos Work.ipynb. Look there for further documentation and examples of running the code.
 
 
 """
@@ -463,15 +562,17 @@ end
 # DON'T MODIFY THIS FILE -- the source is in file Current Carlos Work.ipynb. Look there for further documentation and examples of running the code.
 
 
-# res = farmload("C17", verbose=true, farmdir="MiniFarms")
+if !isdefined(:res)
+    res = farmload("C17", verbose=true, farmdir="MiniFarms")
+end
 
-pygui(true); remove_all_BPs(); figure(2);clf(); figure(1); clf();
+pygui(true); remove_all_BPs(); plt[:close](1); plt[:close](2)
 
 HD = histo_params(res);
 
 PC = plot_PCA(res; threshold=-0.0001, pc_offset=0, select_on_test=true, 
-user_callback = (PC,BP,fname) -> begin histo_highlight(fname, HD); pause(0.001); 
-    plot_farm(fname; testruns=20, fignum=3); end,
+#    user_callback = (fname,PC,BP) -> begin histo_highlight(fname, HD); pause(0.001); 
+#    plot_farm(fname; testruns=20, fignum=3); end,
     plot_unsuccessful=false, unsuccessful_threshold=0.0001, use_all_runs_for_PCA=true, fignum=2);
 
 
