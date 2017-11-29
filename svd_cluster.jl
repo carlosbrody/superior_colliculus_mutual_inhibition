@@ -238,7 +238,28 @@ end
 
  ##svd plotter
 """
-    SVD_interactive(;threshold =-0.0002, plot_option=1, plot_bad_farms=true)
+    SVD_interactive(;threshold =-0.0002, plot_option=1, plot_bad_farms=true, compute_good_only=false)
+
+Puts up an interactive plot of runs plotted in parameter SVD space. (The SVD space is defined
+based on voltage traces versus time, averaged over trials.) Clicking on a dot brings up, in a
+different figure, example trials from the corresponding run.
+
+# OPTIONAL PARAMETERS:
+
+- threshold  training costs below this value are considered "successful" (red dots), 
+             above it are "unsuccessful" (blue dots)
+
+- plot_option  whether to use `plot_farm()` or `plot_farm2()`
+
+- plot_bad_farms  If true, dots for the unsuccessful farms are shown, otherwise not
+
+- compute_good_only  If true, only the successful runs are used to compute the SVD space
+
+# RETURNS
+
+None
+
+    
 """
 function SVD_interactive(;threshold =-0.0002, plot_option=1, plot_bad_farms=true, compute_good_only=false)
     # get response matrix
@@ -323,7 +344,31 @@ end
 
 
 """
-    SVD_interactive2(;threshold =-0.0002, plot_option=1, plot_bad_farms=false)
+    SVD_interactive2(;threshold =-0.0002, plot_option=1, plot_bad_farms=true, compute_good_only=false)
+
+Just like `SVD)interactive()`, but puts up two synchronized side-by-side panels, showing first versus third
+as well as second versus first from the U matrix of the SVD.
+
+Thsi function puts up an interactive plot of runs plotted in parameter SVD space. (The SVD space 
+is defined based on voltage traces versus time, averaged over trials.) Clicking on a dot brings up, 
+in a different figure, example trials from the corresponding run.
+
+# OPTIONAL PARAMETERS:
+
+- threshold  training costs below this value are considered "successful" (red dots), 
+             above it are "unsuccessful" (blue dots)
+
+- plot_option  whether to use `plot_farm()` or `plot_farm2()`
+
+- plot_bad_farms  If true, dots for the unsuccessful farms are shown, otherwise not
+
+- compute_good_only  If true, only the successful runs are used to compute the SVD space
+
+# RETURNS
+
+None
+
+    
 """
 function SVD_interactive2(;threshold =-0.0002, plot_option=1, plot_bad_farms=false, compute_good_only=false)
     # get response matrix
