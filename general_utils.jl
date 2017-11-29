@@ -491,6 +491,7 @@ function install_nearest_point_callback(fighandle, user_callback; user_data=noth
                 end
             end
 
+            # @printf("install: Am about to call the user callback\n")
             if minJ != nothing
                 if BP[:get_userdata]() == nothing
                     user_callback((dx,dy), sqrt(minJ), handle, ax)
@@ -498,8 +499,10 @@ function install_nearest_point_callback(fighandle, user_callback; user_data=noth
                     user_callback((dx,dy), sqrt(minJ), handle, ax, BP[:get_userdata]())
                 end
             end
+            # @printf("install: Just returned from the user callback\n")
         end
         # We've dealt with the buttonclick, clear the buttonlist
+        # @printf("Am about to clear the button list on button "); print(BP); print("\n")
         BP[:clear_buttonlist]()
     end
 
