@@ -403,11 +403,7 @@ not show up.  The function will simply fail to work. So be careful and debug wit
 
 - fighandle       A matplotlib figure handle, e.g. the result of figure(2)
 
-- user_callback   A function, which must take 4 parameters exactly. These will be passed to it as:
-
-# OPTIONAL PARAMETERS:
-
-- user_data       Data to be stored internally and made available to the callback function
+- user_callback   A function, which must take 4 or 5 parameters (see below). These will be passed to it as:
 
 
 * PARAMETERS OF YOUR FUNCTION USER_CALLBACK:
@@ -423,6 +419,12 @@ not show up.  The function will simply fail to work. So be careful and debug wit
         - user_data   If `install_nearest_point_callback()` was called user_data set to something, then 
                       your function will be called with *five* parameters, and the last one will be the contents of
                       the user_data
+
+# OPTIONAL PARAMETERS FOR INSTALL_NEAREST_POINT_CALLBACK():
+
+- user_data       Data to be stored internally and made available to the callback function. Default
+                  is nothing, in which case the callback function is called with 4 params
+
 
 # RETURNS:
 
