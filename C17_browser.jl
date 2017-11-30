@@ -741,23 +741,39 @@ end
 # DON'T MODIFY THIS FILE -- the source is in file Current Carlos Work.ipynb. Look there for further documentation and examples of running the code.
 
 
+#######################################################
+#
+#     Actual calls to the functions to run everything
+#
+#######################################################
+
+
+
 if !isdefined(:res)
     res = farmload("C17", verbose=true, farmdir="MiniFarms")
 end
 
-pygui(true); remove_all_BPs(); plt[:close](1); plt[:close](2); plt[:close](3)
-figure(1); set_current_fig_position(1275, 664, 640, 509)
-figure(2); set_current_fig_position(1275, 353, 640, 322)
-figure(3); set_current_fig_position(1275, 26,  640, 322)
+pygui(true); 
+remove_all_BPs(); # Clean up any previous links between clicks on figures and callback functions
+plt[:close](1); plt[:close](2); plt[:close](3); plt[:close](4)
+
+# Carlos' favored configuration, but adjust to suit -- use capture_current_figure_configuration() 
+# to see code that reproduces a configuration you like once you find it
+
+figure(1); set_current_fig_position(1325, 41, 640, 982)   # x, y, width, height
+figure(2); set_current_fig_position(645, 785, 680, 408)
+figure(3); set_current_fig_position(0, 785, 641, 407)
+figure(4); set_current_fig_position(3, 23, 1288, 797)
 
 HD = histo_params(res; threshold=-0.0001, cost_choice="cost");
 
+# The callback function that will be called after clicking on a data dot:
 function highlight_all(fname, PC, SV)
-    PCA_highlight(fname, PC); 
-    PCA_highlight(fname, SV); 
-    histo_highlight(fname, HD)
-    pause(0.001); 
-    plot_farm(fname, testruns=10, fignum=4)
+    PCA_highlight(fname, PC);   # Color the selected dots in the PC plot
+    PCA_highlight(fname, SV);   # Color the selected dots in the SVD plot
+    histo_highlight(fname, HD)  # Color the selected bars in the histograms
+    pause(0.001);   # We don't really care about the 1 ms pause; just a convenient way to flush all pending graphics commandsj
+    plot_farm(fname, testruns=10, fignum=4)   # Comment this line out if you just want SVD, PCA, and histograms (faster)
 end
 
 PC = plot_PCA(res; threshold=-0.0001, cost_choice="cost", 
@@ -767,6 +783,15 @@ PC = plot_PCA(res; threshold=-0.0001, cost_choice="cost",
 SV = plot_SVD(threshold=-0.0001, cost_choice="cost", 
     user_callback = (fname, Trash) -> highlight_all(fname, PC, SV),
     plot_unsuccessful=false, compute_good_only=true, fignum=3);
+
+@printf("\nClick on any dot within the PCA plot or SVD plot to\n")
+@printf("see the corresponding data in the other plots. Comment\n")
+@printf("out the plot_farm() line in highlight_all() and rerun if\n")
+@printf("you want to go faster, without running trials.\n\n")
+@printf("The window placement fits a 15-in Macbook Pro, but adjust\n")
+@printf("at will. Once you find window positions you like, run\n")
+@printf("    capture_current_figure_configuration()\n")
+@printf("to get copy-pastable code that reproduces it.\n")
 
 
 # DON'T MODIFY THIS FILE -- the source is in file Current Carlos Work.ipynb. Look there for further documentation and examples of running the code.
