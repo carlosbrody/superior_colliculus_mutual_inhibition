@@ -504,6 +504,9 @@ function install_nearest_point_callback(fighandle, user_callback; user_data=noth
         # We've dealt with the buttonclick, clear the buttonlist
         # @printf("Am about to clear the button list on button "); print(BP); print("\n")
         BP[:clear_buttonlist]()
+
+        # After dealing with all the buttonclick callbacks and so on, bring focus back to the figure that was clicked:
+        figure(ax[:figure][:number])
     end
 
     BP = kbMonitorModule.kb_monitor(fighandle, callback = point_nearest_to_click, userData=user_data)
@@ -511,6 +514,25 @@ function install_nearest_point_callback(fighandle, user_callback; user_data=noth
 
     return BP
 end
+
+
+"""
+    userdata = install_callback_reporter(xy, r, axhandle, dothandle, userdata)
+
+Useful as a debugging tool for `install_nearest_point_callback()`: can be used
+with that function as a callback; when called, simply prints out its parameters.
+Returns userdata, does not print it.
+
+"""
+function install_callback_reporter(xy, r, linehandle, axhandle, userdata=nothing)
+    @printf("xy=(%g,%g), r=%g\n", xy[1], xy[2], r)
+    print("Line Handle:\n"); print(linehandle); print("\n")
+    print("Axis Handle:\n"); print(axhandle); print("\n")
+    # print("User Data:\n"); print(userdata); print("\n")
+    
+    return userdata
+end
+
 
 
 """
@@ -542,6 +564,49 @@ function remove_all_BPs()
     end
     
     global __permanent_BP_store = []
+end
+
+
+
+# DON'T MODIFY THIS FILE -- the source is in file General Utilities.ipynb. Look there for further documentation and examples of running the code.
+
+
+using PyPlot
+using PyCall
+
+"""
+
+    (x, y, w, h) = get_current_fig_position()   
+
+Works only when pygui(true) and when the back end is QT. Has been tested only with PyPlot.
+"""
+function get_current_fig_position()    
+    # if !contains(pystring(plt[:get_current_fig_manager]()), "FigureManagerQT")
+    try
+        x = plt[:get_current_fig_manager]()[:window][:pos]()[:x]()
+        y = plt[:get_current_fig_manager]()[:window][:pos]()[:y]()
+        w = plt[:get_current_fig_manager]()[:window][:width]()
+        h = plt[:get_current_fig_manager]()[:window][:height]()
+        
+        return (x, y, w, h)
+    catch
+        error("Failed to get current figure position. Is pygui(false) or are you using a back end other than QT?")
+    end
+end
+
+"""
+
+    set_current_fig_position(x, y, w, h)   
+
+Works only when pygui(true) and when the back end is QT. Has been tested only with PyPlot.
+"""
+function set_current_fig_position(x, y, w, h)    
+    # if !contains(pystring(plt[:get_current_fig_manager]()), "FigureManagerQT")
+    try
+        plt[:get_current_fig_manager]()[:window][:setGeometry](x, y, w, h)
+    catch
+        error("Failed to set current figure position. Is pygui(false) or are you using a back end other than QT?")
+    end
 end
 
 
