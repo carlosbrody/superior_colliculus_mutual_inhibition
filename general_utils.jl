@@ -610,4 +610,36 @@ function set_current_fig_position(x, y, w, h)
 end
 
 
+"""
+    C = capture_current_figure_configuration()
+
+Collects the positions of all current figures and 
+prints out to the screen code, that can be copy-pasted,
+that would reproduce that positioning configuration.
+
+# PARAMETERS:
+
+None
+
+# RETURNS:
+
+- C    A matrix that is nfigures-by-5 in size. You probably
+    don't want this, you probably want the text printed to
+    the screen, but here just in case.  Each row will have,
+    in order: figure number, x, y, width, height
+"""
+function capture_current_figure_configuration()
+    @printf("The following code will reproduce your current figure placement:\n\n")
+    C = []
+    for f in sort(plt[:get_fignums]())
+        figure(f)
+        x, y, w, h = get_current_fig_position()
+        @printf("figure(%d); set_current_fig_position(%d, %d, %d, %d)   # x, y, width, height\n", 
+            f, x, y, w, h)
+        C = [C ; [f x y w h]]
+    end
+    return C
+end
+
+
 
