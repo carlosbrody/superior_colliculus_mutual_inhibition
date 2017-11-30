@@ -10,6 +10,9 @@ using HDF5
 # DON'T MODIFY THIS FILE -- the source is in file Current Carlos Work.ipynb. Look there for further documentation and examples of running the code.
 
 
+include("pro_anti.jl")
+
+using HDF5
 
 ####################################################################
 #                                                                  
@@ -159,26 +162,22 @@ function histo_params(args, params, tcosts, costs, files; fignum=1, nbins=10, li
         if myrow < (nrows+1)/2;     axisHeightChange(0.8, lock="t")
         elseif myrow > (nrows+1)/2; axisHeightChange(0.8, lock="b")
         else                        axisHeightChange(0.8, lock="c")
-        end
-        
-        h = plot([0 0 0 ; 0 0 0], [ylim()[1] ; ylim()[2]]*ones(1,3), visible=false, linewidth=linewidth)
-        h[1][:set_color]("b"); h[2][:set_color]("g"); h[3][:set_color]("m")
-        HD.LineHandles = [HD.LineHandles ; reshape(h, 1, 3)]
+        end    
     end
 
     HD.axisHandles = [HD.axisHandles ; subplot(nrows, 2, nrows*2-1)]; axisHeightChange(0.8, lock="b"); 
     axisMove(0, -0.025); plt[:hist](tcosts*1000, nbins); title("training cost*1000")
-    h = plot([0 0 0 ; 0 0 0], [ylim()[1] ; ylim()[2]]*ones(1,3), visible=false, linewidth=linewidth)
-    h[1][:set_color]("b"); h[2][:set_color]("g"); h[3][:set_color]("m")
-    HD.LineHandles = [HD.LineHandles ; reshape(h, 1, 3)]
 
-    
     HD.axisHandles = [HD.axisHandles ; subplot(nrows, 2, nrows*2)];   axisHeightChange(0.8, lock="b"); 
     axisMove(0, -0.025); plt[:hist](costs*1000, nbins); title("test cost*1000")
-    h = plot([0 0 0 ; 0 0 0], [ylim()[1] ; ylim()[2]]*ones(1,3), visible=false, linewidth=linewidth)
-    h[1][:set_color]("b"); h[2][:set_color]("g"); h[3][:set_color]("m")
-    HD.LineHandles = [HD.LineHandles ; reshape(h, 1, 3)]
 
+    for ax in HD.axisHandles
+        axes(ax)
+        h = plot([0 0 0 ; 0 0 0], [ylim()[1] ; ylim()[2]]*ones(1,3), visible=false, linewidth=linewidth)
+        h[1][:set_color]("c"); h[2][:set_color]("b"); h[3][:set_color]("m")
+        HD.LineHandles = [HD.LineHandles ; reshape(h, 1, 3)]
+    end
+    
     args   = [args ; ["train cost" ; "test cost"]]
     params = [params tcosts*1000 costs*1000]
     
@@ -197,15 +196,32 @@ Wrapper that calls the other histo_params method, after first selecting for
 only  runs that have a test cost less than threshold.  further_params are passed
 on to the other histo_params method.
 
+- threshold             training costs below this value are considered "successful" (red dots), 
+                        above it are "unsuccessful" (blue dots)
+
+- cost_choice           String, used to indicate which cost will be used for thresholding. It 
+                        must be either "cost", indicating the testing cost, or "tcost", the training cost. 
+
+- fignum                The figure in which histograms will be plotted.
+
+- nbins                 The number of bins to use in each histogram.
+
+
 """
-function histo_params(res; threshold=-0.0001, further_params...)
+function histo_params(res; threshold=-0.0001, cost_choice="cost", further_params...)
     args   = res["args"]
     params = res["params"]
     tcost  = res["tcost"]
     cost   = res["cost"]
     files  = res["files"]
     
-    I = find(cost.<threshold)
+    if cost_choice=="cost"
+        I = find(cost.<threshold)
+    elseif cost_choice=="tcost"
+        I = find(tcost.<threshold)
+    else
+        error("cost_choice MUST be one of \"tcost\" or \"cost\"")
+    end
     
     return histo_params(args, params[I,:], tcost[I], cost[I], files[I,:]; Dict(further_params)...)
 end
@@ -289,7 +305,8 @@ end
 
 Assuming that `PCA_plot()` was called, and returned the PC that is passed to this function,
 this function will put up a colored dot, across all axes, at the values corresponding to the run 
-indicated by filename.
+indicated by filename. [Out of the entries in PC::PCAplot_data, this function uses files, 
+Vparams, axHandles, dothandles, and axisPCs]
 
 Will put up to three dots, blue for the most recent one asked for; green for one call ago
 to this function; and magenta for the time the function was called two calls ago. That allows
@@ -342,14 +359,19 @@ end
 
 
 """
-    event_callback(xy, r, linehandle, axhandle, PC::PCAplot_data)
+    PCA_event_callback(xy, r, linehandle, axhandle, PC::PCAplot_data)
 
 Internal function used by `PCA_plot()` to enable GUI interactivity.
 This function is responsible for turning the position of the 
 selected data point into the corresponding filename, and then
 calling the callback that was registered with `PCA_plot()` (if any was)
+
+Out of the entries in PC::PCAplot_data, this function uses axisHandles, axisPCs,
+Vparams, files, and callback.
+
 """
-function event_callback(xy, r, linehandle, axhandle, PC::PCA_plot_data)
+function PCA_event_callback(xy, r, linehandle, axhandle, PC::PCAplot_data)
+    # @printf("xy=(%g,%g)\n", xy[1], xy[2])
     idx = nothing
     # Let's go through the axes finding our axis
     for i=1:length(PC.axisHandles)
@@ -357,7 +379,10 @@ function event_callback(xy, r, linehandle, axhandle, PC::PCA_plot_data)
             myX = PC.axisPCs[i,1]; myY = PC.axisPCs[i,2]
             # and now find the index of the point at xy
             idx = find((PC.Vparams[:, end-(myX-1)].==xy[1]) .& (PC.Vparams[:, end-(myY-1)].==xy[2]))
-            if length(idx)==0; @printf("event_callback: Couldn't find point, returning\n"); end;
+            if length(idx)==0; 
+                @printf("PCA_event_callback: Couldn't find point (%.3f,%.3f), returning\n", xy[1], xy[2]); 
+                return; 
+            end
             idx = idx[1]
         end
     end
@@ -374,7 +399,7 @@ end
 
 """
     PC = plot_PCA(res; threshold=-0.0002, fignum=2, pc_offset=0, plot_unsuccessful=true,
-        use_all_runs_for_PCA=false, unsuccessful_threshold=nothing, select_on_test=false,
+        compute_good_only=true, unsuccessful_threshold=nothing, cost_choice="cost",
         user_callback=nothing)
 
 Computes the principal components for a matrix of parameter values across many runs, and puts
@@ -388,7 +413,7 @@ with buttonclicks on the figure.
 
 # OPTIONAL PARAMETERS:
 
-- threshold   costs below this are considered "successful" runs
+- threshold             costs below this are considered "successful" runs
 
 - unsuccessful_threshold   costs above this are considered "UNsuccessful" runs
                         This value defaults to whatever threshold is.  If the two thresholds are
@@ -396,37 +421,40 @@ with buttonclicks on the figure.
 
 - plot_unsuccessful     If true, dots for unsuccessful runs are shown, otherwise not.
 
-- use_all_runs_for_PCA   If true, all runs, whether successful or not, are used to compute the PCs.
+- compute_good_only   If true, all runs, whether successful or not, are used to compute the PCs.
                         If false, only the successful runs.
 
-- select_on_test        If true, the relevant cost is "cost", the testing cost. If false, uses
-                        "tcost", the trainign cost.
+- cost_choice           String, used to indicate which cost will be used for thresholding. It 
+                        must be either "cost", indicating the testing cost, or "tcost", the training cost. 
 
 - pc_offset             Shows PCs from pc_offset+1 to pc_offset+4
 
-- user_callback  
+- user_callback         If set, function that will be called, as `usercallback(filename, PC)` where
+                        filename is the name of the run that corresponds to the selected point.
+
+- fignum                Figure number on which to plot the PC scatterplots
+
 """ 
-function plot_PCA(res; threshold=-0.0002, fignum=2, pc_offset=0, plot_unsuccessful=true,
-    use_all_runs_for_PCA=false, unsuccessful_threshold=nothing, select_on_test=false,
+function plot_PCA(res; threshold=-0.0001, fignum=2, pc_offset=0, plot_unsuccessful=true,
+    compute_good_only=true, unsuccessful_threshold=nothing, cost_choice="cost",
     user_callback=nothing)
 
     if unsuccessful_threshold==nothing
         unsuccessful_threshold = threshold
     end
 
+    # Initialize a PCAplot_data structure
     PC = PCAplot_data([], [], [], [], [], [], [], [], [], [], [], [], nothing, nothing)
 
     # Get the runs' costs and do selection on them:
-    tcost = res["tcost"]; cost = res["cost"]
-    if select_on_test
-        PC.I  = I  = find(cost .< threshold)
-        PC.nI = nI = find(cost .>= unsuccessful_threshold)
-    else
-        PC.I  = I  = find(tcost .< threshold)
-        PC.nI = nI = find(tcost .>= unsuccessful_threshold)
-    end
+    if ~((cost_choice=="tcost")  ||  (cost_choice=="cost"))
+        error("cost_choice MUST be one of \"tcost\" or \"cost\"")
+    end    
+    mycost = res[cost_choice]; 
+    PC.I  = I  = find(mycost .< threshold)
+    PC.nI = nI = find(mycost .>= unsuccessful_threshold)
 
-    if !use_all_runs_for_PCA
+    if compute_good_only
         # Use the successful runs (sparams) to define PCA space
         sparams = copy(res["params"][I,:])
         for i=1:size(sparams,2)
@@ -445,7 +473,7 @@ function plot_PCA(res; threshold=-0.0002, fignum=2, pc_offset=0, plot_unsuccessf
     PC.sd = std(params,1);
     params = params ./ (ones(nruns,1)*PC.sd)
 
-    if use_all_runs_for_PCA
+    if !compute_good_only
         C = params'*params/nruns
         D,V = eig(C)
         pv = 100*D/sum(D)
@@ -456,12 +484,15 @@ function plot_PCA(res; threshold=-0.0002, fignum=2, pc_offset=0, plot_unsuccessf
     PC.Vparams = Vparams = (inv(V)*params')'
 
     figure(fignum); clf(); 
-    ax1 = subplot(2,2,1); axisHeightChange(0.9, lock="t")
-    ax2 = subplot(2,2,2); axisMove(0.05, 0); axisHeightChange(0.9, lock="t")
-    ax3 = subplot(2,2,3); axisHeightChange(0.9, lock="b")
-    ax4 = subplot(2,2,4); axisMove(0.05, 0); axisHeightChange(0.9, lock="b")
-    PC.axisHandles = [ax1, ax2, ax3, ax4]
-    PC.axisPCs = [1 2 ; 3 2 ; 1 3 ; 3 4] + pc_offset
+    # ax1 = subplot(2,2,1); axisHeightChange(0.9, lock="t")
+    # ax2 = subplot(2,2,2); axisMove(0.05, 0); axisHeightChange(0.9, lock="t")
+    # ax3 = subplot(2,2,3); axisHeightChange(0.9, lock="b")
+    # ax4 = subplot(2,2,4); axisMove(0.05, 0); axisHeightChange(0.9, lock="b")
+    # PC.axisHandles = [ax1, ax2, ax3, ax4]
+    # PC.axisPCs = [1 2 ; 3 2 ; 1 3 ; 3 4] + pc_offset
+    ax1 = subplot(1,2,1); ax2 = subplot(1,2,2)
+    PC.axisHandles = [ax1 ; ax2]
+    PC.axisPCs = [2 1 ; 3 1]
 
     for i=1:length(PC.axisHandles)
         axes(PC.axisHandles[i])
@@ -470,8 +501,7 @@ function plot_PCA(res; threshold=-0.0002, fignum=2, pc_offset=0, plot_unsuccessf
             plot(Vparams[nI,end-(myX-1)],  Vparams[nI,end-(myY-1)], "g.", markersize=10)
         end
         plot(Vparams[I,end-(myX-1)],  Vparams[I,end-(myY-1)], "r.", markersize=10)
-        xlabel(@sprintf("PCA %d (%.2f%%)", myX, pv[end-(myX-1)]))
-        ylabel(@sprintf("PCA %d (%.2f%%)", myY, pv[end-(myY-1)]))        
+        title(@sprintf("PCA %d (%.2f%%) vs %d (%.2f%%)", myY, pv[end-(myY-1)], myX, pv[end-(myX-1)]))
     end
 
         
@@ -486,12 +516,12 @@ function plot_PCA(res; threshold=-0.0002, fignum=2, pc_offset=0, plot_unsuccessf
     PC.callback = user_callback
     PC.files = res["files"]
         
-    axes(ax3)
-    if plot_unsuccessful; legend(["unsuccessful", "successful"])
-    else                  legend(["successful"]) 
-    end
+    # axes(ax3)
+    # if plot_unsuccessful; legend(["unsuccessful", "successful"])
+    # else                   legend(["successful"]) 
+    # end
 
-    install_nearest_point_callback(figure(fignum), event_callback, user_data=PC)
+    install_nearest_point_callback(figure(fignum), PCA_event_callback, user_data=PC)
 
     return PC 
 end
@@ -499,7 +529,156 @@ end
 
 
 """
-    params = plot_farm(filename; testruns=400, fignum=3, overrideDict=Dict())
+SV = plot_SVD(;threshold =-0.0002, plot_unsuccessful=false, compute_good_only=false,
+        cost_choice="cost", user_callback=nothing, fignum=100)
+
+Uses the pre-computed SVD components for a matrix of parameter values across many runs, and puts
+up scatterplots of the run parameter values projected onto these SV components (columns of the U 
+matrix. In addition, enables GUI interactivity: users can associate a callback function
+with buttonclicks on the figure.
+
+
+# OPTIONAL PARAMETERS:
+
+- threshold             training costs below this value are considered "successful" (red dots), 
+                        above it are "unsuccessful" (blue dots)
+
+- plot_unsuccessful     If true, dots for unsuccessful runs are shown, otherwise not.
+
+- compute_good_only     If true, only the successful runs are used to compute the SVD space
+
+- cost_choice           String, used to indicate which cost will be used for thresholding. It 
+                        must be either "cost", indicating the testing cost, or "tcost", the training cost. 
+
+- user_callback         If set, function that will be called, as `usercallback(filename, SV)` where
+                        filename is the name of the run that corresponds to the selected point.
+
+- fignum                Figure number on which to plot the PC scatterplots
+
+
+# RETURNS
+
+- SV     A structure of type PCAplot_data. (Only its files, Vparams, axHandles, dotHandles
+         axisPCs and callback entries will have assigned values.)
+
+    
+"""
+function plot_SVD(;threshold =-0.0001, plot_unsuccessful=false, compute_good_only=false,
+    cost_choice="cost", user_callback=nothing, fignum=100)
+
+    # get response matrix
+    response, results = load("SVD_response_matrix.jld", "response","results");
+    # set up filter by nan
+    nanrows = any(isnan.(response),2);
+
+    # Get the runs' costs and do selection on them:
+    if ~((cost_choice=="tcost")  ||  (cost_choice=="cost"))
+        error("cost_choice MUST be one of \"tcost\" or \"cost\"")
+    end    
+    mycost = results[cost_choice]; 
+    if !compute_good_only
+        mycost = mycost[.!vec(nanrows),:];
+        disp_cost = copy(mycost);
+    end
+    badcost = mycost .>= threshold;
+    
+    # if we are computing SVD only on the good farms, update nanrows and disp_cost
+    if compute_good_only
+        nanrows = nanrows .| badcost;
+        disp_cost = mycost[.!vec(nanrows),:];
+    end    
+
+    # Filter response matrix
+    r_all = response[.!vec(nanrows),:];
+    m = mean(r_all,1);
+    r_all = r_all - repmat(m, size(r_all,1),1);
+    F = svdfact(r_all);
+    u = copy(F[:U]); 
+    u1 = u[:,1];
+    u2 = u[:,2];
+    u3 = u[:,3];
+
+    # Make list of just good farms
+    if compute_good_only
+        # nanrows filter already selects for good farms
+        u1good = u1;
+        u2good = u2;
+        u3good = u3;
+    else
+        # remove bad cost farms
+        u1good = u1[.!vec(badcost),:];
+        u2good = u2[.!vec(badcost),:];
+        u3good = u3[.!vec(badcost),:];
+    end
+    files = results["files"];
+    files = files[.!vec(nanrows),:];
+
+    SV = PCAplot_data([], [], [], [], [], [], [], [], [], [], [], [], nothing, nothing)
+    SV.files = files
+    SV.Vparams = u[:,3:-1:1]  # The column vectors are expected in REVERSE order (i.e., as returned by eig(). )
+    
+    pygui(true)
+    figure(fignum); clf();
+
+    ax1 = subplot(1,2,1)
+    if plot_unsuccessful; plot(u[:,3],u[:,1],"bo"); end
+    plot(u3good, u1good, "ro")
+    title("SVD U columns 3 and 1")
+    ylabel("SVD Dim 1")
+    xlabel("SVD Dim 3")   
+    plot(0, 0, "go")[1][:set_visible](false)
+
+    ax2 = subplot(1,2,2)
+    if plot_unsuccessful; plot(u[:,2],u[:,1],"bo"); end
+    plot(u2good, u1good, "ro")
+    title("SVD U columns 2 and 1")
+    xlabel("SVD Dim 2")   
+    remove_ytick_labels()
+
+    SV.axisHandles = [ax1 ; ax2]
+    SV.axisPCs   = [3 1 ; 2 1]
+
+    hs = []
+    for i=1:length(SV.axisHandles)
+        axes(SV.axisHandles[i]); hs = [hs ; [plot(0, 0, "c.") plot(0, 0, "b.") plot(0, 0, "m.")]]
+    end
+    for h in hs; h[:set_markersize](11); h[:set_visible](false); end
+    SV.dotHandles = hs
+    legend(hs[end,1:3], ["current", "1 ago", "2 ago"])
+
+    SV.callback = user_callback
+    # [Out of the entries in PC::PCAplot_data, this function uses files,  Vparams, axHandles, dothandles, and axisPCs]
+
+    install_nearest_point_callback(figure(fignum), PCA_event_callback, user_data=SV)
+
+    return SV
+end
+
+
+
+
+plot_farm_trials = 10    #  The number of trials to be plotted per farm run
+
+"""
+    params = plot_farm(filename; testruns=nothing, fignum=3, overrideDict=Dict())
+
+    Plots multiple trials from a single run of a farm.
+
+# PARAMETERS
+
+- filename    The filename of the .jld file containing the run, to be loaded
+
+# OPTIONAL PARAMETERS
+
+- testruns    Number of trials to run. Defaults to value of global variable plot_farm_trials.
+
+- fignum      Figure to put the plot up in.
+
+- overrideDict   A dictionary containing any model parameter values that will
+              override any values loaded from the file.  For example
+              `overrideDict = Dict(:sigma=>0.001)` will run with that value
+              of sigma, no whater what the file said.
+
 """
 function plot_farm(filename; testruns=400, fignum=3, overrideDict=Dict())
 
@@ -546,7 +725,7 @@ function plot_farm(filename; testruns=400, fignum=3, overrideDict=Dict())
         end
         
         figure(fignum)[:canvas][:draw]()
-        pause(0.001)
+        pause(0.0001)
     end
 
     for a=1:length(args)
@@ -566,14 +745,28 @@ if !isdefined(:res)
     res = farmload("C17", verbose=true, farmdir="MiniFarms")
 end
 
-pygui(true); remove_all_BPs(); plt[:close](1); plt[:close](2)
+pygui(true); remove_all_BPs(); plt[:close](1); plt[:close](2); plt[:close](3)
+figure(1); set_current_fig_position(1275, 664, 640, 509)
+figure(2); set_current_fig_position(1275, 353, 640, 322)
+figure(3); set_current_fig_position(1275, 26,  640, 322)
 
-HD = histo_params(res);
+HD = histo_params(res; threshold=-0.0001, cost_choice="cost");
 
-PC = plot_PCA(res; threshold=-0.0001, pc_offset=0, select_on_test=true, 
-#    user_callback = (fname,PC,BP) -> begin histo_highlight(fname, HD); pause(0.001); 
-#    plot_farm(fname; testruns=20, fignum=3); end,
-    plot_unsuccessful=false, unsuccessful_threshold=0.0001, use_all_runs_for_PCA=true, fignum=2);
+function highlight_all(fname, PC, SV)
+    PCA_highlight(fname, PC); 
+    PCA_highlight(fname, SV); 
+    histo_highlight(fname, HD)
+    pause(0.001); 
+    plot_farm(fname, testruns=10, fignum=4)
+end
+
+PC = plot_PCA(res; threshold=-0.0001, cost_choice="cost", 
+    user_callback = (fname, Trash) -> highlight_all(fname, PC, SV),
+    plot_unsuccessful=false, unsuccessful_threshold=0.0001, compute_good_only=true, fignum=2);
+
+SV = plot_SVD(threshold=-0.0001, cost_choice="cost", 
+    user_callback = (fname, Trash) -> highlight_all(fname, PC, SV),
+    plot_unsuccessful=false, compute_good_only=true, fignum=3);
 
 
 # DON'T MODIFY THIS FILE -- the source is in file Current Carlos Work.ipynb. Look there for further documentation and examples of running the code.
