@@ -8,6 +8,35 @@ To get documentation, ask for help on kbMonitorModule.kb_monitor.
 import matplotlib.widgets as Wid
 
 
+def text_box(ax, leftside_label, initial_text, user_callback=None):
+    """
+    tbox = text_box(ax, leftside_label, initial_text, user_callback=None)
+
+Puts up, in the passed axes ax, a text box with leftside_label (a string)
+to its left. Initial text in the box will initial_text (also a string).
+If the user_callback is set,, that function will be called with one 
+parameter, the string in the box.
+
+    You can also access the string currently in the box through
+    
+    tbox.text
+        
+Or, in Julia, with the PyCall syntax
+
+    rab[:text]
+    
+And you can set the value with 
+
+    rab[:set_value] = your_string
+
+    """
+    tbox = Wid.TextBox(ax, leftside_label, initial=initial_text)
+    if user_callback != None:
+        tbox.on_submit(user_callback)
+
+    return tbox
+
+
 def radio_buttons(rax, labels, user_callback=None):
     """
     rab = radio_buttons(rax, labels, user_callback=None)

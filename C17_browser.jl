@@ -765,9 +765,14 @@ figure(1); set_current_fig_position(1325, 41, 640, 982)   # x, y, width, height
 figure(2); set_current_fig_position(645, 785, 680, 408)
 figure(3); set_current_fig_position(0, 785, 641, 407)
 figure(4); set_current_fig_position(3, 23, 1288, 797)
-figure(5); set_current_fig_position(1338, 998, 360, 200)
+figure(5); set_current_fig_position(1338, 998, 540, 200)
 
-rad = kbMonitorModule.radio_buttons(gca(), ["Don't plot trials", "Plot trials (wait for it)"])
+figure(5)
+ax1 = subplot(1,2,1); axisMove(-0.05, 0); axisWidthChange(1.1, lock="l")
+ax2 = subplot(1,2,2); axisMove(0.05, 0); axisWidthChange(0.6, lock="r")
+rad = kbMonitorModule.radio_buttons(ax1, ["Don't plot trials", "Plot trials (wait for it)"])
+tbx = kbMonitorModule.text_box(ax2, "ntrials to run ", "10")
+
 
 
 HD = histo_params(res; threshold=-0.0001, cost_choice="cost");
@@ -780,7 +785,13 @@ function highlight_all(fname, PC, SV)
     histo_highlight(fname, HD)  # Color the selected bars in the histograms
     pause(0.001);   # We don't really care about the 1 ms pause; just a convenient way to flush all pending graphics commandsj
     if rad[:value_selected] == "Plot trials (wait for it)"
-        plot_farm(fname, testruns=10, fignum=4)  
+        if ~isnull(tryparse(Int64, tbx[:text])); 
+            ntrials = parse(Int64, tbx[:text])
+        else
+            @printf("Couldn't parse the ntrials to plot\n")
+            ntrials = 10
+        end
+        plot_farm(fname, testruns=ntrials, fignum=4)  
     end
 end
 
