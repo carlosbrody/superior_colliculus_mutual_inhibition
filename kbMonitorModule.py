@@ -5,8 +5,35 @@ To get documentation, ask for help on kbMonitorModule.kb_monitor.
 
 """
 
-        
+import matplotlib.widgets as Wid
 
+
+def radio_buttons(rax, labels, user_callback=None):
+    """
+    rab = radio_buttons(rax, labels, user_callback=None)
+
+Puts up radio buttons (only one selected at a time) for the strings
+passed in the vector of strings "labels", in the matplotlib axes given by "rax".  
+On click, if the function user_callback is set, it will be called, with a string 
+as its single parameter-- that string will be the label of the selected button. 
+
+You can also access the string of the currently selected button through
+    
+    rab.value_selected
+        
+Or, in Julia, with the PyCall syntax
+
+    rab[:value_selected]
+     
+    """
+    radio = Wid.RadioButtons(rax, labels)
+    if user_callback != None:
+        radio.on_clicked(user_callback)
+
+    return radio
+    
+
+    
 class kb_monitor:    
     """
     BP = kbMonitorModule.kb_monitor(fig, callback=None, userData=None)
