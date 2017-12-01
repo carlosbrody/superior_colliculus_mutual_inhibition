@@ -1,15 +1,6 @@
 # DON'T MODIFY THIS FILE -- the source is in file Current Carlos Work.ipynb. Look there for further documentation and examples of running the code.
 
 
-include("pro_anti.jl")
-
-using HDF5
-
-
-
-# DON'T MODIFY THIS FILE -- the source is in file Current Carlos Work.ipynb. Look there for further documentation and examples of running the code.
-
-
 
 include("pro_anti.jl")
 
@@ -175,8 +166,8 @@ function histo_params(args, params, tcosts, costs, files; fignum=1, nbins=10, li
     for ax in HD.axisHandles
         axes(ax)
         h = plot([0 0 0 ; 0 0 0], [ylim()[1] ; ylim()[2]]*ones(1,3), visible=false, linewidth=linewidth)
-        h[1][:set_color]("c"); h[2][:set_color]("b"); h[3][:set_color]("m")
-        HD.LineHandles = [HD.LineHandles ; reshape(h, 1, 3)]
+        h[1][:set_color]("m"); h[2][:set_color]("b"); h[3][:set_color]("c")
+        HD.LineHandles = [HD.LineHandles ; reshape(h[end:-1:1], 1, 3)]
     end
     
     args   = [args ; ["train cost" ; "test cost"]]
@@ -507,9 +498,11 @@ function plot_PCA(res; threshold=-0.0001, fignum=2, pc_offset=0, plot_unsuccessf
 
         
     # Add the non-red dots:
-    hs = []
+    hs =Array{PyCall.PyObject}(0, 3)
     for i=1:length(PC.axisHandles)
-        axes(PC.axisHandles[i]); hs = [hs ; [plot(0, 0, "c.") plot(0, 0, "b.") plot(0, 0, "m.")]]
+        axes(PC.axisHandles[i]); 
+        hs = [hs ; reshape([plot(0, 0, "m.") plot(0, 0, "b.") plot(0, 0, "c.")][end:-1:1], 1, 3)]
+        # order of handles gets reversed so the last one plotted -- goes on top -- is first handle
     end
     for h in hs; h[:set_markersize](11); h[:set_visible](false); end
     PC.dotHandles = hs
@@ -639,9 +632,11 @@ function plot_SVD(;threshold =-0.0001, plot_unsuccessful=false, compute_good_onl
     SV.axisHandles = [ax1 ; ax2]
     SV.axisPCs   = [3 1 ; 2 1]
 
-    hs = []
+    hs =Array{PyCall.PyObject}(0, 3)
     for i=1:length(SV.axisHandles)
-        axes(SV.axisHandles[i]); hs = [hs ; [plot(0, 0, "c.") plot(0, 0, "b.") plot(0, 0, "m.")]]
+        axes(SV.axisHandles[i]); 
+        hs = [hs ; reshape([plot(0, 0, "m.") plot(0, 0, "b.") plot(0, 0, "c.")][end:-1:1], 1, 3)]
+        # order of handles gets reversed so the last one plotted -- goes on top -- is first handle
     end
     for h in hs; h[:set_markersize](11); h[:set_visible](false); end
     SV.dotHandles = hs
@@ -768,11 +763,12 @@ figure(4); set_current_fig_position(3, 23, 1288, 797)
 figure(5); set_current_fig_position(1338, 998, 540, 200)
 
 figure(5)
-ax1 = subplot(1,2,1); axisMove(-0.05, 0); axisWidthChange(1.1, lock="l")
-ax2 = subplot(1,2,2); axisMove(0.05, 0); axisWidthChange(0.6, lock="r")
+ax1 = subplot(2,2,1); axisMove(-0.05, 0); axisWidthChange(1.1, lock="l")
+ax2 = subplot(2,2,2); axisMove(0.05, 0); axisWidthChange(0.6, lock="r")
+ax3 = subplot(2,1,2); axisMove(0.05, 0)
 rad = kbMonitorModule.radio_buttons(ax1, ["Don't plot trials", "Plot trials (wait for it)"])
 tbx = kbMonitorModule.text_box(ax2, "ntrials to run ", "10")
-
+dbx = kbMonitorModule.text_box(ax3, "Override ", "")
 
 
 HD = histo_params(res; threshold=-0.0001, cost_choice="cost");
@@ -791,7 +787,11 @@ function highlight_all(fname, PC, SV)
             @printf("Couldn't parse the ntrials to plot\n")
             ntrials = 10
         end
-        plot_farm(fname, testruns=ntrials, fignum=4)  
+        try
+            plot_farm(fname, testruns=ntrials, fignum=4, overrideDict=eval(parse("Dict("*dbx[:text]*")")))  
+        catch e
+            @printf("Couldn't plot farm, error %s", e)
+        end
     end
 end
 
@@ -804,15 +804,34 @@ SV = plot_SVD(threshold=-0.0001, cost_choice="cost",
     user_callback = (fname, Trash) -> highlight_all(fname, PC, SV),
     plot_unsuccessful=false, compute_good_only=true, fignum=3);
 
-@printf("\nWait for PCA and SVD plot up.\n")
-@printf("\n   Then click on any dot within the PCA plot or SVD plots to\n")
-@printf("see the corresponding data in the other plots. Click on\n")
-@printf("'Don't plot trials' in figure 5 if you want to go faster,\n")
-@printf("without running trials.\n\n")
-@printf("The window placement fits a 15-in Macbook Pro, but adjust\n")
-@printf("at will. Once you find window positions you like, run\n")
-@printf("    capture_current_figure_configuration()\n")
-@printf("to get copy-pastable code that reproduces it.\n")
+docstring = """
+
+Wait for PCA and SVD plots to come up.
+Then click on any dot within the PCA plot or SVD plots to
+see the corresponding data in the other plots. Click on
+'Don't plot trials' in figure 5 if you want to go faster,
+without running trials.
+
+The window placement fits a 15-in Macbook Pro, but adjust
+at will. Once you find window positions you like, run
+    capture_current_figure_configuration()
+to get copy-pastable code that reproduces it.
+
+ntrials to run is the number of trials per condition that will
+be run in plot_farm() to compute %correct. Up to 20 of them
+will be plotted.
+
+Override is a dict that will override any paramater values in
+the plotted trials. For example, if you write
+    :sigma=>0.2, :rule_and_delay_period=>1.6
+then no matter what the run's file said, if you ask for trials
+to be plotted, those trials will run
+with that sigma and that rule_and_delay_period.
+
+"""
+
+@printf("%s", docstring)
+
 
 
 # DON'T MODIFY THIS FILE -- the source is in file Current Carlos Work.ipynb. Look there for further documentation and examples of running the code.
