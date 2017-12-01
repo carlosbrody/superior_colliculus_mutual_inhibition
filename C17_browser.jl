@@ -792,7 +792,8 @@ SV = plot_SVD(threshold=-0.0001, cost_choice="cost",
     user_callback = (fname, Trash) -> highlight_all(fname, PC, SV),
     plot_unsuccessful=false, compute_good_only=true, fignum=3);
 
-@printf("\nClick on any dot within the PCA plot or SVD plot to\n")
+@printf("\nWait for PCA and SVD plot up.\n")
+@printf("\n   Then click on any dot within the PCA plot or SVD plots to\n")
 @printf("see the corresponding data in the other plots. Click on\n")
 @printf("'Don't plot trials in figure 5 if you want to go faster,\n")
 @printf("without running trials.\n\n")
