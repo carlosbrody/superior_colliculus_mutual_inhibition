@@ -755,7 +755,7 @@ end
 
 pygui(true); 
 remove_all_BPs(); # Clean up any previous links between clicks on figures and callback functions
-plt[:close](1); plt[:close](2); plt[:close](3); plt[:close](4)
+plt[:close](1); plt[:close](2); plt[:close](3); plt[:close](4); plt[:close](5)
 
 # Carlos' favored configuration, but adjust to suit -- use capture_current_figure_configuration() 
 # to see code that reproduces a configuration you like once you find it
@@ -764,8 +764,13 @@ figure(1); set_current_fig_position(1325, 41, 640, 982)   # x, y, width, height
 figure(2); set_current_fig_position(645, 785, 680, 408)
 figure(3); set_current_fig_position(0, 785, 641, 407)
 figure(4); set_current_fig_position(3, 23, 1288, 797)
+figure(5); set_current_fig_position(1338, 998, 360, 200)
+
+rad = kbMonitorModule.radio_buttons(gca(), ["Don't plot trials", "Plot trials (wait for it)"])
+
 
 HD = histo_params(res; threshold=-0.0001, cost_choice="cost");
+pause(0.001)
 
 # The callback function that will be called after clicking on a data dot:
 function highlight_all(fname, PC, SV)
@@ -773,21 +778,24 @@ function highlight_all(fname, PC, SV)
     PCA_highlight(fname, SV);   # Color the selected dots in the SVD plot
     histo_highlight(fname, HD)  # Color the selected bars in the histograms
     pause(0.001);   # We don't really care about the 1 ms pause; just a convenient way to flush all pending graphics commandsj
-    plot_farm(fname, testruns=10, fignum=4)   # Comment this line out if you just want SVD, PCA, and histograms (faster)
+    if rad[:value_selected] == "Plot trials (wait for it)"
+        plot_farm(fname, testruns=10, fignum=4)  
+    end
 end
 
 PC = plot_PCA(res; threshold=-0.0001, cost_choice="cost", 
     user_callback = (fname, Trash) -> highlight_all(fname, PC, SV),
     plot_unsuccessful=false, unsuccessful_threshold=0.0001, compute_good_only=true, fignum=2);
+pause(0.001)
 
 SV = plot_SVD(threshold=-0.0001, cost_choice="cost", 
     user_callback = (fname, Trash) -> highlight_all(fname, PC, SV),
     plot_unsuccessful=false, compute_good_only=true, fignum=3);
 
 @printf("\nClick on any dot within the PCA plot or SVD plot to\n")
-@printf("see the corresponding data in the other plots. Comment\n")
-@printf("out the plot_farm() line in highlight_all() and rerun if\n")
-@printf("you want to go faster, without running trials.\n\n")
+@printf("see the corresponding data in the other plots. Click on\n")
+@printf("'Don't plot trials in figure 5 if you want to go faster,\n")
+@printf("without running trials.\n\n")
 @printf("The window placement fits a 15-in Macbook Pro, but adjust\n")
 @printf("at will. Once you find window positions you like, run\n")
 @printf("    capture_current_figure_configuration()\n")
