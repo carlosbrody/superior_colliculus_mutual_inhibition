@@ -788,7 +788,7 @@ function highlight_all(fname, PC, SV)
             ntrials = 10
         end
         try
-            plot_farm(fname, testruns=ntrials, fignum=4, overrideDict=eval(parse("Dict("*dbx[:text]*")")))  
+            plot_farm(fname, testruns=ntrials, fignum=4, overrideDict=eval(parse("Dict("*dbx[:text]*")"))) 
         catch e
             @printf("Couldn't plot farm, error %s", e)
         end
