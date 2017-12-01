@@ -3,128 +3,91 @@
 
 
 """
-    ax = axisWidthChange(factor; lock="c", ax=nothing)
-"""
-function axisWidthChange(factor; lock="c", ax=nothing)
-    if ax==nothing; ax=gca(); end
-    x, y, w, h = ax[:get_position]()[:bounds]
-    
-    if lock=="l"; 
-    elseif lock=="c" || lock=="m"; x = x + w*(1-factor)/2; 
-    elseif lock=="r"; x = x + w*(1-factor);
-    else error("I don't know lock type ", lock)
-    end
-    
-    w = w*factor;
-    ax[:set_position]([x, y, w, h])
-    
-    return ax
-end
-   
+evaluated_expression = replacer(P::String, mypars)
+
+Given a string representing an expression to be evaluated, and a dictionary of 
+keys that are strings representing variables with values that are numbers,
+parses the string into an expression, and substitutes any variables matching
+the keys in mypars with the corresponding numeric values; finally, evaluates the
+expression and returns the result.
+
+# PARAMETERS:
+
+- P::String   The expression to be evaluated, for example "t1*10 + sqrt(t2)"
+
+- mypars      A dictionary mapping variable names to values, for example 
+                Dict("t1"=>5, "t2"=>100)
+
+# RETURNS:
+
+The result of evaluating the corresponding expression. Any variables that cannot
+be instantiated into values will result in an Undefvar error
+
+# EXAMPLE:
+
+```jldoctest
+julia>  replacer("t1*10+sqrt(t2)", Dict("t"=>-3, "t1"=>5, "t2"=>100))
+
+15
+
+```
 
 """
-ax = axisHeightChange(factor; lock="c", ax=nothing)
-"""
-function axisHeightChange(factor; lock="c", ax=nothing)
-    if ax==nothing; ax=gca(); end
-    x, y, w, h = ax[:get_position]()[:bounds]
-    
-    if lock=="b"; 
-    elseif lock=="c" || lock=="m"; y = y + h*(1-factor)/2; 
-    elseif lock=="t"; y = y + h*(1-factor);
-    else error("I don't know lock type ", lock)
-    end
-    
-    h = h*factor;
-    ax[:set_position]([x, y, w, h])
-    
-    return ax
+function replacer(P::String, mypars)
+    return replacer(parse(P), mypars)
 end
 
 
 """
-   ax = axisMove(xd, yd; ax=nothing)
+evaluated_expression = replacer(P::Expr, mypars)
+
+Given an expression to be evaluated, and a dictionary of 
+keys that are strings representing variables with values that are numbers,
+substitutes any variables matching
+the keys in mypars with the corresponding numeric values; finally, evaluates the
+expression and returns the result.
+
+# PARAMETERS:
+
+- P::String   The expression to be evaluated, for example parse("t1*10 + sqrt(t2))"
+
+- mypars      A dictionary mapping variable names to values, for example 
+                Dict("t1"=>5, "t2"=>100)
+
+# RETURNS:
+
+The result of evaluating the corresponding expression. Any variables that cannot
+be instantiated into values will result in an Undefvar error
+
+# EXAMPLE:
+
+```jldoctest
+julia>  replacer(parse("t1*10+sqrt(t2))", Dict("t"=>-3, "t1"=>5, "t2"=>100))
+
+15
+
+```
+
 """
-function axisMove(xd, yd; ax=nothing)
-    if ax==nothing; ax=gca(); end
-    x, y, w, h = ax[:get_position]()[:bounds]
+function replacer(P, mypars)   # run through an expression tree, replacing known symbols with their values, then evaluate
+    mypars = symbol_key_ize(mypars)
+    ks = collect(keys(mypars))
 
-    x += xd
-    y += yd
-    
-    ax[:set_position]([x, y, w, h])
-    return ax
-end
-
-
-"""
-[] = remove_xtick_labels(ax=NaN)
-
-Given an axis object, or an array of axes objects, replaces each xtick label string with the empty string "". 
-
-If no axis is passed, uses gca() to work with the current axis.
-
-
-"""
-function remove_xtick_labels(ax=nothing)
-
-    if ax==nothing
-        ax = gca()
-    end
-    
-    if typeof(ax) <: Array
-        for i=1:length(ax)
-            remove_xtick_labels(ax[i])
+    if typeof(P)<:Symbol
+        idx = find(ks .== P)
+        if length(idx)>0
+            P = mypars[ks[idx[1]]]
         end
-        return
+        return P
     end
-    
-    nlabels = length(ax[:xaxis][:get_ticklabels]())
-
-    newlabels = Array{String,1}(nlabels)
-    for i=1:length(newlabels);
-        newlabels[i] = ""
-    end
-    
-    ax[:xaxis][:set_ticklabels](newlabels)
-    return
-end
-
-
-
-"""
-[] = remove_ytick_labels(ax=NaN)
-
-Given an axis object, or an array of axes objects, replaces each ytick label string with the empty string "". 
-
-If no axis is passed, uses gca() to work with the current axis.
-
-
-"""
-function remove_ytick_labels(ax=nothing)
-
-    if ax==nothing
-        ax = gca()
-    end
-    
-    if typeof(ax) <: Array
-        for i=1:length(ax)
-            remove_ytick_labels(ax[i])
+    for i=1:length(P.args)
+        if typeof(P.args[i])<:Expr || typeof(P.args[i])<:Symbol
+            P.args[i] = replacer(P.args[i], mypars)
         end
-        return
     end
-    
-    nlabels = length(ax[:yaxis][:get_ticklabels]())
-
-    newlabels = Array{String,1}(nlabels)
-    for i=1:length(newlabels);
-        newlabels[i] = ""
-    end
-    
-    ax[:yaxis][:set_ticklabels](newlabels)
-    return
+    # @printf("P = \n"); print(P)
+    return eval(P)
 end
-
 
 
 """
@@ -365,6 +328,136 @@ function vectorize_dict(dictionary, ks)
     end
     return output
 end
+
+
+
+# DON'T MODIFY THIS FILE -- the source is in file General Utilities.ipynb. Look there for further documentation and examples of running the code.
+
+
+
+"""
+    ax = axisWidthChange(factor; lock="c", ax=nothing)
+"""
+function axisWidthChange(factor; lock="c", ax=nothing)
+    if ax==nothing; ax=gca(); end
+    x, y, w, h = ax[:get_position]()[:bounds]
+    
+    if lock=="l"; 
+    elseif lock=="c" || lock=="m"; x = x + w*(1-factor)/2; 
+    elseif lock=="r"; x = x + w*(1-factor);
+    else error("I don't know lock type ", lock)
+    end
+    
+    w = w*factor;
+    ax[:set_position]([x, y, w, h])
+    
+    return ax
+end
+   
+
+"""
+ax = axisHeightChange(factor; lock="c", ax=nothing)
+"""
+function axisHeightChange(factor; lock="c", ax=nothing)
+    if ax==nothing; ax=gca(); end
+    x, y, w, h = ax[:get_position]()[:bounds]
+    
+    if lock=="b"; 
+    elseif lock=="c" || lock=="m"; y = y + h*(1-factor)/2; 
+    elseif lock=="t"; y = y + h*(1-factor);
+    else error("I don't know lock type ", lock)
+    end
+    
+    h = h*factor;
+    ax[:set_position]([x, y, w, h])
+    
+    return ax
+end
+
+
+"""
+   ax = axisMove(xd, yd; ax=nothing)
+"""
+function axisMove(xd, yd; ax=nothing)
+    if ax==nothing; ax=gca(); end
+    x, y, w, h = ax[:get_position]()[:bounds]
+
+    x += xd
+    y += yd
+    
+    ax[:set_position]([x, y, w, h])
+    return ax
+end
+
+
+"""
+[] = remove_xtick_labels(ax=NaN)
+
+Given an axis object, or an array of axes objects, replaces each xtick label string with the empty string "". 
+
+If no axis is passed, uses gca() to work with the current axis.
+
+
+"""
+function remove_xtick_labels(ax=nothing)
+
+    if ax==nothing
+        ax = gca()
+    end
+    
+    if typeof(ax) <: Array
+        for i=1:length(ax)
+            remove_xtick_labels(ax[i])
+        end
+        return
+    end
+    
+    nlabels = length(ax[:xaxis][:get_ticklabels]())
+
+    newlabels = Array{String,1}(nlabels)
+    for i=1:length(newlabels);
+        newlabels[i] = ""
+    end
+    
+    ax[:xaxis][:set_ticklabels](newlabels)
+    return
+end
+
+
+
+"""
+[] = remove_ytick_labels(ax=NaN)
+
+Given an axis object, or an array of axes objects, replaces each ytick label string with the empty string "". 
+
+If no axis is passed, uses gca() to work with the current axis.
+
+
+"""
+function remove_ytick_labels(ax=nothing)
+
+    if ax==nothing
+        ax = gca()
+    end
+    
+    if typeof(ax) <: Array
+        for i=1:length(ax)
+            remove_ytick_labels(ax[i])
+        end
+        return
+    end
+    
+    nlabels = length(ax[:yaxis][:get_ticklabels]())
+
+    newlabels = Array{String,1}(nlabels)
+    for i=1:length(newlabels);
+        newlabels[i] = ""
+    end
+    
+    ax[:yaxis][:set_ticklabels](newlabels)
+    return
+end
+
 
 
 
