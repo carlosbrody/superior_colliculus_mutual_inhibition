@@ -795,7 +795,7 @@ SV = plot_SVD(threshold=-0.0001, cost_choice="cost",
 @printf("\nWait for PCA and SVD plot up.\n")
 @printf("\n   Then click on any dot within the PCA plot or SVD plots to\n")
 @printf("see the corresponding data in the other plots. Click on\n")
-@printf("'Don't plot trials in figure 5 if you want to go faster,\n")
+@printf("'Don't plot trials' in figure 5 if you want to go faster,\n")
 @printf("without running trials.\n\n")
 @printf("The window placement fits a 15-in Macbook Pro, but adjust\n")
 @printf("at will. Once you find window positions you like, run\n")
