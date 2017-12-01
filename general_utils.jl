@@ -371,8 +371,9 @@ end
 # DON'T MODIFY THIS FILE -- the source is in file General Utilities.ipynb. Look there for further documentation and examples of running the code.
 
 
-using PyPlot
 using PyCall
+pygui(:qt)  # we're going with teh qt back end for GUI things...
+using PyPlot
 # If the Python path does not already have the local directory in it
 if PyVector(pyimport("sys")["path"])[1] != ""
     # Then the following line is PyCall-ese for "add the current directory to the Python path"
