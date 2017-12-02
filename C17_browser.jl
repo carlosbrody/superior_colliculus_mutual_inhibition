@@ -748,10 +748,18 @@ ax1 = subplot(2,2,1); axisMove(-0.05, 0); axisWidthChange(1.1, lock="l")
 ax2 = subplot(2,2,2); axisMove(0.05, 0); axisWidthChange(0.6, lock="r")
 ax3 = subplot(2,1,2); axisMove(0.05, 0)
 rad = kbMonitorModule.radio_buttons(ax1, ["Don't plot trials", "Plot trials (wait for it)"])
-tbx = kbMonitorModule.text_box(ax2, "ntrials to run ", "10")
-dbx = kbMonitorModule.text_box(ax3, "Override ", "")
+tbx = dbx = []  # define these outside the try/catch so the vars are available outside the try/catch
+try 
+    tbx = kbMonitorModule.text_box(ax2, "ntrials to run ", "10")
+    dbx = kbMonitorModule.text_box(ax3, "Override ", "")
+catch
+    @printf("\nI couldn't make the ntrials to run and Override text boxes for you.\n")
+    tbx = Dict(:text=>"10")
+    dbx = Dict(:text=>"")
+end
 
 
+# Put up the histograms
 HD = histo_params(res; threshold=-0.0001, cost_choice="cost");
 pause(0.001)
 
@@ -771,20 +779,23 @@ function highlight_all(fname, PC, SV)
         try
             plot_farm(fname, testruns=ntrials, fignum=4, overrideDict=eval(parse("Dict("*dbx[:text]*")"))) 
         catch e
-            @printf("Couldn't plot farm, error %s", e)
+            @printf("Couldn't plot farm, error %s\n", e)
         end
     end
 end
 
+# Put up the PCA plot
 PC = plot_PCA(res; threshold=-0.0001, cost_choice="cost", 
     user_callback = (fname, Trash) -> highlight_all(fname, PC, SV),
     plot_unsuccessful=false, unsuccessful_threshold=0.0001, compute_good_only=true, fignum=2);
 pause(0.001)
 
+# Put up the SVD plot
 SV = plot_SVD(threshold=-0.0001, cost_choice="cost", 
     user_callback = (fname, Trash) -> highlight_all(fname, PC, SV),
     plot_unsuccessful=false, compute_good_only=true, fignum=3);
 
+# Print out some instructions for the user
 docstring = """
 
 Wait for PCA and SVD plots to come up.
