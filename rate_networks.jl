@@ -1,6 +1,8 @@
 # DON'T MODIFY THIS FILE -- the source is in file Rate Networks.ipynb. Look there for further documentation and examples of running the code.
 
 
+include("optimization_utils.jl")
+
 using PyCall
 using PyPlot
 using ForwardDiff
@@ -9,7 +11,6 @@ using MAT
 
 # pygui(true)
 
-include("optimization_utils.jl")
 
 
 
