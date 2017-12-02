@@ -465,8 +465,17 @@ end
 
 
 using PyCall
-pygui(:qt)  # we're going with teh qt back end for GUI things...
+# To specifically test with QT or Tk backends, uncomment one of the two following lines: 
+# (the pygui call must come *before* the very first using PyPlot call)
+#
+# pygui(:qt)
+# pygui(:tk)
+#
+# Note that get_current_fig_position() and set_current_fig_position() work only with either QT or Tk at this point.
+#
 using PyPlot
+
+
 # If the Python path does not already have the local directory in it
 if PyVector(pyimport("sys")["path"])[1] != ""
     # Then the following line is PyCall-ese for "add the current directory to the Python path"
@@ -665,8 +674,7 @@ end
 # DON'T MODIFY THIS FILE -- the source is in file General Utilities.ipynb. Look there for further documentation and examples of running the code.
 
 
-using PyPlot
-using PyCall
+
 
 """
 
@@ -677,14 +685,24 @@ Works only when pygui(true) and when the back end is QT. Has been tested only wi
 function get_current_fig_position()    
     # if !contains(pystring(plt[:get_current_fig_manager]()), "FigureManagerQT")
     try
-        x = plt[:get_current_fig_manager]()[:window][:pos]()[:x]()
-        y = plt[:get_current_fig_manager]()[:window][:pos]()[:y]()
-        w = plt[:get_current_fig_manager]()[:window][:width]()
-        h = plt[:get_current_fig_manager]()[:window][:height]()
-        
+        if contains(pystring(plt[:get_current_fig_manager]()), "Tk") 
+            g = split(plt[:get_current_fig_manager]()[:window][:geometry](), ['x', '+'])
+            w = parse(Int64, g[1])
+            h = parse(Int64, g[2])
+            x = parse(Int64, g[3])
+            y = parse(Int64, g[4])
+        elseif contains(pystring(plt[:get_current_fig_manager]()), "QT")
+            x = plt[:get_current_fig_manager]()[:window][:pos]()[:x]()
+            y = plt[:get_current_fig_manager]()[:window][:pos]()[:y]()
+            w = plt[:get_current_fig_manager]()[:window][:width]()
+            h = plt[:get_current_fig_manager]()[:window][:height]()
+        else
+            error("Only know how to work with matplotlib graphics backends that are either Tk or QT")
+        end
+            
         return (x, y, w, h)
     catch
-        error("Failed to get current figure position. Is pygui(false) or are you using a back end other than QT?")
+        error("Failed to get current figure position. Is pygui(false) or are you using a back end other than QT or Tk?")
     end
 end
 
@@ -697,7 +715,13 @@ Works only when pygui(true) and when the back end is QT. Has been tested only wi
 function set_current_fig_position(x, y, w, h)    
     # if !contains(pystring(plt[:get_current_fig_manager]()), "FigureManagerQT")
     try
-        plt[:get_current_fig_manager]()[:window][:setGeometry](x, y, w, h)
+        if contains(pystring(plt[:get_current_fig_manager]()), "Tk") 
+            plt[:get_current_fig_manager]()[:window][:geometry](@sprintf("%dx%d+%d+%d", w, h, x, y))
+        elseif contains(pystring(plt[:get_current_fig_manager]()), "QT")
+            plt[:get_current_fig_manager]()[:window][:setGeometry](x, y, w, h)
+        else
+            error("Only know how to work with matplotlib graphics backends that are either Tk or QT")
+        end
     catch
         error("Failed to set current figure position. Is pygui(false) or are you using a back end other than QT?")
     end
