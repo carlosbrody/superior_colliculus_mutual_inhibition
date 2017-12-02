@@ -549,10 +549,9 @@ function install_nearest_point_callback(fighandle, user_callback; user_data=noth
     function point_nearest_to_click(BP)
         bpe = BP[:buttonlist]()
         # Remove any leading clicks that weren't inside an axis:
-        while length(bpe)>0 && bpe[1][1]==nothing
+        while length(bpe)>0 && ((bpe[1][1]==nothing) || (bpe[1][1]==Void))
             bpe = bpe[2:end]
         end
-
         if length(bpe)>0
             ax = BP[:buttonlist]()[1][1]   # the axis we're working with
             x  = BP[:buttonlist]()[1][2]   # the x of the clicked point
@@ -594,13 +593,14 @@ function install_nearest_point_callback(fighandle, user_callback; user_data=noth
                 end
             end
             # @printf("install: Just returned from the user callback\n")
+
+            # After dealing with all the buttonclick callbacks and so on, bring focus back to the figure that was clicked:
+            figure(ax[:figure][:number])
         end
+
         # We've dealt with the buttonclick, clear the buttonlist
         # @printf("Am about to clear the button list on button "); print(BP); print("\n")
         BP[:clear_buttonlist]()
-
-        # After dealing with all the buttonclick callbacks and so on, bring focus back to the figure that was clicked:
-        figure(ax[:figure][:number])
     end
 
     BP = kbMonitorModule.kb_monitor(fighandle, callback = point_nearest_to_click, userData=user_data)
