@@ -1,4 +1,4 @@
-# DON'T MODIFY THIS FILE -- the source is in file Current Carlos Work.ipynb. Look there for further documentation and examples of running the code.
+# DON'T MODIFY THIS FILE -- the source is in file Results Analysis.ipynb. Look there for further documentation and examples of running the code.
 
 
 
@@ -83,25 +83,6 @@ end
 
 
 
-
-"""
-    myres = selectize(res, I)
-
-Given res, the output of `farmload()` and a vector of indices into an nruns-long
-vector, returns a version of res in which only those indices are present in the
-values -- i.e., vectors will now be length(I)-long, not nruns-long.
-"""
-function selectize(res, I)
-    myres = Dict()
-    for k in keys(res)
-        if length(res[k])>1 && !(typeof(res[k])<:Array{String})
-            myres[k] = res[k][I,:]
-        else
-            myres[k] = res[k]
-        end
-    end
-    return myres
-end
 
 
 """
@@ -734,7 +715,7 @@ end
 
 
 
-# DON'T MODIFY THIS FILE -- the source is in file Current Carlos Work.ipynb. Look there for further documentation and examples of running the code.
+# DON'T MODIFY THIS FILE -- the source is in file Results Analysis.ipynb. Look there for further documentation and examples of running the code.
 
 
 #######################################################
@@ -834,7 +815,7 @@ with that sigma and that rule_and_delay_period.
 
 
 
-# DON'T MODIFY THIS FILE -- the source is in file Current Carlos Work.ipynb. Look there for further documentation and examples of running the code.
+# DON'T MODIFY THIS FILE -- the source is in file Results Analysis.ipynb. Look there for further documentation and examples of running the code.
 
 
 """
