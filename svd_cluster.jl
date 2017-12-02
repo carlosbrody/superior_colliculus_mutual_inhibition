@@ -324,6 +324,10 @@ Puts up an interactive plot of runs plotted in parameter SVD space. (The SVD spa
 based on voltage traces versus time, averaged over trials.) Clicking on a dot brings up, in a
 different figure, example trials from the corresponding run.
 
+# PARAMETERS:
+    
+- farm_id which farm to analyze
+
 # OPTIONAL PARAMETERS:
 
 - threshold  training costs below this value are considered "successful" (red dots), 
@@ -341,9 +345,9 @@ None
 
     
 """
-function SVD_interactive(;threshold =-0.0002, plot_option=1, plot_bad_farms=true, compute_good_only=false)
+function SVD_interactive(farm_id;threshold =-0.0002, plot_option=1, plot_bad_farms=true, compute_good_only=false)
     # get response matrix
-    response, results = load("SVD_response_matrix.jld", "response","results");
+    response, results = load(farm_id*"_SVD_response_matrix.jld", "response","results");
     # set up filter by nan
     nanrows = any(isnan(response),2);
 
@@ -426,6 +430,10 @@ Thsi function puts up an interactive plot of runs plotted in parameter SVD space
 is defined based on voltage traces versus time, averaged over trials.) Clicking on a dot brings up, 
 in a different figure, example trials from the corresponding run.
 
+PARAMETERS:
+
+- farm_id which farm to analyze
+
 # OPTIONAL PARAMETERS:
 
 - threshold  training costs below this value are considered "successful" (red dots), 
@@ -443,9 +451,9 @@ None
 
     
 """
-function SVD_interactive2(;threshold =-0.0002, plot_option=1, plot_bad_farms=false, compute_good_only=false)
+function SVD_interactive2(farm_id;threshold =-0.0002, plot_option=1, plot_bad_farms=false, compute_good_only=false)
     # get response matrix
-    response, results = load("SVD_response_matrix.jld", "response","results");
+    response, results = load(farm_id*"_SVD_response_matrix.jld", "response","results");
     # set up filter by nan
     nanrows = any(isnan(response),2);
 
