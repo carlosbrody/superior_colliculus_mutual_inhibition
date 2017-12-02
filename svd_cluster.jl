@@ -1,12 +1,32 @@
 # Set of functions for doing SVD clustering on neural trajectories
-# BASIC PIPELINE:
-# SVD_analysis()
+#
+# To perform analysis on a new farm;
+# > results = load_farm_params(farm_id)
+# > response = build_response_matrix(farm_id)
+# > SVD_analysis(farm_id)
 
-# I have no fucking idea why I need to include these, but load() won't work unless I do!
+# I have no idea why I need to include these, but load() won't work unless I do!
 include("pro_anti.jl")
 using HDF5
 
-# load parameters and info for each farm in farmdir 
+"""
+    load_farm_params(farm_id; farmdir="MiniFarms", verbose=true, verbose_every=50)
+
+Load final parameters for each farm run in <MiniFarms/farm_id>. Also loads the training and test cost for each farm. Saves a file <farm_id>_results.jld 
+
+# OPTIONAL PARAMETERS:
+
+- farmdir   Direction where farm runs are located
+
+- verbose   If true, displays some information while running
+
+- verbose_every How often to display information
+
+# RETURNS
+
+A dict with fields "dirs", "files", "tcost", "cost", and "params"
+
+"""
 function load_farm_params(farm_id; farmdir="MiniFarms", verbose=true, verbose_every=50);
     if typeof(farmdir)==String; farmdir=[farmdir]; end
     results = Dict(); dirs=[]; files =[]; qs=[]; tcosts=[]; costs=[]; pars=[]; n=0;
@@ -31,15 +51,35 @@ function load_farm_params(farm_id; farmdir="MiniFarms", verbose=true, verbose_ev
     results["cost"]   = costs
     results["params"] = pars
 
+    myfilename = farm_id*"_results.jld";
+    save(myfilename, results)
     return results
 end
 
-# returns avgerage external trajectory for each node in 4 conditions (hit/miss X pro/anti)
+
+"""
+    run_farm(filename; testruns=200, overrideDict=Dict(),all_conditions=false)
+
+Runs the farm at <filename>, <testruns> times. Then computes the average trajectory for each condition: hits/errors X pro/anti. 
+
+# OPTIONAL PARAMETERS:
+
+- testruns Number of runs to compute
+
+- overrideDict  If you want to override some model parameters
+
+- all_conditions If true, returns average trajectory for each opto condition as well 
+# RETURNS
+
+average trajectory in each condition
+
+"""
 function run_farm(filename; testruns=200, overrideDict=Dict(),all_conditions=false)
     mypars, extra_pars, args, pars3 = load(filename, "mypars", "extra_pars", "args", "pars3")
     numConditions = 1;
     if all_conditions
         numConditions = 3;
+        error("Not sure if this is implemented correctly!!!!")
     end
     avgHP = [];
     avgMP = [];
@@ -73,7 +113,27 @@ function run_farm(filename; testruns=200, overrideDict=Dict(),all_conditions=fal
     return avgHP, avgMP, avgHA, avgMA 
 end
 
-function build_response_matrix(results)
+"""
+    build_response_matrix(farm_id)
+    
+For each farm run, computes the average trajectory for hits/errors X pro/anti. Arranges these average trajectories in a #runs X length(hits/errors X pro/anti)*#timepoints matrix. Saves a file <farm_id>_SVD_response_matrix.jld 
+
+# OPTIONAL PARAMETERS:
+
+- farmdir   Direction where farm runs are located
+    
+- all_conditions If true, compute response matrix for all opto conditions
+
+# RETURNS
+
+Response matrix
+
+"""
+function build_response_matrix(farm_id; all_conditions = false)
+    if all_conditions
+        error("not implemented yet!")
+    end
+    results = load(farm_id*"_results.jld");
     response_matrix = [];
     for i = 1:length(results["cost"])
         filename = results["files"][i];
@@ -86,16 +146,37 @@ function build_response_matrix(results)
         @printf("%g %s %g\n",i, filename, results["tcost"][i])
     end
 
-    myfilename = "SVD_response_matrix.jld";
+    myfilename = farm_id*"_SVD_response_matrix.jld";
     save(myfilename, Dict("response"=>response_matrix, "results"=>results))
 
     return response_matrix
 end
 
-# Main workhorse function. I use as a script
-function SVD_analysis()
+"""
+    SVD_analysis(farm_id; opto_conditions = 1)    
+
+Plots a series of analyses based on the SVD of the average neural response
+
+# PARAMETERS:
+
+- farm_id   Which farm to analyze   
+
+ # OPTIONAL PARAMETERS:
+   
+- opto_conditions Number of opto_conditions in SVD_response_matrix
+
+# RETURNS
+
+None
+
+"""
+function SVD_analysis(farm_id; opto_conditions = 1)
+    if opto_conditions > 1
+        error("opto_conditions > 1 not implemented yet")
+    end
+
     # Load responses from all models
-    response, results = load("SVD_response_matrix.jld", "response","results")
+    response, results = load(farm_id*"_SVD_response_matrix.jld", "response","results")
 
     # need to filter out NaN rows 
     # Some farms in some conditions have no errors, so we have NaNs
@@ -236,7 +317,6 @@ function SVD_analysis()
     return F, nanrows, r_all
 end
 
- ##svd plotter
 """
     SVD_interactive(;threshold =-0.0002, plot_option=1, plot_bad_farms=true, compute_good_only=false)
 
@@ -303,13 +383,6 @@ function SVD_interactive(;threshold =-0.0002, plot_option=1, plot_bad_farms=true
 
     files = results["files"];
     files = files[!vec(nanrows),:];
-
-size(nanrows)
-size(badcost)
-size(u1)
-size(u1good)
-size(disp_cost)
-size(files)
 
     function mycallback(xy, r, h, ax)
         index = find(u1 .== xy[1])
@@ -414,41 +487,6 @@ function SVD_interactive2(;threshold =-0.0002, plot_option=1, plot_bad_farms=fal
     end
     files = results["files"];
     files = files[!vec(nanrows),:];
-
-size(nanrows)
-size(badcost)
-size(u1)
-size(u1good)
-size(disp_cost)
-size(files)
-
-# Old Carlos Code. Here in case Alex screwed up something (11/29/2017)
-#    response, results = load("SVD_response_matrix.jld", "response","results");
-#    nanrows = any(isnan(response),2);
-
-#   # filter for good farms
-#    tcost = results["tcost"];
-#    disp_cost = copy(tcost);
-#    tcost = tcost[!vec(nanrows),:];
-#    badcost = tcost .>= threshold;
-    
-#    r_all = response[!vec(nanrows),:];
-#
-#    m = mean(r_all,1);
-#    r_all = r_all - repmat(m, size(r_all,1),1);
-#    F = svdfact(r_all);
-#    u = copy(F[:U]); 
-#
-#    u1 = u[:,1];
-#    u2 = u[:,2];
-#    u3 = u[:,3];
-#    u1good = u1[!vec(badcost),:];
-#    u2good = u2[!vec(badcost),:];
-#    u3good = u3[!vec(badcost),:];
-
-#    files = results["files"];
-#    files = files[!vec(nanrows),:];
-
 
     function mycallback(xy, r, h, ax)
         if ax[:get_title]() == "SVD U columns 3 and 1"
@@ -607,7 +645,30 @@ function plot_farm(filename; testruns=nothing, fignum=3, overrideDict=Dict())
 end
 
 
-# Stripped down plotting that works on 0.5.2
+
+"""
+    plot_farm2(filename; testruns=nothing, fignum=3, overrideDict=Dict())
+
+    Plots multiple trials from a single run of a farm. Stripped down version of plot_farm, is compatiable with Julia 0.5.2
+
+# PARAMETERS
+
+- filename    The filename of the .jld file containing the run, to be loaded
+
+# OPTIONAL PARAMETERS
+
+- testruns    Number of trials to run. Defaults to global plot_farm_trials.
+
+
+- overrideDict   A dictionary containing any model parameter values that will
+              override any values loaded from the file.  For example
+              `overrideDict = Dict(:sigma=>0.001)` will run with that value
+              of sigma, no whater what the file said.
+
+# RETURNS
+    
+parameters from this farm run in <filename>
+"""
 function plot_farm2(filename; testruns=10, overrideDict=Dict())
 
     mypars, extra_pars, args, pars3 = load(filename, "mypars", "extra_pars", "args", "pars3")
@@ -652,11 +713,27 @@ function plot_farm2(filename; testruns=10, overrideDict=Dict())
 end
 
 
+"""
+    plot_SVD_approx(rank, condition, F; opto_conditions)
 
+    
+# PARAMETERS
 
+- rank  Which SVD dimension to plot (rank is a misnomer)
 
+- condition Which condition (hit/error x pro/anti) to plot 
 
-function plot_SVD_approx(rank, condition, F)
+- F SVD object to analyze
+
+# OPTIONAL PARAMETERS
+
+- opto_conditions number of opto conditions in F
+    
+"""
+function plot_SVD_approx(rank, condition, F; opto_conditions=1)
+    if opto_conditions > 1
+        error("not yet implemented, opto_conditions > 1")
+    end
     figure()
     S = copy(F[:S]);
 #    S[rank+1:end] = 0;    
@@ -692,7 +769,27 @@ function plot_SVD_approx(rank, condition, F)
 end
 
 
-function plot_psth(r_all, neural_dex)
+"""
+    plot_psth(r_all, neural_dex; opto_conditions = 1)
+
+Plots the average PSTH from farm run <neural_dex> in <r_all>   
+assumes only one opto condition! 
+
+# PARAMETERS
+
+- r_all response matrix to plot from
+
+- neural_dex which farm run to plot
+
+# OPTIONAL PARAMETERS
+
+- opto_conditions Number of opto conditions in r_all
+    
+"""
+function plot_psth(r_all, neural_dex; opto_conditions=1)
+    if opto_conditions > 1
+        error("not yet implemented, opto_conditions > 1")
+    end
     numts = Int(size(r_all,2)/4/4);
     numtsC= Int(size(r_all,2)/4);
     figure()
