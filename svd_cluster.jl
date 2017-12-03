@@ -163,6 +163,7 @@ function build_response_matrix(farm_id; farmdir="MiniFarms", all_conditions = fa
     return response_matrix
 end
 
+
 """
     SVD_analysis(farm_id; opto_conditions = 1)    
 
@@ -870,4 +871,50 @@ function plot_psth(r_all, neural_dex; opto_conditions=1)
     plot(r_all[neural_dex,cdex*numtsC+1+3*numts:cdex*numtsC+4*numts])
 
 end
+
+"""
+    build_hessian_dataset(farm_id)
+    
+For each farm run, compute the hessian of the test noise 
+
+# OPTIONAL PARAMETERS:
+
+- farmdir   Direction where farm runs are located
+    
+# RETURNS
+
+Response matrix
+
+"""
+function build_hessian_dataset(farm_id; farmdir="MiniOptimized")
+
+    
+    results = load(farmdir*farm_id*"_results.jld");
+    hessians = Array(Float64,length(results["cost"]),12,12);
+
+    for i = 1:length(results["cost"])
+
+        filename = results["files"][i];    
+        ftraj3 = load(filename, "ftraj3")
+        farm_hessian = ftraj3[2,end];
+        hessians[i,:,:] = farm_hessian;
+
+        # This recovers "cost3" - the training cost
+#         func1 = (;params...)-> JJ(mypars[:nPro], mypars[:nAnti]; verbose=false,seedrand=extra_pars[:seedrand], merge(merge(mypars, extra_pars), Dict(params))...)[1]       
+#        farm_value, farm_grad, farm_hessian = keyword_vgh(func1, args, pars3);
+
+        # This recovers "cost" - the test cost
+#         func2 = (;params...)-> JJ(testruns, testruns; verbose=false,seedrand=extra_pars[:seedrand], merge(merge(mypars, extra_pars), Dict(params))...)[1]       
+#        farm_value, farm_grad, farm_hessian = keyword_vgh(func1, args, pars3);
+
+        # do a check to see if farm_value and tcost match
+        @printf("%g %s %g\n",i, filename, results["tcost"][i])
+    end
+
+    myfilename = farmdir*farm_id*"_hessians.jld";
+    save(myfilename, Dict("hessians"=>hessians))
+
+    return hessians
+end
+
 
