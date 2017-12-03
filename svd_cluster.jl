@@ -51,7 +51,7 @@ function load_farm_params(farm_id; farmdir="MiniFarms", verbose=true, verbose_ev
     results["cost"]   = costs
     results["params"] = pars
 
-    myfilename = farmdir*farm_id*"_results.jld";
+    myfilename = farmdir[1]*farm_id*"_results.jld";
     save(myfilename, results)
     return results
 end
