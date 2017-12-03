@@ -71,20 +71,20 @@ Runs the farm at <filename>, <testruns> times. Then computes the average traject
 - all_conditions If true, returns average trajectory for each opto condition as well 
 # RETURNS
 
-average trajectory in each condition
+a row vector that contains the average trajectory in each trial type and each opto condition
 
 """
 function run_farm(filename; testruns=200, overrideDict=Dict(),all_conditions=false)
     mypars, extra_pars, args, pars3 = load(filename, "mypars", "extra_pars", "args", "pars3")
     numConditions = 1;
     if all_conditions
-        numConditions = 3;
-        error("Not sure if this is implemented correctly!!!!")
+        numConditions = size(extra_pars[:opto_periods],1);
     end
     avgHP = [];
     avgMP = [];
     avgHA = [];
     avgMA = [];
+    farm_response = [];
     for period = 1:numConditions
         these_pars = merge(mypars, extra_pars);
         these_pars = merge(these_pars, Dict(
@@ -109,8 +109,14 @@ function run_farm(filename; testruns=200, overrideDict=Dict(),all_conditions=fal
         avgMP = [avgmp[1,:,1]; avgmp[2,:,1]; avgmp[3,:,1]; avgmp[4,:,1]];
         avgHA = [avgha[1,:,1]; avgha[2,:,1]; avgha[3,:,1]; avgha[4,:,1]];
         avgMA = [avgma[1,:,1]; avgma[2,:,1]; avgma[3,:,1]; avgma[4,:,1]];
+        if period == 1
+            farm_response = [avgHP' avgMP' avgHA' avgMA'];
+        else
+            farm_response = [farm_response avgHP' avgMP' avgHA' avgMA'];
+        end
     end
-    return avgHP, avgMP, avgHA, avgMA 
+#    return avgHP, avgMP, avgHA, avgMA 
+    return farm_response, numConditions
 end
 
 """
@@ -137,17 +143,17 @@ function build_response_matrix(farm_id; all_conditions = false)
     response_matrix = [];
     for i = 1:length(results["cost"])
         filename = results["files"][i];
-        avgHP, avgMP, avgHA, avgMA  = run_farm(filename);
+        farm_response, numConditions = run_farm(filename;all_conditions=all_conditions);
         if isempty(response_matrix)
-            response_matrix = [avgHP' avgMP' avgHA' avgMA'];
+            response_matrix = [farm_response];
         else
-            response_matrix = [response_matrix; avgHP' avgMP' avgHA' avgMA'];
+            response_matrix = [response_matrix; farm_response];
         end
         @printf("%g %s %g\n",i, filename, results["tcost"][i])
     end
 
     myfilename = farm_id*"_SVD_response_matrix.jld";
-    save(myfilename, Dict("response"=>response_matrix, "results"=>results))
+    save(myfilename, Dict("response"=>response_matrix, "results"=>results, "numConditions"=>numConditions ))
 
     return response_matrix
 end
