@@ -136,23 +136,28 @@ Response matrix
 
 """
 function build_response_matrix(farm_id; all_conditions = false)
-    if all_conditions
-        error("not implemented yet!")
-    end
+
     results = load(farm_id*"_results.jld");
     response_matrix = [];
+    numConditions = 1;
     for i = 1:length(results["cost"])
         filename = results["files"][i];
-        farm_response, numConditions = run_farm(filename;all_conditions=all_conditions);
+        farm_response, numC = run_farm(filename;all_conditions=all_conditions);
+        numConditions = numC;
+
         if isempty(response_matrix)
-            response_matrix = [farm_response];
+            response_matrix = farm_response;
         else
             response_matrix = [response_matrix; farm_response];
         end
         @printf("%g %s %g\n",i, filename, results["tcost"][i])
     end
 
-    myfilename = farm_id*"_SVD_response_matrix.jld";
+    if all_conditions & (numConditions > 1)
+        myfilename = farm_id*"_SVD_response_matrix"*string(numConditions)*".jld";
+    else
+        myfilename = farm_id*"_SVD_response_matrix.jld";
+    end
     save(myfilename, Dict("response"=>response_matrix, "results"=>results, "numConditions"=>numConditions ))
 
     return response_matrix
@@ -183,7 +188,11 @@ None
 function SVD_analysis(farm_id; opto_conditions = 1, compute_good_only=false, threshold=-0.0002)
 
     # Load responses from all models
+    if opto_conditions > 1
+    response, results = load(farm_id*"_SVD_response_matrix"*string(opto_conditions)*".jld", "response","results")
+    else
     response, results = load(farm_id*"_SVD_response_matrix.jld", "response","results")
+    end
 
     # need to filter out NaN rows 
     # Some farms in some conditions have no errors, so we have NaNs
@@ -360,15 +369,22 @@ different figure, example trials from the corresponding run.
 
 - compute_good_only  If true, only the successful runs are used to compute the SVD space
 
+- opto_conditions Number of opto conditions (control only = 1)
+
 # RETURNS
 
 None
 
     
 """
-function SVD_interactive(farm_id;threshold =-0.0002, plot_option=1, plot_bad_farms=true, compute_good_only=false)
+function SVD_interactive(farm_id;threshold =-0.0002, plot_option=1, plot_bad_farms=true, compute_good_only=false, opto_conditions = 1)
     # get response matrix
-    response, results = load(farm_id*"_SVD_response_matrix.jld", "response","results");
+    if opto_conditions > 1
+    response, results = load(farm_id*"_SVD_response_matrix"*string(opto_conditions)*".jld", "response","results")
+    else
+    response, results = load(farm_id*"_SVD_response_matrix.jld", "response","results")
+    end
+
     # set up filter by nan
     nanrows = any(isnan(response),2);
 
@@ -466,15 +482,22 @@ PARAMETERS:
 
 - compute_good_only  If true, only the successful runs are used to compute the SVD space
 
+- opto_conditions Number of opto conditions (control only = 1)
+
 # RETURNS
 
 None
 
     
 """
-function SVD_interactive2(farm_id;threshold =-0.0002, plot_option=1, plot_bad_farms=false, compute_good_only=false)
+function SVD_interactive2(farm_id;threshold =-0.0002, plot_option=1, plot_bad_farms=false, compute_good_only=false, opto_conditions=1)
     # get response matrix
-    response, results = load(farm_id*"_SVD_response_matrix.jld", "response","results");
+    if opto_conditions > 1
+    response, results = load(farm_id*"_SVD_response_matrix"*string(opto_conditions)*".jld", "response","results")
+    else
+    response, results = load(farm_id*"_SVD_response_matrix.jld", "response","results")
+    end
+
     # set up filter by nan
     nanrows = any(isnan(response),2);
 
