@@ -165,15 +165,16 @@ Plots a series of analyses based on the SVD of the average neural response
    
 - opto_conditions Number of opto_conditions in SVD_response_matrix
 
+- compute_good_only compute SVD only on good farms
+
+- threshold for determining good farms
+
 # RETURNS
 
 None
 
 """
-function SVD_analysis(farm_id; opto_conditions = 1)
-    if opto_conditions > 1
-        error("opto_conditions > 1 not implemented yet")
-    end
+function SVD_analysis(farm_id; opto_conditions = 1, compute_good_only=false, threshold=-0.0002)
 
     # Load responses from all models
     response, results = load(farm_id*"_SVD_response_matrix.jld", "response","results")
@@ -181,16 +182,30 @@ function SVD_analysis(farm_id; opto_conditions = 1)
     # need to filter out NaN rows 
     # Some farms in some conditions have no errors, so we have NaNs
     nanrows = any(isnan(response),2);
+    
+    # Filter out farms with bad cost
+    if compute_good_only
+        tcost = copy(results["tcost"])
+        badcost = tcost .>= threshold;
+        nanrows = badcost | nanrows;
+    end
+    
     r_all = response[!vec(nanrows),:];
 
-    # Sort out responses in each condition
+    # figure out size of response
+    nt = size(r_all,2); # length of each row
+    ntOptoCondition = Int(nt/opto_conditions); # length of row for each opto_condition
+    ntTrialType = Int(ntOptoCondition/4); # length of row for each trial type hit/miss X pro/anti for each opto condition
+    ntNode  = Int(ntTrialType/4); # length of row for each node in each trial type.
+
+    # example of data format
+    # Sort out responses in each trial type in control trials
     # Each is 4 nodes x 76 timesteps = 304 
     # node 1, 2, 3, 4 is the same ordering as run_nTrials
-    # just here for documenting purposes.
-    r_hp = r_all[:,1:304];
-    r_mp = r_all[:,304*2+1:2*304];
-    r_ha = r_all[:,304*2+1:3*304];
-    r_ma = r_all[:,304*3+1:end];
+    r_hp = r_all[:,1:ntTrialType];
+    r_mp = r_all[:,ntTrialType*2+1:2*ntTrialType];
+    r_ha = r_all[:,ntTrialType*2+1:3*ntTrialType];
+    r_ma = r_all[:,ntTrialType*3+1:end];
 
     # F[:U], F[:S], F[:Vt]
     m = mean(r_all,1);
@@ -240,7 +255,7 @@ function SVD_analysis(farm_id; opto_conditions = 1)
     
     # Same scatter plot with dot size proportional to cost
     tcost = copy(results["tcost"])
-    tcost = tcost[!nanrows];
+    tcost = tcost[!vec(nanrows)];
     tcost = convert(Array{Float64,1}, tcost);
     tcost = -tcost;
     tcost = tcost - minimum(tcost);
