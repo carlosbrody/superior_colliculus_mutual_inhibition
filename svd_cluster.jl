@@ -51,7 +51,7 @@ function load_farm_params(farm_id; farmdir="MiniFarms", verbose=true, verbose_ev
     results["cost"]   = costs
     results["params"] = pars
 
-    myfilename = farm_id*"_results.jld";
+    myfilename = farmdir*farm_id*"_results.jld";
     save(myfilename, results)
     return results
 end
@@ -135,9 +135,9 @@ For each farm run, computes the average trajectory for hits/errors X pro/anti. A
 Response matrix
 
 """
-function build_response_matrix(farm_id; all_conditions = false)
+function build_response_matrix(farm_id; farmdir="MiniFarms", all_conditions = false)
 
-    results = load(farm_id*"_results.jld");
+    results = load(farmdir*farm_id*"_results.jld");
     response_matrix = [];
     numConditions = 1;
     for i = 1:length(results["cost"])
@@ -154,9 +154,9 @@ function build_response_matrix(farm_id; all_conditions = false)
     end
 
     if all_conditions & (numConditions > 1)
-        myfilename = farm_id*"_SVD_response_matrix"*string(numConditions)*".jld";
+        myfilename = farmdir*farm_id*"_SVD_response_matrix"*string(numConditions)*".jld";
     else
-        myfilename = farm_id*"_SVD_response_matrix.jld";
+        myfilename = farmdir*farm_id*"_SVD_response_matrix.jld";
     end
     save(myfilename, Dict("response"=>response_matrix, "results"=>results, "numConditions"=>numConditions ))
 
@@ -185,13 +185,13 @@ Plots a series of analyses based on the SVD of the average neural response
 None
 
 """
-function SVD_analysis(farm_id; opto_conditions = 1, compute_good_only=false, threshold=-0.0002)
+function SVD_analysis(farm_id; farmdir="MiniFarms", opto_conditions = 1, compute_good_only=false, threshold=-0.0002)
 
     # Load responses from all models
     if opto_conditions > 1
-    response, results = load(farm_id*"_SVD_response_matrix"*string(opto_conditions)*".jld", "response","results")
+    response, results = load(farmdir*farm_id*"_SVD_response_matrix"*string(opto_conditions)*".jld", "response","results")
     else
-    response, results = load(farm_id*"_SVD_response_matrix.jld", "response","results")
+    response, results = load(farmdir*farm_id*"_SVD_response_matrix.jld", "response","results")
     end
 
     # need to filter out NaN rows 
@@ -377,12 +377,12 @@ None
 
     
 """
-function SVD_interactive(farm_id;threshold =-0.0002, plot_option=1, plot_bad_farms=true, compute_good_only=false, opto_conditions = 1)
+function SVD_interactive(farm_id;farmdir="MiniFarms", threshold =-0.0002, plot_option=1, plot_bad_farms=true, compute_good_only=false, opto_conditions = 1)
     # get response matrix
     if opto_conditions > 1
-    response, results = load(farm_id*"_SVD_response_matrix"*string(opto_conditions)*".jld", "response","results")
+    response, results = load(farmdir*farm_id*"_SVD_response_matrix"*string(opto_conditions)*".jld", "response","results")
     else
-    response, results = load(farm_id*"_SVD_response_matrix.jld", "response","results")
+    response, results = load(farmdir*farm_id*"_SVD_response_matrix.jld", "response","results")
     end
 
     # set up filter by nan
@@ -490,12 +490,12 @@ None
 
     
 """
-function SVD_interactive2(farm_id;threshold =-0.0002, plot_option=1, plot_bad_farms=false, compute_good_only=false, opto_conditions=1)
+function SVD_interactive2(farm_id;farmdir="MiniFarms", threshold =-0.0002, plot_option=1, plot_bad_farms=false, compute_good_only=false, opto_conditions=1)
     # get response matrix
     if opto_conditions > 1
-    response, results = load(farm_id*"_SVD_response_matrix"*string(opto_conditions)*".jld", "response","results")
+    response, results = load(farmdir*farm_id*"_SVD_response_matrix"*string(opto_conditions)*".jld", "response","results")
     else
-    response, results = load(farm_id*"_SVD_response_matrix.jld", "response","results")
+    response, results = load(farmdir*farm_id*"_SVD_response_matrix.jld", "response","results")
     end
 
     # set up filter by nan
