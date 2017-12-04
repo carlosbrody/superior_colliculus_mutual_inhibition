@@ -201,7 +201,7 @@ function SVD_analysis(farm_id; farmdir="MiniFarms", opto_conditions = 1, compute
     
     # Filter out farms with bad cost
     if compute_good_only
-        tcost = copy(results["tcost"])
+        tcost = copy(results["tcost"]);
         badcost = tcost .>= threshold;
         nanrows = badcost | nanrows;
     end
@@ -235,7 +235,7 @@ function SVD_analysis(farm_id; farmdir="MiniFarms", opto_conditions = 1, compute
     vc  = cumsum(vals);
     varexp = vc./vtotal;
     varexp = flipdim(varexp,1);
-
+   
     # compute variance explained from SVD
     S = copy(F[:S]);
     S = S.^2;
@@ -310,12 +310,15 @@ function SVD_analysis(farm_id; farmdir="MiniFarms", opto_conditions = 1, compute
     xlabel("SVD Dim 1")   
 
     # We don't see clustering of parameters, so lets look for what parameters correlate with svd dim 1 and 3
-    p = copy(results["params"])
-    p = p[!vec(nanrows),:]
+    p = copy(results["params"]);
+    p = p[!vec(nanrows),:];
+    meanp = mean(p,1);
+    stdp  = std(p,1);
+
     # gotta z-score parameters
     for i=1:size(p,2)
-        p[:,i] -= mean(p[:,i])
-        p[:,i] /= std(p[:,i])
+        p[:,i] -= mean(p[:,i]);
+        p[:,i] /= std(p[:,i]);
     end
     unorm = copy(u[:,1])
     unorm -= mean(unorm)
@@ -344,7 +347,29 @@ function SVD_analysis(farm_id; farmdir="MiniFarms", opto_conditions = 1, compute
     bifn_vec = cn-cn3;
     bifn_vec = bifn_vec/norm(bifn_vec);
     bifn_labels = [bifn_vec args]
-   
+ 
+     
+#    figure()
+#    p = copy(results["params"]);
+#    p = p[!vec(nanrows),:];
+#    paramC = cov(p);
+#    vals, vecs = eig(paramC);
+#    paramx = vecs[:,end-1:end]'*p';
+#    scatter(paramx[1,:], paramx[2,:]);
+#
+#    hessians = load(farmdir*farm_id*"_hessians.jld")
+#    hessians = hessians["hessians"];
+#    hessians = hessians[!vec(nanrows),:,:];    
+#    scalevecs = vecs[:,end-1:end]';#.*stdp;
+#    scaleHess = Array(Float64, size(hessians,1),2,2);
+#    for i=1:size(hessians,1)
+#        scaleHess[i,:,:] = scalevecs*hessians[1,:,:]*scalevecs';
+#        scaleC = inv(scaleHess[i,:,:]);
+#        
+#    end
+
+
+ 
     return F, nanrows, r_all
 end
 
