@@ -336,6 +336,20 @@ end
 
 
 """
+    safe_axes(axh)
+
+If you're going to make axh the current axes, this function
+first makes axh's figure the current figure. Some Julias
+break without that.
+"""
+
+function safe_axes(axh)
+    figure(axh[:figure][:number])
+    axes(axh)
+end
+
+
+"""
     ax = axisWidthChange(factor; lock="c", ax=nothing)
 """
 function axisWidthChange(factor; lock="c", ax=nothing)

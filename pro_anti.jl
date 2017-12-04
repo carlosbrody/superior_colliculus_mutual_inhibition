@@ -55,7 +55,8 @@ function plot_PA(t, U, V; fignum=1, clearfig=true, rule_and_delay_period=1, targ
     if ~haskey(ax_set, "Vax")
         if plot_Us; ax1 = subplot(3,1,1); else ax1=subplot(2,1,1); end;
     else
-        ax1 = axes(ax_set["Vax"], fontsize=20)
+        figure(ax_set["Vax"])
+        ax1 = safe_axes(ax_set["Vax"], fontsize=20)
     end
     h = plot(t, V'); 
     setp(h[1], color=[0, 0, 1])
@@ -86,7 +87,7 @@ function plot_PA(t, U, V; fignum=1, clearfig=true, rule_and_delay_period=1, targ
         if ~haskey(ax_set, "Uax")
             ax2 = subplot(3,1,2)
         else
-            ax2 = axes(ax_set["Uax"])
+            ax2 = safe_axes(ax_set["Uax"])
         end
         hu = plot(t, U')
         oldlims = [ylim()[1]+0.1, ylim()[2]-0.1]
@@ -108,7 +109,7 @@ function plot_PA(t, U, V; fignum=1, clearfig=true, rule_and_delay_period=1, targ
     if ~haskey(ax_set, "Dax")
         if plot_Us; ax3 = subplot(3,1,3); else ax3=subplot(2,1,2); end;
     else
-        ax3 = axes(ax_set["Dax"])
+        ax3 = safe_axes(ax_set["Dax"])
     end
 
     delta = V[1,:] - V[4,:]
