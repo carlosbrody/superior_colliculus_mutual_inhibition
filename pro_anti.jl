@@ -387,6 +387,10 @@ function run_ntrials(nPro, nAnti; plot_list=[], start_pro=[-0.5,-0.5,-0.5,-0.5],
     if haskey(ax_set, "anti_Vax"); anti_ax_set["Vax"] = ax_set["anti_Vax"]; end;
     if haskey(ax_set, "anti_Dax"); anti_ax_set["Dax"] = ax_set["anti_Dax"]; end;
     if haskey(ax_set, "anti_Uax"); anti_ax_set["Uax"] = ax_set["anti_Uax"]; end;
+
+    # If we were passed pro and anti axes, their figure numbers override profig and antifig:
+    if haskey(ax_set, "pro_Vax");  profig =ax_set["pro_Vax"][:figure][:number];  end
+    if haskey(ax_set, "anti_Vax"); antifig=ax_set["anti_Vax"][:figure][:number]; end
     
     model_params = Dict(model_params)
     pro_input,  t, nsteps = make_input("Pro" ; nderivs=nderivs, difforder=difforder, model_params...)
