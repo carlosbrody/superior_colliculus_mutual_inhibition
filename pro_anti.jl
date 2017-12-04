@@ -55,7 +55,6 @@ function plot_PA(t, U, V; fignum=1, clearfig=true, rule_and_delay_period=1, targ
     if ~haskey(ax_set, "Vax")
         if plot_Us; ax1 = subplot(3,1,1); else ax1=subplot(2,1,1); end;
     else
-        figure(ax_set["Vax"])
         ax1 = safe_axes(ax_set["Vax"], fontsize=20)
     end
     h = plot(t, V'); 

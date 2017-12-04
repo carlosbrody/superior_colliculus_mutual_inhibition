@@ -336,16 +336,18 @@ end
 
 
 """
-    safe_axes(axh)
+safe_axes(axh; further_params...)
 
 If you're going to make axh the current axes, this function
 first makes axh's figure the current figure. Some Julias
 break without that.
+
+Any optional keyword-value arguments are passed on to axes()
 """
 
-function safe_axes(axh)
+function safe_axes(axh; further_params...)
     figure(axh[:figure][:number])
-    axes(axh)
+    axes(axh; Dict(further_params)...)
 end
 
 
