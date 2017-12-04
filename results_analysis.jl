@@ -607,7 +607,7 @@ PCA_highlight(res["files"][I[3]], PC)
 """
 function PCA_highlight(fname, PC::PCAplot_data)
     idx = find(PC.files .== fname)
-    if length(idx)==0; @printf("PCA_highlight: Couldn't find filename %s, returning\n", fname); return; end
+    if length(idx)==0; @printf("PCA_highlight: Couldn't find filename %s in the PCAplot_data structure, returning\n", fname); return; end
 
     Vparams = PC.Vparams[idx,:]
 

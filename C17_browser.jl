@@ -7,8 +7,8 @@
 #
 #######################################################
 
-if !isdefined(histo_params)
-    error("You must call include(\"results_analysis.jl\") before calling include(\"C17_browser.jl\"))
+if !isdefined(:histo_params)
+    error("You must call include(\"results_analysis.jl\") before calling include(\"C17_browser.jl\")")
 end
 
 if !isdefined(:res)
