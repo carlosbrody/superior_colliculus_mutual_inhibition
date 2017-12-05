@@ -900,7 +900,7 @@ end
 """
     build_hessian_dataset(farm_id)
     
-For each farm run, compute the hessian of the test noise 
+For each farm run, compute the hessian of the test noise. This function assumes the hessian has already been computed. The commented code could be used to modify to compute the hessians at run time
 
 # OPTIONAL PARAMETERS:
 
@@ -908,7 +908,7 @@ For each farm run, compute the hessian of the test noise
     
 # RETURNS
 
-Response matrix
+Matrix of N runs X #params X #params hessians
 
 """
 function build_hessian_dataset(farm_id; farmdir="MiniOptimized")
@@ -945,6 +945,26 @@ end
 
 
 """
+    plot_PCA(farm_id; farmdir="MiniOptimized", opto_conditions = 3, compute_good_only=true, threshold=-0.0002, deltaCost = 1e-4)
+    
+Computes PCA on parameters for each farm, and then estimates the hessian approximation to the likelihood surface consistent with a deltaCost increase in cost. This ellipse is based on the quadratic approximation to the likelihood surface. It ignores the gradient, and all higher order terms. 
+
+# OPTIONAL PARAMETERS:
+
+- farmdir   Direction where farm runs are located
+
+- opto_conditions Loads the results from the SVD response matrix computed on all opto conditions, or just the control. Note that this doesnt change the results of this file, it just changes where the results matrix is loaded from. 
+
+- compute_good_only If true, computes PCA and ellipses only on farm runs with a cost lower than threshold
+
+- threshold The benchmark used to define good vs. bad runs
+
+- deltaCost The relative change in cost that the ellipses will plot. 
+    
+# RETURNS
+
+Nothing. Plots a figure. 
+
 
 """
 function plot_PCA(farm_id; farmdir="MiniOptimized", opto_conditions = 3, compute_good_only=true, threshold=-0.0002, deltaCost = 1e-4)
@@ -1021,48 +1041,86 @@ end
 # center [x,y]
 # covariance c (2x2)
 # scale factor s
+"""
+    plot_ellipse(center, C,s,fignum)
+    
+Plots an ellipse with mean center, and major and minor axes given by the eigenvalues of C. s is a scale factor that termines the radius. Commented out code has an example on data 
+
+# PARAMETERS:
+
+- center a vector for the center of the ellipse. eq [0; 0] is the origin
+
+- C a matrix that defines the major and minor axes. 
+
+- s a scale factor. If C is a inverse covariance matrix, then s=1.96 gives 95% confidence intervals
+
+- fignum. Which figure to plot on. Wants the figure number, not the figure object. 
+    
+# RETURNS
+
+Nothing. Plots a figure. 
+
+
+"""
 function plot_ellipse(center, C,s,fignum )
     
+    # Make a mesh of points    
     p = 0:pi/100:(2*pi);
 
+    # Find eigenvalues of C
     vals, vecs = eig(C);
+    
+    # find rotation angle of largest eigenvalue
     cosrotation = dot([1;0], vecs[:,end])/(norm([1;0])*norm(vecs[:,end]))
     rotation =( pi/2 - acos(cosrotation));
+    
+    # Make a rotation matrix based on angle of largest eigenvalue. 
     R = [sin(rotation) cos(rotation); -cos(rotation) sin(rotation)];
-    # If C is covariance...s = 1.96 is 95% CI
-    #xradius = s*vals[end]^.5;
-    #yradius = s*vals[1]^.5;
-    # If C is just a quadratic
+
+    # Here we define the radius of the ellipse along the major axis (x-axis), and minor axis (y-axis)
     xradius = (s*2/vals[end])^.5;
     yradius = (s*2/vals[1])^.5;
+
+    # scale points by length and angle. cos(p), sin(p) make circle. 
     x = xradius*cos.(p);
     y = yradius*sin.(p); 
+
+    # rotate x,y points back to original coordinate frame, and mean shift
     points = R*[x'; y'] + repmat(center,1,length(x));
     
+    # Plot the ellipse
     figure(fignum)    
     plot(points[1,:],points[2,:],"r")
-end
 
-# # Test code on quadratic surface
-# H = [2 1; 1 1].*20;
-# func = (x) -> (0.5*x'*H*x)[1]
-# xax = -21:0.1:21;
-# yax = -20:0.1:20;
-# X = repmat(xax', length(yax),1);
-# Y = repmat(yax,1,length(xax));
-# 
-# J = zeros(length(xax), length(yax))
-# for  xi=1:length(xax)
-# for yi=1:length(yax)
-# J[xi,yi] = func([xax[xi], yax[yi]]);
-# end
-# end
-# 
-# close("all")
-# figure(1)
-# contour(X,Y,J',levels=[10])
-# 
-# plot_ellipse([0;0],H,10,gcf()[:number])
-# 
+    # # Test code on quadratic surface
+    # # Make quadratic surface
+    # H = [2 1; 1 1].*20;
+    # func = (x) -> (0.5*x'*H*x)[1]
+    #
+    # # Make a mesh of x y points
+    # xax = -21:0.1:21;
+    # yax = -20:0.1:20;
+    # X = repmat(xax', length(yax),1);
+    # Y = repmat(yax,1,length(xax));
+    # 
+    # # Evaluate quadratic surface on mesh
+    # J = zeros(length(xax), length(yax))
+    # for  xi=1:length(xax)
+    # for yi=1:length(yax)
+    # J[xi,yi] = func([xax[xi], yax[yi]]);
+    # end
+    # end
+    # 
+    # # plot mesh surface, using the contour plot to demonstrate contour of deltaCost.
+    # close("all")
+    # figure(1)
+    # deltaCost = 10
+    # contour(X,Y,J',levels=[deltaCost])
+    # 
+    # # Plot ellipse with same deltaCost, and we match the contour. 
+    # plot_ellipse([0;0],H,deltaCost,gcf()[:number])
+    # 
+    
+end
 
 
