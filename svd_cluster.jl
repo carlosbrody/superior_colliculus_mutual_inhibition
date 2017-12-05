@@ -703,9 +703,9 @@ function plot_farm(filename; testruns=nothing, fignum=3, overrideDict=Dict())
         hBA = length(find(antiVs[4,:] .> antiVs[1,:]))/size(antiVs,2)
         # @printf("period %d:  hBP=%.2f%%, hBA=%.2f%%\n\n", period, 100*hBP, 100*hBA)
 
-        axes(pvax); title(@sprintf("%s  PRO hits = %.2f%%", pstrings[period], 100*hBP))
-        axes(avax); title(@sprintf("ANTI hits = %.2f%%", 100*hBA))
-        axes(pdax); remove_xtick_labels(); xlabel("")
+        safe_axes(pvax); title(@sprintf("%s  PRO hits = %.2f%%", pstrings[period], 100*hBP))
+        safe_axes(avax); title(@sprintf("ANTI hits = %.2f%%", 100*hBA))
+        safe_axes(pdax); remove_xtick_labels(); xlabel("")
         if period > 1
             remove_ytick_labels([pvax, pdax, avax, adax])
         end
@@ -941,5 +941,128 @@ function build_hessian_dataset(farm_id; farmdir="MiniOptimized")
 
     return hessians
 end
+
+
+
+"""
+
+"""
+function plot_PCA(farm_id; farmdir="MiniOptimized", opto_conditions = 3, compute_good_only=true, threshold=-0.0002, deltaCost = 1e-4)
+
+    # Load responses, results, and hessian from all models
+    if opto_conditions > 1
+    response, results = load(farmdir*farm_id*"_SVD_response_matrix"*string(opto_conditions)*".jld", "response","results")
+    else
+    response, results = load(farmdir*farm_id*"_SVD_response_matrix.jld", "response","results")
+    end
+    hessians = load(farmdir*farm_id*"_hessians.jld")
+    hessians = hessians["hessians"];
+
+    # need to filter out NaN rows 
+    # Some farms in some conditions have no errors, so we have NaNs
+    nanrows = any(isnan(response),2);
+    
+    # Filter out farms with bad hessians
+    badhess = Array(Bool,size(hessians,1),1);
+    for i=1:size(hessians,1)
+        evals, evecs = eig(hessians[i,:,:]);
+        badhess[i] = any(evals .<=0);
+    end 
+    nanrows = nanrows | badhess;
+ 
+    # Filter out farms with bad cost
+    if compute_good_only
+        tcost = copy(results["tcost"]);
+        badcost = tcost .>= threshold;
+        nanrows = badcost | nanrows;
+    end
+    
+    # get parameters
+    p = copy(results["params"]);
+    # filter parameters
+    p = p[!vec(nanrows),:];
+
+    # gotta mean subtract and z-score
+    p = p - repmat(mean(p,1), size(p,1),1);
+    stdp = std(p,1);
+    p = p./repmat(stdp,size(p,1),1);
+
+    # compute scale factor for hessian
+    sf = stdp;#1./stdp;
+    sfsf = sf'*sf;
+    
+    # define covariance matrix
+    paramC = cov(p);
+    # do pca on parameter-covariance
+    vals, vecs = eig(paramC);
+    # find projections onto first and second dimensions
+    paramx = vecs[:,end-1:end]'*p';
+
+    # plot pca projections
+    figure()
+    fignum = gcf()[:number];
+    scatter(paramx[1,:], paramx[2,:]);
+
+    # filter hessians
+    hessians = hessians[!vec(nanrows),:,:];    
+    scalevecs = vecs[:,end-1:end]';
+    pcaHess = Array(Float64, size(hessians,1),2,2);
+
+    for i=1:size(hessians,1)
+        hessians[i,:,:,] = hessians[i,:,:].*sfsf;
+        pcaHess[i,:,:] = scalevecs*hessians[i,:,:]*scalevecs';
+        plot_ellipse(paramx[:,i],pcaHess[i,:,:],deltaCost,fignum)
+    end
+    xlabel("PCA Dim 1")
+    ylabel("PCA Dim 1")
+
+end
+
+# center [x,y]
+# covariance c (2x2)
+# scale factor s
+function plot_ellipse(center, C,s,fignum )
+    
+    p = 0:pi/100:(2*pi);
+
+    vals, vecs = eig(C);
+    cosrotation = dot([1;0], vecs[:,end])/(norm([1;0])*norm(vecs[:,end]))
+    rotation =( pi/2 - acos(cosrotation));
+    R = [sin(rotation) cos(rotation); -cos(rotation) sin(rotation)];
+    # If C is covariance...s = 1.96 is 95% CI
+    #xradius = s*vals[end]^.5;
+    #yradius = s*vals[1]^.5;
+    # If C is just a quadratic
+    xradius = (s*2/vals[end])^.5;
+    yradius = (s*2/vals[1])^.5;
+    x = xradius*cos.(p);
+    y = yradius*sin.(p); 
+    points = R*[x'; y'] + repmat(center,1,length(x));
+    
+    figure(fignum)    
+    plot(points[1,:],points[2,:],"r")
+end
+
+# # Test code on quadratic surface
+# H = [2 1; 1 1].*20;
+# func = (x) -> (0.5*x'*H*x)[1]
+# xax = -21:0.1:21;
+# yax = -20:0.1:20;
+# X = repmat(xax', length(yax),1);
+# Y = repmat(yax,1,length(xax));
+# 
+# J = zeros(length(xax), length(yax))
+# for  xi=1:length(xax)
+# for yi=1:length(yax)
+# J[xi,yi] = func([xax[xi], yax[yi]]);
+# end
+# end
+# 
+# close("all")
+# figure(1)
+# contour(X,Y,J',levels=[10])
+# 
+# plot_ellipse([0;0],H,10,gcf()[:number])
+# 
 
 
