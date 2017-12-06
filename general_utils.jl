@@ -3,6 +3,26 @@
 
 
 """
+    append_to_file(filename, str)
+
+Opens filename, appends str to it, and closes filename.
+
+If filename is not a string but us type Base.PipeEndpoint (an IO stream)
+then simply prints to it, without trying to open or close
+"""
+function append_to_file(filename, str)
+    if typeof(filename)<:Base.PipeEndpoint
+        @printf(filename, "%s", str)
+    else
+        fstr = open(filename, "a")
+        @printf(fstr, "%s", str)
+        close(fstr)
+    end
+end
+u
+
+
+"""
 evaluated_expression = replacer(P::String, mypars)
 
 Given a string representing an expression to be evaluated, and a dictionary of 
