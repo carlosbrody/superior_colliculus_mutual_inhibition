@@ -72,7 +72,7 @@ while my_run_number + (nloops*tot_n_runs) <= length(f)
 
     append_to_file(report_file, @sprintf("\n\n*** %d %s: grabbing file %s ***\n\n", my_run_number, 
         Dates.format(now(), "e, dd u yyyy HH:MM:SS"), myfile))
-    append_to_tile(report_file, @sprintf("Running with %d Pro trials and %d Anti trials.\n\n", 
+    append_to_file(report_file, @sprintf("Running with %d Pro trials and %d Anti trials.\n\n", 
                                          mypars[:nPro], mypars[:nAnti]))
 
     mypars, extra_pars, args, seed = load(source_dir * "/" * myfile, 
