@@ -53,18 +53,24 @@ if ~isnull(tryparse(Int64, ARGS[2])); tot_n_runs    = parse(Int64, ARGS[2]);
 else                                  tot_n_runs = 1; 
 end
 
-source_dir = "MiniOptimized"
-optim_dir  = "MiniOptimized_Redux"
+source_dir  = "MiniOptimized"
+optim_dir   = "MiniOptimized_Redux_Trash"
+reports_dir = "Reports"
+report_file = reports_dir * "/" * @sprintf("report_out_%d", my_run_number)
 
-if ~isdir(optim_dir); mkdir(optim_dir); end
+if ~isdir(optim_dir);   mkdir(optim_dir);   end
+if ~isdir(reports_dir); mkdir(reports_dir); end
+
+mypars[:nPro] = 200
+mypars[:nPro] = 200
 
 f = readdir(source_dir)
 nloops = 0
 
 while my_run_number + (nloops*tot_n_runs) <= length(f)
     myfile = f[my_run_number + (nloops*tot_n_runs)]
-    @printf("\n\n*** %d %s: grabbing file %s ***\n\n", my_run_number, 
-        Dates.format(now(), "e, dd u yyyy HH:MM:SS"), myfile)
+    append_to_file(report_file, @sprintf("\n\n*** %d %s: grabbing file %s ***\n\n", my_run_number, 
+        Dates.format(now(), "e, dd u yyyy HH:MM:SS"), myfile))
     mypars, extra_pars, args, seed = load(source_dir * "/" * myfile, 
         "mypars", "extra_pars", "args", "pars3")
 
@@ -79,6 +85,7 @@ while my_run_number + (nloops*tot_n_runs) <= length(f)
         pars3, traj3, cost3, cpm_traj3, ftraj3 = bbox_Hessian_keyword_minimization(seed, 
                                                                 args, bbox, func1, 
                                                                 start_eta = 0.01, tol=1e-12, 
+                                                                verbose_file = report_file,
                                                                 verbose=true, verbose_every=1, maxiter=maxiter1)
 
         # evaluate the result with many trials, for accuracy
@@ -88,7 +95,7 @@ while my_run_number + (nloops*tot_n_runs) <= length(f)
         # Write out the results
         myfilename = optim_dir * "/" * myfile
 
-        @printf("\n\n ****** writing to file %s *******\n\n", myfilename)
+        append_to_file(report_file, @sprintf("\n\n ****** writing to file %s *******\n\n", myfilename))
 
         # write file
         save(myfilename, Dict("README"=>README, "nPro"=>mypars[:nPro], "nAnti"=>mypars[:nAnti], 
@@ -102,8 +109,8 @@ while my_run_number + (nloops*tot_n_runs) <= length(f)
         if isa(y, InterruptException); throw(InterruptException()); end
 
         # Other errors get caught and a warning is issued but then we run again
-        @printf("\n\nWhoopsety, unkown error!\n\n");
-        @printf("Error was :\n"); print(y); @printf("\n\nTrying new random seed.\n\n")
+        append_to_file(report_file, @sprintf("\n\nWhoopsety, unkown error!\n\n"));
+        append_to_file(report_file, @sprintf("Error was:\n%s\n\nTrying new random seed.\n\n", y)); 
     end
     
     nloops += 1
