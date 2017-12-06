@@ -299,8 +299,10 @@ using MAT
 
 
 """
-function bbox_Hessian_keyword_minimization(seed, args, bbox, func; start_eta=10, tol=1e-6, 
-maxiter=400, frac_cost_threshold = 0.5, stopping_function = nothing, verbose=false, report_file="")
+function bbox_Hessian_keyword_minimization(seed, args, bbox, func; start_eta=0.1, 
+    tol=1e-6, maxiter=400, frac_cost_threshold = 0.5, stopping_function = nothing,
+    verbose=false, verbose_level=1, verbose_every=1, verbose_file=nothing,
+    softbox=true, hardbox=false, report_file="")
 
 Like constrained_Hessian_minimization, but uses keyword_hessian!(). 
 
@@ -357,6 +359,9 @@ Like constrained_Hessian_minimization, but uses keyword_hessian!().
 
 - verbose_level   If less than 2, regular verbose output, if 2 or greater, very verbose, for debugging.
 
+- verbose_file  If other than nothing, should be a string indicating a filename that verbose
+                output will be written to.
+
 - softbox       If true, then bbox must be a Dict() and we use the tanh() mechanism for putting a fixed limit
                 on the parameters. NO LONGER SUPPORTING ANYTHING OTHER THAN softbox=true (which is the default)
 
@@ -390,7 +395,7 @@ Like constrained_Hessian_minimization, but uses keyword_hessian!().
 
 
 
-# EXAMPLE:  (see also a more complete example in Cost Function Minimization and Hessian Utilities.ipynb)
+# EXAMPLE:  (see also a more complete example in Optimization Utilities.ipynb)
 
 ```
 function tester(;x=5, y=10, z=20, nderivs=0, difforder=0)
@@ -405,7 +410,8 @@ params, trajectory = bbox_Hessian_keyword_minimization([0.5, 0.5], ["x", "y"], [
 """
 function bbox_Hessian_keyword_minimization(seed, args, bbox, func; start_eta=0.1, tol=1e-6, maxiter=400,
     frac_cost_threshold = 0.5, stopping_function = nothing,
-    verbose=false, verbose_level=1, verbose_every=1, softbox=true, hardbox=false, report_file="")
+    verbose=false, verbose_level=1, verbose_every=1, verbose_file=nothing,
+    softbox=true, hardbox=false, report_file="")
 
     # --- check that saving will be done to a .jld file ---
     if length(report_file)>0 && splitext(report_file)[2] != ".jld"
@@ -451,9 +457,11 @@ function bbox_Hessian_keyword_minimization(seed, args, bbox, func; start_eta=0.1
     # --------- END Initializing the trajectory trace --------
 
     if verbose
-        @printf "%d: eta=%g ps=" 0 eta 
-        print_vector(vector_wrap(bbox, args, params))
-        @printf "\n"
+        if verbose_file==nothing; ostr=STDOUT else ostr=open(verbose_file, "a"); end
+        @printf ostr "%d: eta=%g ps=" 0 eta 
+        print_vector(ostr, vector_wrap(bbox, args, params))
+        @printf ostr "\n"
+        if verbose_file!=nothing; close(ostr); end
     end
     
     if softbox
@@ -488,8 +496,10 @@ function bbox_Hessian_keyword_minimization(seed, args, bbox, func; start_eta=0.1
         hess_cost_delta = 0.5 * hessdelta' * hess * hessdelta + grad'*hessdelta   # Netwon prediction for how much cost should change    
         try
             if verbose && verbose_level >= 2
-                @printf("bhm: about to try cpm with grad : "); print_vector_g(grad); print("\n")
-                @printf("bhm:   hess :"); print_vector_g(hess[:]); print("\n");
+                if verbose_file==nothing; ostr=STDOUT else ostr=open(verbose_file, "a"); end
+                @printf(ostr, "bhm: about to try cpm with grad : "); print_vector_g(ostr, grad); print(ostr, "\n")
+                @printf(ostr, "bhm:   hess :"); print_vector_g(ostr, hess[:]); print(ostr, "\n");
+                if verbose_file!=nothing; close(ostr); end
             end
             if verbose && verbose_level >= 2
                 cpm_out = constrained_parabolic_minimization(hess, grad'', eta, 
@@ -507,18 +517,20 @@ function bbox_Hessian_keyword_minimization(seed, args, bbox, func; start_eta=0.1
             if isa(y, InterruptException); throw(InterruptException()); end  # External interrupts should not be catchable
             jumptype = "failed"
             if verbose
-                @printf "Constrained parabolic minimization failed with error %s\n" y
-                @printf "\n"
-                @printf "eta was %g\n" eta
-                @printf "grad was\n"
-                print_vector(grad)
-                @printf "\n\nhess was\n"
+                if verbose_file==nothing; ostr=STDOUT else ostr=open(verbose_file, "a"); end
+                @printf ostr "Constrained parabolic minimization failed with error %s\n" y
+                @printf ostr "\n"
+                @printf ostr "eta was %g\n" eta
+                @printf ostr "grad was\n"
+                print_vector(ostr, grad)
+                @printf ostr "\n\nhess was\n"
                 for k in [1:length(grad);]
-                    print_vector(hess[k,:])
-                    @printf "\n"
+                    print_vector(ostr, hess[k,:])
+                    @printf ostr "\n"
                 end
-                @printf "\n"
+                @printf ostr "\n"
                 matwrite("error_report.mat", Dict("grad"=>grad, "hess"=>hess, "eta"=>eta))
+                if verbose_file!=nothing; close(ostr); end
             end
             break
         end
@@ -540,17 +552,21 @@ function bbox_Hessian_keyword_minimization(seed, args, bbox, func; start_eta=0.1
                     make_dict(args, new_params)...)
             end
             if verbose && verbose_level >=2
-                @printf("bhm: had new_params = : "); print_vector_g(vector_wrap(bbox, args, params)); print("\n");
-                @printf("bhm: and my bbox was : "); print(bbox); print("\n")
-                @printf("bhm: and my wallwrap output was : "); print(wallwrap(bbox, make_dict(args, new_params))); print("\n")
-                @printf("bhm: and this produced new_grad : "); print_vector_g(new_grad); print("\n")
-                @printf("bhm:   new_hess :"); print_vector_g(new_hess[:]); print("\n");                                        
+                if verbose_file==nothing; ostr=STDOUT else ostr=open(verbose_file, "a"); end
+                @printf(ostr, "bhm: had new_params = : "); print_vector_g(ostr, vector_wrap(bbox, args, params)); print(ostr, "\n");
+                @printf(ostr, "bhm: and my bbox was : "); print(ostr, bbox); print(ostr, "\n")
+                @printf(ostr, "bhm: and my wallwrap output was : "); print(ostr, wallwrap(bbox, make_dict(args, new_params))); print(ostr, "\n")
+                @printf(ostr, "bhm: and this produced new_grad : "); print_vector_g(ostr, new_grad); print(ostr, "\n")
+                @printf(ostr, "bhm:   new_hess :"); print_vector_g(ostr, new_hess[:]); print(ostr, "\n");                                        
+                if verbose_file!=nothing; close(ostr); end
             end
             
             if abs(new_cost - cost) < tol || eta < tol || stopping_func_out
                 if verbose
-                    @printf("About to break -- stop_func_out = %s, tol=%g, new_cost-cost=%g, eta=%g\n", 
+                    if verbose_file==nothing; ostr=STDOUT else ostr=open(verbose_file, "a"); end
+                    @printf(ostr, "About to break -- stop_func_out = %s, tol=%g, new_cost-cost=%g, eta=%g\n", 
                         stopping_func_out, tol, new_cost-cost, eta)
+                if verbose_file!=nothing; close(ostr); end
                 end
                 break
             end
@@ -558,26 +574,30 @@ function bbox_Hessian_keyword_minimization(seed, args, bbox, func; start_eta=0.1
 
         if jumptype == "failed" || cost <= new_cost || (new_cost - cost)/expected_cost_delta <= frac_cost_threshold  
             if verbose
-                @printf("eta going down: ")
-                if jumptype=="failed"; @printf("jtype=failed");
-                else                   @printf("cost (new-old)/expect = %.3f", (new_cost - cost)/expected_cost_delta)
+                if verbose_file==nothing; ostr=STDOUT else ostr=open(verbose_file, "a"); end
+                @printf(ostr, "eta going down: ")
+                if jumptype=="failed"; @printf(ostr, "jtype=failed");
+                else                   @printf(ostr, "cost (new-old)/expect = %.3f", (new_cost - cost)/expected_cost_delta)
                 end
-                @printf(" new_cost-cost=%g and jumptype='%s'\n", new_cost-cost, jumptype)
+                @printf(ostr, " new_cost-cost=%g and jumptype='%s'\n", new_cost-cost, jumptype)
                 if verbose_level >= 2
                     nwp = vector_wrap(bbox, args, new_params); wp = vector_wrap(bbox, args, params)
-                    @printf("   vvv: proposed new params were : "); print_vector_g(nwp); print("\n")
-                    @printf("   vvv: proposed delta params was : "); print_vector_g(nwp-wp); print("\n")
-                    @printf("   vvv: grad was : "); print_vector_g(grad); print("\n")
+                    @printf(ostr, "   vvv: proposed new params were : "); print_vector_g(ostr, nwp); print(ostr, "\n")
+                    @printf(ostr, "   vvv: proposed delta params was : "); print_vector_g(ostr, nwp-wp); print(ostr, "\n")
+                    @printf(ostr, "   vvv: grad was : "); print_vector_g(ostr, grad); print(ostr, "\n")
                     costheta = dot(new_params-params, grad)/(norm(new_params-params)*norm(grad))
-                    @printf("   vvv: costheta of proposed jump was %g\n", costheta)
+                    @printf(ostr, "   vvv: costheta of proposed jump was %g\n", costheta)
                 end
+                if verbose_file!=nothing; close(ostr); end
             end
             eta = eta/2
             costheta = NaN
             if eta < tol || stopping_func_out
                 if verbose
-                    @printf("About to break -- stop_func_out = %s, tol=%g, new_cost-cost=%g, eta=%g\n", 
+                    if verbose_file==nothing; ostr=STDOUT else ostr=open(verbose_file, "a"); end
+                    @printf(ostr, "About to break -- stop_func_out = %s, tol=%g, new_cost-cost=%g, eta=%g\n", 
                         stopping_func_out, tol, new_cost-cost, eta)
+                    if verbose_file!=nothing; close(ostr); end
                 end
                 break
             end
@@ -593,14 +613,16 @@ function bbox_Hessian_keyword_minimization(seed, args, bbox, func; start_eta=0.1
 
         if verbose
             if rem(i, verbose_every)==0
-                @printf "%d: eta=%g cost=%g jtype=%s costheta=%.3f ps=" i eta cost jumptype costheta
-                print_vector_g(vector_wrap(bbox, args, params))
-                @printf "\n"
+                if verbose_file==nothing; ostr=STDOUT else ostr=open(verbose_file, "a"); end
+                @printf ostr "%d: eta=%g cost=%g jtype=%s costheta=%.3f ps=" i eta cost jumptype costheta
+                print_vector_g(ostr, vector_wrap(bbox, args, params))
+                @printf ostr "\n"
                 if verbose_level >= 3
-                    @printf "    At this point, grad is ="
-                    print_vector_g(grad)
-                    @printf "\n"                
+                    @printf ostr "    At this point, grad is ="
+                    print_vector_g(ostr, grad)
+                    @printf ostr "\n"                
                 end
+                if verbose_file!=nothing; close(ostr); end
             end
         end
     end
