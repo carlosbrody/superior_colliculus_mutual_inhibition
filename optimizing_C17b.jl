@@ -61,16 +61,20 @@ report_file = reports_dir * "/" * @sprintf("report_out_%d", my_run_number)
 if ~isdir(optim_dir);   mkdir(optim_dir);   end
 if ~isdir(reports_dir); mkdir(reports_dir); end
 
-mypars[:nPro] = 200
-mypars[:nPro] = 200
+mypars[:nPro]  = 200
+mypars[:nAnti] = 200
 
 f = readdir(source_dir)
 nloops = 0
 
 while my_run_number + (nloops*tot_n_runs) <= length(f)
     myfile = f[my_run_number + (nloops*tot_n_runs)]
+
     append_to_file(report_file, @sprintf("\n\n*** %d %s: grabbing file %s ***\n\n", my_run_number, 
         Dates.format(now(), "e, dd u yyyy HH:MM:SS"), myfile))
+    append_to_tile(report_file, @sprintf("Running with %d Pro trials and %d Anti trials.\n\n", 
+                                         mypars[:nPro], mypars[:nAnti]))
+
     mypars, extra_pars, args, seed = load(source_dir * "/" * myfile, 
         "mypars", "extra_pars", "args", "pars3")
 
