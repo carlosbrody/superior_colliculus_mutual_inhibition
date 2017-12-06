@@ -11,7 +11,7 @@ If filename is not a string but us type Base.PipeEndpoint (an IO stream)
 then simply prints to it, without trying to open or close
 """
 function append_to_file(filename, str)
-    if typeof(filename)<:Base.PipeEndpoint
+    if typeof(filename)<:IO
         @printf(filename, "%s", str)
     else
         fstr = open(filename, "a")
@@ -19,7 +19,7 @@ function append_to_file(filename, str)
         close(fstr)
     end
 end
-u
+
 
 
 """
@@ -110,6 +110,10 @@ function replacer(P, mypars)   # run through an expression tree, replacing known
 end
 
 
+# DON'T MODIFY THIS FILE -- the source is in file General Utilities.ipynb. Look there for further documentation and examples of running the code.
+
+
+
 """
 function print_vector(vec)
 
@@ -119,21 +123,34 @@ If passed a symbol (which must evaluate to a vector), then prints the string for
 an equals sign, the vector, and ends by adding a carriage return \n.
 """
 function print_vector(vec)
+    print_vector(STDOUT, vec)
+end
+
+
+"""
+function print_vector(stream::IO, vec)
+
+Takes a vector and uses @sprintf to put it on stream IO with [%.3f, %.3f] format. 
+
+If passed a symbol (which must evaluate to a vector), then prints the string for that symbol,
+an equals sign, the vector, and ends by adding a carriage return \n.
+"""
+function print_vector(stream::IO, vec)
 
     if typeof(vec)==Symbol
         mystr = string(vec)
-        @printf("%s = ", mystr);
-        print_vector(eval(vec))
-        @printf("\n");
+        @printf(stream, "%s = ", mystr);
+        print_vector(stream, eval(vec))
+        @printf(stream, "\n");
         return
     end
     
-    @printf "["
+    @printf stream "["
     for p in [1:length(vec);]
-        @printf("%.3f", vec[p])
-        if p < length(vec) @printf ", "; end
+        @printf(stream, "%.3f", vec[p])
+        if p < length(vec) @printf(stream, ", "); end
     end
-    @printf "]"
+    @printf(stream, "]")
 end
 
 
@@ -146,21 +163,34 @@ If passed a symbol (which must evaluate to a vector), then prints the string for
 an equals sign, the vector, and ends by adding a carriage return \n.
 """
 function print_vector_g(vec)
+    print_vector_g(STDOUT, vec)
+end
+
+
+"""
+function print_vector_g(stream::IO, vec)
+
+Takes a vector and uses @printf to put it on stream with [%g, %g] format. 
+
+If passed a symbol (which must evaluate to a vector), then prints the string for that symbol,
+an equals sign, the vector, and ends by adding a carriage return \n.
+"""
+function print_vector_g(stream::IO, vec)
 
     if typeof(vec)==Symbol
         mystr = string(vec)
-        @printf("%s = ", mystr);
-        print_vector_g(eval(vec))
-        @printf("\n");
+        @printf(stream, "%s = ", mystr);
+        print_vector_g(stream, eval(vec))
+        @printf(stream, "\n");
         return
     end
     
-    @printf "["
+    @printf stream "["
     for p in [1:length(vec);]
-        @printf("%g", vec[p])
-        if p < length(vec) @printf ", "; end
+        @printf(stream, "%g", vec[p])
+        if p < length(vec) @printf(stream, ", "); end
     end
-    @printf "]"
+    @printf(stream, "]")
 end
 
 
