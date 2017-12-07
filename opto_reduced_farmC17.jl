@@ -178,8 +178,8 @@ while true
     seed = Array{Float64}(seed)
 
 
-    maxiter1 = 2;   # for func1, the regular search
-    testruns = 10;  # Number of trials for evaluating the results of the model. 10000 is a good number 
+    maxiter1 = 1000;   # for func1, the regular search
+    testruns = 10000;  # Number of trials for evaluating the results of the model. 10000 is a good number 
 
 
     # Make sure to keep the noise frozen over the search, meaning JJ() needs the seedrand parameter
