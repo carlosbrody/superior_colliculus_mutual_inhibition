@@ -462,7 +462,7 @@ cost, cost1s, cost2s, hP, hA, dP, dA, hBP, hBA, [proValls, antiValls, opto_fract
     JJ(nPro, nAnti; pro_target=0.9, anti_target=0.7, 
         opto_targets = Array{Float64}(0,2), opto_periods = Array{Float64}(0,2), 
         model_details = false,
-        theta1=0.025, theta2=0.035, cbeta=0.003, verbose=false, 
+        theta1=0.025, theta2=0.035, cbeta=0.003, verbose=false, verbose_file = STDOUT,
         pre_string="", zero_last_sigmas=0, seedrand=NaN, 
         rule_and_delay_periods = nothing, target_periods = nothing, post_target_periods = nothing,
         plot_conditions=false, plot_list = [],
@@ -510,6 +510,9 @@ target_period is different, for backwards compatibility it defaults to 0.1.
 - seedrand      If sets, calls srand() on the value to initialize the random number generator.
 
 - verbose       If true, prints out diagnostic information to the console.
+
+- verbose_file  If other than STDOUT, should be a string indicating a filename that verbose
+                output will be written to.
 
 - pre_string    Relevant only under verbose=true, a string that gets printed out before the rest of the verbose info.
 
@@ -564,7 +567,7 @@ If model_details is set to true, also returns proValls, antiValls, opto_fraction
 function JJ(nPro, nAnti; pro_target=0.9, anti_target=0.7, 
     opto_targets = Array{Float64}(0,2), opto_periods = Array{Float64}(0,2), 
     model_details = false,
-    theta1=0.025, theta2=0.035, cbeta=0.003, verbose=false, 
+    theta1=0.025, theta2=0.035, cbeta=0.003, verbose=false, verbose_file = STDOUT,
     pre_string="", zero_last_sigmas=0, seedrand=NaN, 
     rule_and_delay_periods = nothing, target_periods = nothing, post_target_periods = nothing,
     plot_conditions=false, plot_list = [],
@@ -585,8 +588,10 @@ function JJ(nPro, nAnti; pro_target=0.9, anti_target=0.7,
     end
     if target_periods==nothing        
         target_periods = [0.1]
-        @printf("\n\nWARNING: JJ() was not given a target_periods parameter, I will *IGNORE* the\n")
-        @printf("    model_params[:target_period] entry and will use a default of 0.1\n\n")
+        if verbose_file==STDOUT; ostr=STDOUT else ostr=open(verbose_file, "a"); end
+        @printf(ostr, "\n\nWARNING: JJ() was not given a target_periods parameter, I will *IGNORE* the\n")
+        @printf(ostr, "    model_params[:target_period] entry and will use a default of 0.1\n\n")
+        if verbose_file!=STDOUT; close(ostr); end
     end
     if post_target_periods==nothing
          post_target_periods = model_params[:post_target_period]
@@ -643,7 +648,7 @@ function JJ(nPro, nAnti; pro_target=0.9, anti_target=0.7,
     anti_input       = [];
     
     for nopto=1:noptos # iterate over each opto inactivation period
-        # @printf("size(hBP) is %d, %d\n", size(hBP,1), size(hBP,2))
+        # @printf(ostr, "size(hBP) is %d, %d\n", size(hBP,1), size(hBP,2))
 
         # reset random number generator for each opto period, so it cant over fit noise samples
         if ~isnan(seedrand); srand(seedrand); end
@@ -681,7 +686,7 @@ function JJ(nPro, nAnti; pro_target=0.9, anti_target=0.7,
                     end
                     proValls[:,:,:,nopto]  = get_value(proVall)
                     antiValls[:,:,:,nopto] = get_value(antiVall)
-                    # @printf("size of proValls is "); print(size(proValls)); print("\n")
+                    # @printf(ostr, "size of proValls is "); print(size(proValls)); print("\n")
                     
                     hitsP  = 0.5*(1 + tanh.((proVs[1,:]-proVs[4,:,])/theta1))
                     diffsP = tanh.((proVs[1,:,]-proVs[4,:])/theta2).^2
@@ -713,42 +718,46 @@ function JJ(nPro, nAnti; pro_target=0.9, anti_target=0.7,
                 end
             end
         end
-        ## @printf("size(hBP) is %d, %d\n", size(hBP,1), size(hBP,2))
+        ## @printf(ostr, "size(hBP) is %d, %d\n", size(hBP,1), size(hBP,2))
         hitsP = totHitsP/n; hitsA = totHitsA/n; diffsP = totDiffsP/n; diffsA = totDiffsA/n
     
         if verbose
+            if verbose_file==STDOUT; ostr=STDOUT else ostr=open(verbose_file, "a"); end            
             pcost1 = mean(cost1s[nopto,:])   # partial costs
             pcost2 = mean(cost2s[nopto,:])            
             
             # Notice the get_value() calls below, to transform ForwardDiff Duals into Float64s
-            @printf("%s", pre_string)
-            @printf("Opto condition # %d\n", nopto)
-            @printf("     - %d - cost=%g, cost1=%g, cost2=%g\n", nopto,
+            @printf(ostr, "%s", pre_string)
+            @printf(ostr, "Opto condition # %d\n", nopto)
+            @printf(ostr, "     - %d - cost=%g, cost1=%g, cost2=%g\n", nopto,
                 get_value(pcost1+pcost2), get_value(pcost1), get_value(pcost2))
             if nPro>0 && nAnti>0
-                @printf("     - %d - mean(hitsP)=%g, mean(diffsP)=%g mean(hitsA)=%g, mean(diffsA)=%g\n", nopto,
+                @printf(ostr, "     - %d - mean(hitsP)=%g, mean(diffsP)=%g mean(hitsA)=%g, mean(diffsA)=%g\n", nopto,
                     get_value(mean(hitsP)), get_value(mean(diffsP)),
                     get_value(mean(hitsA)), get_value(mean(diffsA)))
             elseif nPro>0
-                @printf("     - %d - mean(hitsP)=%g, mean(diffsP)=%g (nAnti=0)\n", nopto,
+                @printf(ostr, "     - %d - mean(hitsP)=%g, mean(diffsP)=%g (nAnti=0)\n", nopto,
                     get_value(mean(hitsP)), get_value(mean(diffsP)))
             else
-                @printf("     - %d - (nPro=0) mean(hitsA)=%g, mean(diffsA)=%g\n", nopto,
+                @printf(ostr, "     - %d - (nPro=0) mean(hitsA)=%g, mean(diffsA)=%g\n", nopto,
                     get_value(mean(hitsA)), get_value(mean(diffsA)))
             end        
+            if verbose_file!=STDOUT; close(ostr); end
         end
     end
         
-    # @printf("size(hBP) is %d, %d\n", size(hBP,1), size(hBP,2))
+    # @printf(ostr, "size(hBP) is %d, %d\n", size(hBP,1), size(hBP,2))
 
     cost1 = mean(cost1s)
     cost2 = mean(cost2s)
 
     if verbose
-        @printf("%s", pre_string)
-        @printf("OVERALL\n")
-        @printf("     -- cost=%g, cost1=%g, cost2=%g\n", 
+        if verbose_file==STDOUT; ostr=STDOUT else ostr=open(verbose_file, "a"); end
+        @printf(ostr, "%s", pre_string)
+        @printf(ostr, "OVERALL\n")
+        @printf(ostr, "     -- cost=%g, cost1=%g, cost2=%g\n", 
             get_value(cost1+cost2), get_value(cost1), get_value(cost2))
+        if verbose_file!=STDOUT; close(ostr); end
     end
     
     if model_details

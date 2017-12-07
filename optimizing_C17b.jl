@@ -54,15 +54,12 @@ else                                  tot_n_runs = 1;
 end
 
 source_dir  = "MiniOptimized"
-optim_dir   = "MiniOptimized_Redux_Trash"
+optim_dir   = "MiniOptimized_Redux"
 reports_dir = "Reports"
 report_file = reports_dir * "/" * @sprintf("report_out_%d", my_run_number)
 
 if ~isdir(optim_dir);   mkdir(optim_dir);   end
 if ~isdir(reports_dir); mkdir(reports_dir); end
-
-mypars[:nPro]  = 200
-mypars[:nAnti] = 200
 
 f = readdir(source_dir)
 nloops = 0
