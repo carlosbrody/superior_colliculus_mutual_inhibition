@@ -70,8 +70,8 @@ mypars = Dict(
 :target_period_excitation => 0.15315254453690974,
 :right_light_pro_extra => 0,
 :pro_rule_strength => 0.05,
-:nPro => 200,
-:nAnti => 200,
+:nPro => 100,
+:nAnti => 100,
 )
 
 
@@ -134,16 +134,31 @@ extra_pars[:opto_targets] = [
 
 ftraj2 = []; cost2 = [];
 
-if !isdir("../NewFarms"); mkdir("../NewFarms"); end
-fbasename = "../NewFarms/farm_C17_"
-# If we wanted a unique identifier per processor run the following line would help:
-# if ~isnull(tryparse(Int64, ARGS[1])); fbasename = fbasename * ARGS[1] * "_"; end
+farmdir = "../Farms" * chomp(readstring(`hostname`))[end-2:end]
+if !isdir(farmdir); mkdir(farmdir); end
+fbasename = farmdir * "/" * "farm_C17_"
 
-@printf("\n\n\nStarting with random seed %d\n\n\n", extra_pars[:seedrand])
+reports_dir = "../Reports" * chomp(readstring(`hostname`))[end-2:end]
+if !isdir(reports_dir); mkdir(reports_dir); end
+
+my_run_number = tot_n_runs = 1
+try
+    if ~isnull(tryparse(Int64, ARGS[1])); my_run_number = parse(Int64, ARGS[1]); 
+    else                                  my_run_number = 1; 
+    end
+    if ~isnull(tryparse(Int64, ARGS[2])); tot_n_runs    = parse(Int64, ARGS[2]); 
+    else                                  tot_n_runs = 1; 
+    end
+catch
+end
+
+report_file = reports_dir * "/" * @sprintf("report_out_%d", my_run_number)
+
+append_to_file(report_file, @sprintf("\n\n\nStarting with random seed %d\n\n\n", extra_pars[:seedrand]))
 
 while true
     
-    @printf("\n\n--- new run ---\n\n")
+    append_to_file(report_file, @sprintf("\n\n--- new run -- %s ---\n\n", Dates.format(now(), "e, dd u yyyy HH:MM:SS")))
     args = []; seed = []; bbox = Dict()
     for k in keys(search_conditions)
         search_box = search_conditions[k][2]
@@ -163,18 +178,18 @@ while true
     seed = Array{Float64}(seed)
 
 
-    maxiter1 = 1000;   # for func1, the regular search
-    testruns = 10000;  # Number of trials for evaluating the results of the model. 10000 is a good number 
+    maxiter1 = 2;   # for func1, the regular search
+    testruns = 10;  # Number of trials for evaluating the results of the model. 10000 is a good number 
 
 
     # Make sure to keep the noise frozen over the search, meaning JJ() needs the seedrand parameter
-    func1 =  (;params...) -> JJ(mypars[:nPro], mypars[:nAnti]; verbose=false, 
+    func1 =  (;params...) -> JJ(mypars[:nPro], mypars[:nAnti]; verbose=false, verbose_file=report_file, 
         merge(merge(mypars, extra_pars), Dict(params))...)[1]
     
     try
         pars3, traj3, cost3, cpm_traj3, ftraj3 = bbox_Hessian_keyword_minimization(seed, 
             args, bbox, func1, 
-            start_eta = 0.01, tol=1e-12, 
+            start_eta = 0.01, tol=1e-12, verbose_file=report_file,
             verbose=true, verbose_every=1, maxiter=maxiter1)
             
         # evaluate the result with many trials, for accuracy
@@ -185,14 +200,14 @@ while true
         myfilename = next_file(fbasename, 4)
         myfilename = myfilename*".jld"
 
-        @printf("\n\n ****** writing to file %s *******\n\n", myfilename)
+        append_to_file(report_file, @sprintf("\n\n ****** writing to file %s *******\n\n", myfilename))
         
         # write file
         save(myfilename, Dict("README"=>README, "nPro"=>mypars[:nPro], "nAnti"=>mypars[:nAnti], 
             "mypars"=>mypars, "extra_pars"=>extra_pars, "args"=>args, "seed"=>seed, "bbox"=>bbox, 
             "search_conditions"=>search_conditions,
             "pars3"=>pars3, "traj3"=>traj3, "cost3"=>cost3, "cpm_traj3"=>cpm_traj3, "ftraj3"=>ftraj3,
-            "cost"=>cost, "cost1s"=>cost1s, "cost2s"=>cost2s,
+            "cost"=>cost, "cost1s"=>cost1s, "cost2s"=>cost2s, "bbox"=>bbox, 
             "hP"=>hP, "hA"=>hA, "dP"=>dP, "dA"=>dA, "hBP"=>hBP, "hBA"=>hBA))
 
     catch y
@@ -200,12 +215,13 @@ while true
         if isa(y, InterruptException); throw(InterruptException()); end
 
         # Other errors get caught and a warning is issued but then we run again
-        @printf("\n\nWhoopsety, unkown error!\n\n");
-        @printf("Error was :\n"); print(y); @printf("\n\nTrying new random seed.\n\n")
+        append_to_file(report_file, @sprintf("\n\nWhoopsety, unkown error!\n\n"))
+        append_to_file(report_file, @sprintf("Error was :\n%s\n\nTrying new random seed.\n\n", y))
     end
 
     # Change random seed before next iteration so we don't get stuck in one loop
     extra_pars[:seedrand] = extra_pars[:seedrand]+1
+    append_to_file(report_file, @sprintf("\n\n\Changing to random seed %d\n\n\n", extra_pars[:seedrand]))
 end
     
 
