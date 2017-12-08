@@ -19,6 +19,7 @@ costo=[results(1).cost{:}];
 
 
 ind=find(costo<-0.0002);
+good_guys = ind;  % store this indicator of going from results to files we work with
 
 response=response(ind,:);
 para=para(ind,:);
@@ -145,6 +146,15 @@ xlabel('First LDA component')
 ylabel('Second LDA component')
 title('Linear Discriminant projection in parameter space');
 
+% Save the projection matrix and a bunch of other things to LDA_output.mat
+LDprojMatrix = coef';
+filenames    = results.files(good_guys);
+cluster_ids  = indici;
+params       = para;
+ldparams     = newcoord;
+% LDprojMatrix * params' == ldparams is true
+
+save('LDA_output', 'LDprojMatrix', 'filenames', 'cluster_ids', 'params', 'ldparams')
 
 
 
