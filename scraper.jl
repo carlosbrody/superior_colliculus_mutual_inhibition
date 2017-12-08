@@ -1,10 +1,10 @@
-# DON'T MODIFY THIS FILE -- the source is in file Scraper.ipynb
+# DON'T MODIFY THIS FILE -- the source is in file Scraper.ipynb. Look there for further documentation and examples of running the code.
 
 
 using JSON
 
 
-# DON'T MODIFY THIS FILE -- the source is in file Scraper.ipynb
+# DON'T MODIFY THIS FILE -- the source is in file Scraper.ipynb. Look there for further documentation and examples of running the code.
 
 
 # Get database of scraped files
@@ -54,7 +54,7 @@ function write_scrapedict(latest; scrapedir=".scrapedir", scrapefile="scrapelist
 end
 
 
-# DON'T MODIFY THIS FILE -- the source is in file Scraper.ipynb
+# DON'T MODIFY THIS FILE -- the source is in file Scraper.ipynb. Look there for further documentation and examples of running the code.
 
 
 # Scrape a notebook for julia code that should be written into an indicated file
@@ -128,7 +128,7 @@ function scrape_notebook(notebook_filename; verbose=false, includemagic="#@inclu
 end
 
 
-# DON'T MODIFY THIS FILE -- the source is in file Scraper.ipynb
+# DON'T MODIFY THIS FILE -- the source is in file Scraper.ipynb. Look there for further documentation and examples of running the code.
 
 
 # Go through all notebooks in directory and scrape them if they've been modified after their last
@@ -167,7 +167,7 @@ end
 
 
 
-# DON'T MODIFY THIS FILE -- the source is in file Scraper.ipynb
+# DON'T MODIFY THIS FILE -- the source is in file Scraper.ipynb. Look there for further documentation and examples of running the code.
 
 
 function scraperobot()
