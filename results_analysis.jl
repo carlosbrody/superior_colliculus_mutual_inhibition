@@ -2,7 +2,9 @@
 
 
 
-include("pro_anti.jl")
+if !isdefined(:plot_PA)
+    include("pro_anti.jl")
+end
 
 using HDF5
 
@@ -123,8 +125,7 @@ Fields are:
 
     Data::Array{Float64}     # npoints-by-ndims Array{Float64} of original data
     stringIDs::Array{String} # npoints-long vector of unique strings, identifying the corresponding rows of Data. (E.g., the filename from which that point came.)
-    I1::Array{Int64}         # index vector, containing row numbers of "set 1" points
-    I2::Array{Int64}         # index vector, containing row numbers of "set 2" points
+    I::Array{Array{Int64}}   # Vector of index vectors. I[i] is a vector, containing row numbers of "set i" points
     # --- stuff about graphics handling of the plots:
     axisHandles::Array{PyCall.PyObject}  # handles to the plotted axes
     axisDims::Array{Int64}               # naxes-by-2, indicating x- and y-axes dimension for each axis plot. E.g., the number 2 would indicate here the 2nd column of Data
@@ -137,8 +138,7 @@ Fields are:
 type scatter_data
     Data::Array{Float64}     # npoints-by-ndims Array{Float64} of data
     stringIDs::Array{String} # npoints-long vector of unique strings, identifying the corresponding rows of Data. (E.g., the filename from which that point came.)
-    I1::Array{Int64}      # index vector, containing row numbers of "set 1" points
-    I2::Array{Int64}      # index vector, containing row numbers of "set 2" points
+    I::Array{Array{Int64}}   # Vector of index vectors. I[i] is a vector, containing row numbers of "set i" points
     # --- stuff about graphics handling of the plots:
     axisHandles::Array{PyCall.PyObject}  # handles to the plotted axes
     axisDims::Array{Int64}               # naxes-by-2, indicating x- and y-axes dimension for each axis plot
@@ -147,13 +147,14 @@ type scatter_data
 end
 
 """
-SD = interactive_scatters(Data, stringIDs; set1_indices=nothing, set2_indices=nothing, 
+SD = interactive_scatters(Data, stringIDs; set_indices=nothing,
     plot_set2=false, axisDims = [2 1 ; 3 1], user_callback=nothing,
     n_invisible_dots = 3, invisible_colors = ["c"; "b"; "m"],
-    fignum = nothing, axisHandles = nothing, plot_colors = ["r"; "b"], markersize=10, marker=".")
+    fignum = nothing, axisHandles = nothing, plot_colors = ["r"; "g"; "k"], markersize=10, marker=".")
 
-Given a set of multidimensional data points, puts up two scatterplots of different dimensions
-against each other. In addition, enables GUI interactivity: users can associate a callback function
+Given a set of multidimensional data points, puts up at most two scatterplots of different dimensions
+against each other. (If data has only two dimensions, only one scatterplot goes up.)
+In addition, enables GUI interactivity: users can associate a callback function
 with buttonclicks on the plots. Also puts up some invisible points on the plot with can later
 be used by interactive_highlight().  Returns a data structure with info as to what is plotted where,
 meant to be used by GUI callbacks and functions such as interactive_highlight().
@@ -162,8 +163,8 @@ If the user clicks on one of the plots, the plotted data point closest to the cl
 will be identified, and if the user callback was defined, then user_callback will be called 
 as user_callback(stringID, SD)
 
-If desired, only a subset of the points in Data can be plotted; and two different subsets can be 
-requested to be plotted, in different colors, by default red and green.
+If desired, only a subset of the points in Data can be plotted; and multiple different subsets can be 
+requested to be plotted, in different colors.
 
 # PARAMETERS:
 
@@ -174,21 +175,19 @@ requested to be plotted, in different colors, by default red and green.
 
 # OPTIONAL PARAMETERS:
 
-- set1_indices          Default is 1:size(Data,1), i.e., plot all points in Data as "set 1" points. 
-                        If passed, set1_indices should be a vector of integers, each
-                        within 1:size(Data,2). Only those rows of Data will be plotted.
+- set_indices           Default is a vector with one element, which itself is 1:size(Data,1), 
+                        i.e., plot all points in Data as "set 1" points. 
+                        If passed, set_indices should be a vector of vectors; each
+                        element should be a vectors of integers, each within 1:size(Data,2). 
+                        The rows of Data in set_indices[i] will be plotted with color plot_colors[i].
 
-- set2_indices          row numbers in Data to be plotted as "set 2" points. Default is none.
-                        Any indices in set2_indices also in set1_indices will be removed from set2_indices before 
-                        plotting.
-
-- plot_colors           2-row Array, containing the colors to be used for set 1, and set 2, respectively.
+- plot_colors           n-row Array, with row i containing the color to be used for set i.
 
 - markersize            Size of each point in the scatterplots
 
 - marker                Type of each point in the scatterplots
 
-- plot_set2             If true, dots for set 2 are plotted, otherwise not.
+- plot_set2             If true, dots for sets 2:end are plotted, otherwise not.
 
 - axisDims              Array of integers, Naxes-by-2 in size. Each row indicates with dimensions
                         to show as horizontal axis (first column of axisDims) and vertical axis (second column)
@@ -214,10 +213,10 @@ requested to be plotted, in different colors, by default red and green.
 - SD::scatter_data      A structure, holindg information about the plot. See documentation for scatter_data   
 
 """ 
-function interactive_scatters(Data, stringIDs; set1_indices=nothing, set2_indices=[], 
+function interactive_scatters(Data, stringIDs; set_indices=nothing, 
     plot_set2=false, axisDims = [2 1 ; 3 1], user_callback=nothing,
     n_invisible_dots = 3, invisible_colors = ["c"; "b"; "m"],
-    fignum = nothing, axisHandles = nothing, plot_colors = ["r"; "g"], markersize=10, marker=".")
+    fignum = nothing, axisHandles = nothing, plot_colors = ["r"; "g"; "k"], markersize=10, marker=".")
 
     
     @doc """
@@ -241,7 +240,8 @@ function interactive_scatters(Data, stringIDs; set1_indices=nothing, set2_indice
                 # and now find the index of the point at xy
                 idx = find((SD.Data[:, myX].==xy[1]) .& (SD.Data[:, myY].==xy[2]))
                 if length(idx)==0; 
-                    @printf("scatter_event_callback: Couldn't find point (%.3f,%.3f), returning\n", xy[1], xy[2]); 
+                    warn(@sprintf("scatter_event_callback: Couldn't find point (%.3f,%.3f), returning\n", 
+                        xy[1], xy[2]), bt=true); 
                     return; 
                 end
                 idx = idx[1]
@@ -260,21 +260,25 @@ function interactive_scatters(Data, stringIDs; set1_indices=nothing, set2_indice
     # ---------------  OK, now the actual interactive_scatters() function -------------
     
     # Initialize a scatter_data structure
-    SD = scatter_data([], [], [], [], [], [], [], nothing)
+    SD = scatter_data([], [], [], [], [], [], nothing)
     SD.callback  = user_callback
     SD.stringIDs = stringIDs
     SD.Data      = Data
 
+    # Don't try to plot dimensions we don't have:
+    axisDims[find(axisDims.>size(Data,2))] = size(Data,2)
+    
     # Default is to plot data from all rows as set1
-    if set1_indices == nothing
-        set1_indices = 1:size(Data,1)
+    if set_indices == nothing
+        set_indices = [1:size(Data,1)]
     end
-    # Only points *not* in set1 can be set2 points
-    set2_indices = setdiff(set2_indices, set1_indices)
-
+    
+    if length(plot_colors) < length(set_indices)
+        error("Need at least as many plot_colors as there are different groups of set_indices")
+    end
+    
     # Store indices in the SD structure that will be returned
-    SD.I1 = I1 = set1_indices
-    SD.I2 = I2 = set2_indices
+    SD.I = I = set_indices
 
     # If we weren't given the axes, make them:
     if axisHandles == nothing
@@ -292,20 +296,19 @@ function interactive_scatters(Data, stringIDs; set1_indices=nothing, set2_indice
     end
     # Store in return structure:
     SD.axisHandles  = axisHandles
-    SD.axisDims = axisDims
+    SD.axisDims     = axisDims
 
     # Now plot the points:
     for i=1:length(SD.axisHandles)
         safe_axes(SD.axisHandles[i])
         # Find the rows that correspond to these axes:
         myX = SD.axisDims[i,1]; myY = SD.axisDims[i,2]
-        # plot set 2 and set 1:
-        if plot_set2
-            plot(Data[I2,myX],  Data[I2,myY], ".", color=plot_colors[2], 
-                markersize=markersize, markermarker, linestyle="None")
+        for i=length(set_indices):-1:1
+            if i==1 || plot_set2
+                plot(Data[set_indices[i],myX],  Data[set_indices[i],myY], ".", color=plot_colors[i], 
+                    markersize=markersize, marker=marker, linestyle="None")
+            end            
         end
-        plot(Data[I1,myX],  Data[I1,myY], ".", color=plot_colors[1], 
-            markersize=markersize, marker=marker, linestyle="None")
         title(@sprintf("Dim %d vs %d", myY, myX))
     end
 
@@ -673,6 +676,8 @@ end
     
 
 
+
+
 """
     PC = plot_PCA(res; threshold=-0.0002, fignum=2, pc_offset=0, plot_unsuccessful=true,
         compute_good_only=true, unsuccessful_threshold=nothing, cost_choice="cost",
@@ -935,85 +940,49 @@ function plot_SVD(;threshold =-0.0001, plot_unsuccessful=false, compute_good_onl
 end
 
 
+# DON'T MODIFY THIS FILE -- the source is in file Results Analysis.ipynb. Look there for further documentation and examples of running the code.
 
-
-plot_farm_trials = 10    #  The number of trials to be plotted per farm run
 
 """
-    params = plot_farm(filename; testruns=nothing, fignum=3, overrideDict=Dict())
+    make_mini_farm()
 
-    Plots multiple trials from a single run of a farm.
+Takes the C17 runs in ../Farms024, ../Farms025, and ../Farms026, which are not on git,
+and puts a small-size sumamry of them in "MiniFarms/". That MiniFarms directory is
+a reasonabale size for git (only 63MBytes compred to GBytes)
 
-# PARAMETERS
-
-- filename    The filename of the .jld file containing the run, to be loaded
-
-# OPTIONAL PARAMETERS
-
-- testruns    Number of trials to run. Defaults to value of global variable plot_farm_trials.
-
-- fignum      Figure to put the plot up in.
-
-- overrideDict   A dictionary containing any model parameter values that will
-              override any values loaded from the file.  For example
-              `overrideDict = Dict(:sigma=>0.001)` will run with that value
-              of sigma, no whater what the file said.
+The MiniFarms directory can be used for the C17_browser in lieu of the original farms.
 
 """
-function plot_farm(filename; testruns=400, fignum=3, overrideDict=Dict())
-
-    mypars, extra_pars, args, pars3 = load(filename, "mypars", "extra_pars", "args", "pars3")
-
-
-    pygui(true)
-    figure(fignum); clf();
+function make_min_farm(;fromdirs=["../Farms024", "../Farms025", "../Farms026"], todir="MiniFarms")
     
-    pstrings = ["CONTROL", "DELAY OPTO", "CHOICE OPTO"]
-    for period = 1:3
-        these_pars = merge(mypars, extra_pars);
-        these_pars = merge(these_pars, Dict(
-        # :opto_strength=>0.3, 
-        :opto_times=>reshape(extra_pars[:opto_periods][period,:], 1, 2),
-        # :opto_times=>["target_start-0.4" "target_start"],
-        # :opto_times=>["target_start" "target_end"],
-        # :post_target_period=>0.3,
-        # :rule_and_delay_period=>1.2,
-        # :dt=>0.005,
-        ))
+    res = farmload("C17", verbose=true, farmdir=fromdirs)
 
-        # The plot_list should be the one we give it below, not whatever was in the stored parameters
-        delete!(these_pars, :plot_list)
+    if ~isdir(todir); mkdir(todir); end;
 
-        pvax = subplot(4,3,period);   axisHeightChange(0.9, lock="t")
-        pdax = subplot(4,3,period+3); axisHeightChange(0.9, lock="c"); 
-        avax = subplot(4,3,period+6); axisHeightChange(0.9, lock="c")
-        adax = subplot(4,3,period+9); axisHeightChange(0.9, lock="b")
+    sdict = []; dirname=[]; filename=[]
 
-        proVs, antiVs = run_ntrials(testruns, testruns; plot_list=[1:20;], plot_Us=false, 
-            ax_set = Dict("pro_Vax"=>pvax, "pro_Dax"=>pdax, "anti_Vax"=>avax, "anti_Dax"=>adax),
-        merge(make_dict(args, pars3, these_pars), overrideDict)...);
-
-        hBP = length(find(proVs[1,:]  .> proVs[4,:])) /size(proVs, 2)
-        hBA = length(find(antiVs[4,:] .> antiVs[1,:]))/size(antiVs,2)
-        # @printf("period %d:  hBP=%.2f%%, hBA=%.2f%%\n\n", period, 100*hBP, 100*hBA)
-
-        safe_axes(pvax); title(@sprintf("%s  PRO hits = %.2f%%", pstrings[period], 100*hBP))
-        safe_axes(avax); title(@sprintf("ANTI hits = %.2f%%", 100*hBA))
-        safe_axes(pdax); remove_xtick_labels(); xlabel("")
-        if period > 1
-            remove_ytick_labels([pvax, pdax, avax, adax])
+    for i in 1:length(res["tcost"])    
+        mypars, extra_pars, args, pars3 = load(res["files"][i], "mypars", "extra_pars", 
+            "args", "pars3")
+        sdict = Dict("mypars"=>mypars, "extra_pars"=>extra_pars, 
+            "args"=>args, "pars3"=>pars3)
+        for k in keys(res)
+            if k=="tcost"
+                sdict["traj3"] = [0 ; res["tcost"][i]; 0]
+            elseif !(k=="args" || k=="params")
+                sdict[k] = res[k][i]
+            end
         end
-        
-        figure(fignum)[:canvas][:draw]()
-        pause(0.0001)
-    end
 
-    for a=1:length(args)
-        myarg = args[a]; while length(myarg)<20; myarg=myarg*" "; end
-        @printf("%s\t\t%g\n", myarg, pars3[a])
-    end
+        dirname, filename = splitdir(res["files"][i]); dirname=splitdir(dirname)[2]
 
-    return pars3
+        save("MiniFarms/"*filename[1:9]*dirname*"_"*filename[10:end], sdict)
+        if rem(i, 20)==0
+            @printf("Did %d/%d\n", i, length(res["tcost"]))
+        end
+    end
 end
+
+
 
 
