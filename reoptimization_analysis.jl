@@ -37,7 +37,7 @@ D, V = eig(C)
 oVparams = (inv(V)*reso["params"]')'[:,end:-1:1]
 nVparams = (inv(V)*resn["params"]')'[:,end:-1:1]
 
-figure(1); clf(); 
+figure(100); clf(); 
 
 # Plot a red dot for all the old parameters:
 u = find(res[cost_choice].<=threshold)
