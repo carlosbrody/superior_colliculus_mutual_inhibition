@@ -8,10 +8,13 @@ Pkg.build("PyPlot")
 using PyPlot
 
 Pkg.add("ForwardDiff")
+Pkg.pin("ForwardDiff", v"0.6.0")  # all the code has been developed with that version
 Pkg.add("DiffBase")
+
 Pkg.add("HDF5")
 Pkg.add("MAT")
 Pkg.add("JLD")
+
 
 using ForwardDiff
 using MAT
