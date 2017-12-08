@@ -3,6 +3,7 @@
 
 
 if !isdefined(:plot_PA)
+    @printf("Loading pro_anti.jl\n")
     include("pro_anti.jl")
 end
 
