@@ -90,7 +90,7 @@ end
 G = matread("compute_clustering/LDA_output.mat")
 set_indices = [find(G["cluster_ids"].==1), find(G["cluster_ids"].==2), find(G["cluster_ids"].==3)]
 LD = interactive_scatters(G["ldparams"]', G["filenames"], set_indices=set_indices, plot_set2=true,
-    user_callback=(fname, Trash) -> highlight_all(fname, LD, SV), fignum=2);
+user_callback=(fname, Trash) -> highlight_all(fname, LD, SV), fignum=2, axisDims = [1 2]);
 pause(0.001)
 
 # Put up the SVD plot

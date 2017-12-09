@@ -268,6 +268,8 @@ function interactive_scatters(Data, stringIDs; set_indices=nothing,
 
     # Don't try to plot dimensions we don't have:
     axisDims[find(axisDims.>size(Data,2))] = size(Data,2)
+    axisDims = unique(axisDims, 1)
+    nplots = axisHandles==nothing ? size(axisDims,1) : minimum((size(axisDims, 1), length(axisHandles)))
     
     # Default is to plot data from all rows as set1
     if set_indices == nothing
@@ -289,11 +291,18 @@ function interactive_scatters(Data, stringIDs; set_indices=nothing,
         end
         # If we're making axes, clear the figure for them:
         figure(fignum); clf();
-        axisHandles = [subplot(1,2,1), subplot(1,2,2)]
+        if nplots==1
+            axisHandles = [gca()]
+        else
+            axisHandles = [subplot(1,2,1), subplot(1,2,2)]
+        end
     else
         # We were given axes, get figure number from them:
-        fignum = [axisHandles[1][:figure][:number], axisHandles[2][:figure][:number]]
-        if fignum[1]==fignum[2]; fignum=fignum[1]; end
+        if nplots==1; fignum = axisHandles[1][:figure][:number]
+        else          
+            fignum = [axisHandles[1][:figure][:number], axisHandles[2][:figure][:number]]
+            if fignum[1]==fignum[2]; fignum=fignum[1]; end
+        end
     end
     # Store in return structure:
     SD.axisHandles  = axisHandles

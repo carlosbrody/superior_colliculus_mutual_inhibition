@@ -43,6 +43,7 @@ figure(100); clf();
 u = find(res[cost_choice].<=threshold)
 plot(oVparams[u,1], oVparams[u,2], "r.", markersize=11)
 
+hg = hr = 0  # define here so vars are available outside for loop
 # Now plot a green dot and a connecting line for all the new ones:
 for f in readdir("MiniOptimized_Redux/")
     if startswith(f, "farm_C17") 
