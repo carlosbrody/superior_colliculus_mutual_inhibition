@@ -25,6 +25,7 @@ builds a database of rule encoding indexes for each farm run in with farmdir/far
 """
 function build_encoding_dataset(farm_id; farmdir="MiniOptimized",testruns=1000, overrideDict=Dict())
     results     = load(farmdir*farm_id*"_results.jld");
+    mypars,extra_pars = load(results["files"][1],"mypars","extra_pars")
     sample_point = Int(floor(mypars[:rule_and_delay_periods][1]/mypars[:dt]))
 
     # for N farms X Opto Conditions X pro/anti X hit/miss show the rule encoding strength: mean(pro-anti)/var(pro-anti)
