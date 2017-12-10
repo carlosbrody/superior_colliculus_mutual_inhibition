@@ -953,6 +953,90 @@ end
 # DON'T MODIFY THIS FILE -- the source is in file Results Analysis.ipynb. Look there for further documentation and examples of running the code.
 
 
+
+plot_farm_trials = 10    #  The number of trials to be plotted per farm run
+
+"""
+    params = plot_farm(filename; testruns=nothing, fignum=3, overrideDict=Dict())
+
+    Plots multiple trials from a single run of a farm.
+
+# PARAMETERS
+
+- filename    The filename of the .jld file containing the run, to be loaded
+
+# OPTIONAL PARAMETERS
+
+- testruns    Number of trials to run. Defaults to value of global variable plot_farm_trials.
+
+- fignum      Figure to put the plot up in.
+
+- overrideDict   A dictionary containing any model parameter values that will
+              override any values loaded from the file.  For example
+              `overrideDict = Dict(:sigma=>0.001)` will run with that value
+              of sigma, no whater what the file said.
+
+"""
+function plot_farm(filename; testruns=400, fignum=3, overrideDict=Dict())
+
+    mypars, extra_pars, args, pars3 = load(filename, "mypars", "extra_pars", "args", "pars3")
+
+
+    pygui(true)
+    figure(fignum); clf();
+    
+    pstrings = ["CONTROL", "DELAY OPTO", "CHOICE OPTO"]
+    for period = 1:3
+        these_pars = merge(mypars, extra_pars);
+        these_pars = merge(these_pars, Dict(
+        # :opto_strength=>0.3, 
+        :opto_times=>reshape(extra_pars[:opto_periods][period,:], 1, 2),
+        # :opto_times=>["target_start-0.4" "target_start"],
+        # :opto_times=>["target_start" "target_end"],
+        # :post_target_period=>0.3,
+        # :rule_and_delay_period=>1.2,
+        # :dt=>0.005,
+        ))
+
+        # The plot_list should be the one we give it below, not whatever was in the stored parameters
+        delete!(these_pars, :plot_list)
+
+        pvax = subplot(4,3,period);   axisHeightChange(0.9, lock="t")
+        pdax = subplot(4,3,period+3); axisHeightChange(0.9, lock="c"); 
+        avax = subplot(4,3,period+6); axisHeightChange(0.9, lock="c")
+        adax = subplot(4,3,period+9); axisHeightChange(0.9, lock="b")
+
+        proVs, antiVs = run_ntrials(testruns, testruns; plot_list=[1:20;], plot_Us=false, 
+            ax_set = Dict("pro_Vax"=>pvax, "pro_Dax"=>pdax, "anti_Vax"=>avax, "anti_Dax"=>adax),
+        merge(make_dict(args, pars3, these_pars), overrideDict)...);
+
+        hBP = length(find(proVs[1,:]  .> proVs[4,:])) /size(proVs, 2)
+        hBA = length(find(antiVs[4,:] .> antiVs[1,:]))/size(antiVs,2)
+        # @printf("period %d:  hBP=%.2f%%, hBA=%.2f%%\n\n", period, 100*hBP, 100*hBA)
+
+        safe_axes(pvax); title(@sprintf("%s  PRO hits = %.2f%%", pstrings[period], 100*hBP))
+        safe_axes(avax); title(@sprintf("ANTI hits = %.2f%%", 100*hBA))
+        safe_axes(pdax); remove_xtick_labels(); xlabel("")
+        if period > 1
+            remove_ytick_labels([pvax, pdax, avax, adax])
+        end
+        
+        figure(fignum)[:canvas][:draw]()
+        pause(0.0001)
+    end
+
+    for a=1:length(args)
+        myarg = args[a]; while length(myarg)<20; myarg=myarg*" "; end
+        @printf("%s\t\t%g\n", myarg, pars3[a])
+    end
+
+    return pars3
+end
+
+
+# DON'T MODIFY THIS FILE -- the source is in file Results Analysis.ipynb. Look there for further documentation and examples of running the code.
+
+
 """
     make_mini_farm()
 
