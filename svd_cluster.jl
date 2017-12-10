@@ -1134,5 +1134,16 @@ function plot_ellipse(center, C,s,fignum )
     
 end
 
-
+# Builds all necessary matrices and datasets for SVD and rule encoding analysis
+function update_farm(farm_id, farmdir)
+    @printf("Building Results matrix\n")
+    results = load_farm_params(farm_id; farmdir=farmdir, verbose_every=1)
+    @printf("Building Response matrix\n")
+    response= build_response_matrix(farm_id; farmdir=farmdir)
+    @printf("Building Hessian matrix\n")
+    hessian = build_hessian_dataset(farm_id; farmdir=farmdir)
+    @printf("Building Encoding matrix\n")
+    include("rule_encoding.jl")
+    encoding, error_types = build_encoding_dataset(farm_id; farmdir=farmdir);
+end
 
