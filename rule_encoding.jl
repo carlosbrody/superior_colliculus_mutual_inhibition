@@ -86,9 +86,7 @@ function build_encoding_dataset(farm_id; farmdir="MiniOptimized",testruns=1000, 
 end
 
 # displays the encoding information in the database for the farm run at index <fileindex>
-function display_encoding(fileindex; farm_id="C17", farmdir="MiniOptimized")
-    encoding, error_types     = load(farmdir*farm_id*"_encoding.jld", "encoding", "error_types");
-
+function display_encoding(encoding, error_types, fileindex)
     i = fileindex;
     opto_string = ["Control", "Delay", "Choice"];
     for j=1:3;

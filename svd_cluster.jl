@@ -403,12 +403,16 @@ None
 
     
 """
-function SVD_interactive(farm_id;farmdir="MiniFarms", threshold =-0.0002, plot_option=1, plot_bad_farms=true, compute_good_only=false, opto_conditions = 1)
+function SVD_interactive(farm_id;farmdir="MiniFarms", threshold =-0.0002, plot_option=1, plot_bad_farms=true, compute_good_only=false, opto_conditions = 1,disp_encoding = false)
     # get response matrix
     if opto_conditions > 1
     response, results = load(farmdir*farm_id*"_SVD_response_matrix"*string(opto_conditions)*".jld", "response","results")
     else
     response, results = load(farmdir*farm_id*"_SVD_response_matrix.jld", "response","results")
+    end
+    if disp_encoding
+    include("rule_encoding.jl")
+    encoding, error_types = load(farmdir*farm_id*"_encoding.jld", "encoding","error_types")
     end
 
     # set up filter by nan
@@ -435,7 +439,7 @@ function SVD_interactive(farm_id;farmdir="MiniFarms", threshold =-0.0002, plot_o
     F = svdfact(r_all);
     u = copy(F[:U]); 
     u1 = u[:,1];
-    u2 = u[:,3];
+    u2 = u[:,2];
 
     # Make list of just good farms
     if compute_good_only
@@ -450,6 +454,10 @@ function SVD_interactive(farm_id;farmdir="MiniFarms", threshold =-0.0002, plot_o
 
     files = results["files"];
     files = files[!vec(nanrows),:];
+    if disp_encoding
+    encoding = encoding[!vec(nanrows),:,:,:];
+    error_types = error_types[!vec(nanrows),:,:,:];
+    end
 
     function mycallback(xy, r, h, ax)
         index = find(u1 .== xy[1])
@@ -462,6 +470,9 @@ function SVD_interactive(farm_id;farmdir="MiniFarms", threshold =-0.0002, plot_o
         print("\n")
         print("\n")
        
+        if disp_encoding
+        display_encoding(encoding, error_types, index[1])
+        end
         if plot_option == 1
             plot_farm(filename)
         else
@@ -967,7 +978,7 @@ Nothing. Plots a figure.
 
 
 """
-function plot_PCA(farm_id; farmdir="MiniOptimized", opto_conditions = 3, compute_good_only=true, threshold=-0.0002, deltaCost = 1e-4)
+function plot_PCA(farm_id; farmdir="MiniOptimized", opto_conditions = 3, compute_good_only=true, threshold=-0.0002, deltaCost = 0.0008333)
 
     # Load responses, results, and hessian from all models
     if opto_conditions > 1
@@ -1122,5 +1133,6 @@ function plot_ellipse(center, C,s,fignum )
     # 
     
 end
+
 
 
