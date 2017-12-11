@@ -36,10 +36,11 @@ sudo ln -s /home/carlosbrody/julia-0d7248e2ff/bin/julia /usr/bin/julia
 git clone "http://carlosbrody:gungaDID90&@github.com/carlosbrody/superior_colliculus_mutual_inhibition.git"
 
 
-./grow_ForwardDiffChunks.sh
-
 # Final step is to run julia to install its packages:
 julia julia_start.jl
+
+# Grow the ForwardDiff chunks *after* ForwardDiff is installed:
+./grow_ForwardDiffChunks.sh
 
 
 
