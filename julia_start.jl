@@ -14,9 +14,12 @@ Pkg.add("DiffBase")
 Pkg.add("HDF5")
 Pkg.add("MAT")
 Pkg.add("JLD")
-
+Pkg.add("MultivariateStats")
+Pkg.add("Clustering")
 
 using ForwardDiff
 using MAT
 using JLD
+using MultivariateStats
+using Clustering
 
