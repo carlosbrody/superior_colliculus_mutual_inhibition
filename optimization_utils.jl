@@ -302,7 +302,7 @@ using MAT
 function bbox_Hessian_keyword_minimization(seed, args, bbox, func; start_eta=0.1, 
     tol=1e-6, maxiter=400, frac_cost_threshold = 0.5, stopping_function = nothing,
     verbose=false, verbose_level=1, verbose_every=1, verbose_file=STDOUT,
-    verbose_timestap = false,
+    verbose_timestamp = false,
     softbox=true, hardbox=false, report_file="")
 
 Like constrained_Hessian_minimization, but uses keyword_hessian!(). 
@@ -414,7 +414,7 @@ params, trajectory = bbox_Hessian_keyword_minimization([0.5, 0.5], ["x", "y"], [
 function bbox_Hessian_keyword_minimization(seed, args, bbox, func; start_eta=0.1, tol=1e-6, maxiter=400,
     frac_cost_threshold = 0.5, stopping_function = nothing,
     verbose=false, verbose_level=1, verbose_every=1, verbose_file=STDOUT,
-    verbose_timestap = false,
+    verbose_timestamp = false,
     softbox=true, hardbox=false, report_file="")
 
     # --- check that saving will be done to a .jld file ---
