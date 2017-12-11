@@ -1,5 +1,5 @@
 #! /bin/csh
-
+1;2c
 if ( `hostname` == brody-t2e ) then
     set hostnumber = "t2e"
 else
@@ -9,7 +9,8 @@ endif
 
 set j=1
 foreach f( `find ../Reports$hostnumber -name "report_*"` )
-      grep "] [0-9][0-9]:" $f | tail -1
+      grep "[0-9]: eta" $f | tail -1
+      # echo $f
 end
 
 
