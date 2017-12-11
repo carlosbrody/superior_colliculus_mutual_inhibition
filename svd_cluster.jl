@@ -1149,3 +1149,96 @@ function update_farm(farm_id, farmdir)
     encoding, error_types = build_encoding_dataset(farm_id; farmdir=farmdir);
 end
 
+
+# opto_type = 1, 2, or 3, meaning control, delay, or choice inactivations
+# trial_type = "hit-pro", "miss-pro", "hit-anti", or "miss-anti"
+# cluster_num = 1,2,or 3, which cluster the farms in SVD space very crudely by svd-dim1 >/< 0, and svd-dim2 >/< 0.
+function plot_SVD_cluster_approx(; farm_id="C17", farmdir="MiniOptimized", opto_conditions = 3, threshold=-0.0002, rank=2,opto_type=1, trial_type="hit-pro", cluster_num = 1)
+
+    # Load responses, results, and hessian from all models
+    if opto_conditions > 1
+    response, results = load(farmdir*farm_id*"_SVD_response_matrix"*string(opto_conditions)*".jld", "response","results")
+    else
+    response, results = load(farmdir*farm_id*"_SVD_response_matrix.jld", "response","results")
+    end
+    # because we dont have proper clusters
+#    clusters = load(farmdir*farm_id*"_cluster_ids.jld","clusters")
+    # this is just a dummy
+    clusters = rand(165,3) .< .1;
+
+    # NEED TO FILTER OUT BAD FARMS
+    nanrows = any(isnan(response),2);
+    tcost = results["tcost"];
+    badcost = tcost .>= threshold;
+    nanrows = nanrows | badcost;
+    # Filter response matrix
+    r_all = response[!vec(nanrows),:];
+    m = mean(r_all,1);
+    r_all = r_all - repmat(m, size(r_all,1),1);
+    F = svdfact(r_all);
+    
+    # CRUDE CLUSTERING
+    utemp = copy(F[:U])
+    clusters[:,1] = (utemp[:,2] .< 0) .& (utemp[:,1] .< 0);
+    clusters[:,2] = (utemp[:,2] .< 0) .& (utemp[:,1] .> 0);
+    clusters[:,3] = (utemp[:,2] .> 0) ;
+
+    nodes = SVD_cluster_approx(clusters[:,cluster_num], rank, opto_type, trial_type,F,m; opto_conditions=opto_conditions)
+    figure()
+    plot(nodes[1,:])
+    plot(nodes[2,:])
+    plot(nodes[3,:])
+    plot(nodes[4,:])
+    return nodes
+end
+
+function SVD_cluster_approx(cluster, rank, opto_type, trial_type, F,m; opto_conditions=3)
+    
+    # Build the correct low rank in S
+    S = copy(F[:S]);
+    S[rank+1:end] = 0;    
+
+    # build the cluster U vector
+    U = copy(F[:U])
+    u = mean(U[cluster[:],:],1)
+    #u[1] and u[2] should be the cluster center x,y location
+    figure()
+    scatter(U[:,1],U[:,2])
+    plot(u[1],u[2], "ro")
+
+    # Make the cluster approximation
+    low_rank = u * Diagonal(S)* F[:Vt];
+    opto_dur = Int(length(low_rank)/opto_conditions)
+
+    # Pull the right opto condition
+    sdex = 1+opto_dur*(opto_type-1);
+    edex = opto_dur*(opto_type);
+    this_rank = low_rank[:,sdex:edex];
+    this_mean = m[:,sdex:edex];
+
+    # Pull the right trial type
+    if trial_type     == "hit-pro"
+        cdex = 0;
+    elseif trial_type == "miss-pro"
+        cdex = 1;
+    elseif trial_type == "hit-anti"
+        cdex = 2;
+    elseif trial_type == "miss-anti"
+        cdex = 3;
+    else
+        @printf("Unknown Condition: %s \n", condition)
+    end
+    numts = Int(length(this_rank)/4/4);
+    numtsC= Int(length(this_rank)/4);
+    node_mean = this_mean[:,cdex*numtsC+1+3*numts:cdex*numtsC+4*numts];
+
+    node1 = this_rank[:,cdex*numtsC+1:cdex*numtsC+numts] + node_mean;
+    node2 = this_rank[:,cdex*numtsC+1+1*numts:cdex*numtsC+2*numts] + node_mean;
+    node3 = this_rank[:,cdex*numtsC+1+2*numts:cdex*numtsC+3*numts] + node_mean;
+    node4 = this_rank[:,cdex*numtsC+1+3*numts:cdex*numtsC+4*numts] + node_mean;
+
+
+   return [node1; node2; node3; node4]
+end
+
+
