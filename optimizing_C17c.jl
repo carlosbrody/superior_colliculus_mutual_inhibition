@@ -54,7 +54,7 @@ else                                  tot_n_runs = 1;
 end
 
 source_dir = "../Farms" * chomp(readstring(`hostname`))[end-2:end]
-# source_dir = "../Farms025b"
+source_dir = "../Farms025b"
 fbasename = source_dir * "/" * "farm_C17_"
 
 optim_dir = source_dir * "_Optim"
