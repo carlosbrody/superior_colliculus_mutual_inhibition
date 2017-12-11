@@ -46,15 +46,15 @@ Optimizing existing C17 farms-- running optimizations, 1600 trials per condition
 from their ending points but with a fresh random seed.
 """
 
-if length(ARGS)>0  &&  ~isnull(tryparse(Int64, ARGS[1])); my_run_number = parse(Int64, ARGS[1]); 
-else                                                      my_run_number = 1; 
+if ~isnull(tryparse(Int64, ARGS[1])); my_run_number = parse(Int64, ARGS[1]); 
+else                                  my_run_number = 1; 
 end
-if length(ARGS)>0  &&  ~isnull(tryparse(Int64, ARGS[2])); tot_n_runs    = parse(Int64, ARGS[2]); 
-else                                                      tot_n_runs = 1; 
+if ~isnull(tryparse(Int64, ARGS[2])); tot_n_runs    = parse(Int64, ARGS[2]); 
+else                                  tot_n_runs = 1; 
 end
 
 source_dir = "../Farms" * chomp(readstring(`hostname`))[end-2:end]
-source_dir = "../Farms025b"
+# source_dir = "../Farms025b"
 fbasename = source_dir * "/" * "farm_C17_"
 
 optim_dir = source_dir * "_Optim"
@@ -76,7 +76,7 @@ while my_run_number + (nloops*tot_n_runs) <= length(f)
     mypars, extra_pars, hBP, hBA = load(source_dir * "/" * myfile, "mypars", "extra_pars", "hBP", "hBA")
     opto_targets = extra_pars[:opto_targets]
     
-    if mean(abs.(opto_targets - [hBP hBA])) < 1 # binarized_delta_threshold # && (hBA[2]<hBA[1]-0.05) && (hBA[2]<hBA[3]-0.05)
+    if mean(abs.(opto_targets - [hBP hBA])) < binarized_delta_threshold && (hBA[2]<hBA[1]-0.05) && (hBA[2]<hBA[3]-0.05)
 
         
         append_to_file(report_file, @sprintf("\n\n*** %d %s: grabbing file %s ***\n\n", my_run_number, 
@@ -102,7 +102,7 @@ while my_run_number + (nloops*tot_n_runs) <= length(f)
                 bbox_Hessian_keyword_minimization(seed, 
                                                   args, bbox, func1, 
                                                   start_eta = 0.01, tol=1e-12, 
-                                                  verbose_file = report_file, verbose_timestamp = true,
+                                                  verbose_file = report_file,
                                                   verbose=true, verbose_every=1, maxiter=maxiter1)
 
             # evaluate the result with many trials, for accuracy
