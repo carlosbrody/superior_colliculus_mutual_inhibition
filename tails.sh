@@ -1,5 +1,5 @@
 #! /bin/csh
-1;2c
+
 if ( `hostname` == brody-t2e ) then
     set hostnumber = "t2e"
 else
