@@ -302,6 +302,7 @@ using MAT
 function bbox_Hessian_keyword_minimization(seed, args, bbox, func; start_eta=0.1, 
     tol=1e-6, maxiter=400, frac_cost_threshold = 0.5, stopping_function = nothing,
     verbose=false, verbose_level=1, verbose_every=1, verbose_file=STDOUT,
+    verbose_timestap = false,
     softbox=true, hardbox=false, report_file="")
 
 Like constrained_Hessian_minimization, but uses keyword_hessian!(). 
@@ -357,6 +358,8 @@ Like constrained_Hessian_minimization, but uses keyword_hessian!().
                 norm eta, failed means that finding the minimum at a given radius somehow didn't work). Will also
                 print out the cosine of the angle between the proposed jump and the gradient.
 
+- verbose_timestamp   If true, adds a time and date stamp to the verbose report
+
 - verbose_level   If less than 2, regular verbose output, if 2 or greater, very verbose, for debugging.
 
 - verbose_file  If other than STDOUT, should be a string indicating a filename that verbose
@@ -411,6 +414,7 @@ params, trajectory = bbox_Hessian_keyword_minimization([0.5, 0.5], ["x", "y"], [
 function bbox_Hessian_keyword_minimization(seed, args, bbox, func; start_eta=0.1, tol=1e-6, maxiter=400,
     frac_cost_threshold = 0.5, stopping_function = nothing,
     verbose=false, verbose_level=1, verbose_every=1, verbose_file=STDOUT,
+    verbose_timestap = false,
     softbox=true, hardbox=false, report_file="")
 
     # --- check that saving will be done to a .jld file ---
@@ -614,6 +618,7 @@ function bbox_Hessian_keyword_minimization(seed, args, bbox, func; start_eta=0.1
         if verbose
             if rem(i, verbose_every)==0
                 if verbose_file==STDOUT; ostr=STDOUT else ostr=open(verbose_file, "a"); end
+                if verbose_timestamp; @printf ostr "[%s] " Dates.format(now(), "e, dd u yyyy HH:MM:SS"); end
                 @printf ostr "%d: eta=%g cost=%g jtype=%s costheta=%.3f ps=" i eta cost jumptype costheta
                 print_vector_g(ostr, vector_wrap(bbox, args, params))
                 @printf ostr "\n"
