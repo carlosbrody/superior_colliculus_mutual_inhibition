@@ -102,7 +102,7 @@ while my_run_number + (nloops*tot_n_runs) <= length(f)
                 bbox_Hessian_keyword_minimization(seed, 
                                                   args, bbox, func1, 
                                                   start_eta = 0.01, tol=1e-12, 
-                                                  verbose_file = report_file,
+                                                  verbose_file = report_file, verbose_timestamp = true,
                                                   verbose=true, verbose_every=1, maxiter=maxiter1)
 
             # evaluate the result with many trials, for accuracy
