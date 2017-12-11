@@ -76,7 +76,7 @@ while my_run_number + (nloops*tot_n_runs) <= length(f)
     mypars, extra_pars, hBP, hBA = load(source_dir * "/" * myfile, "mypars", "extra_pars", "hBP", "hBA")
     opto_targets = extra_pars[:opto_targets]
     
-    if mean(abs.(opto_targets - [hBP hBA])) < binarized_delta_threshold && (hBA[2]<hBA[1]-0.05) && (hBA[2]<hBA[3]-0.05)
+    if mean(abs.(opto_targets - [hBP hBA])) < 1 # binarized_delta_threshold # && (hBA[2]<hBA[1]-0.05) && (hBA[2]<hBA[3]-0.05)
 
         
         append_to_file(report_file, @sprintf("\n\n*** %d %s: grabbing file %s ***\n\n", my_run_number, 
