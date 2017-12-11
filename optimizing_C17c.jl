@@ -53,11 +53,11 @@ if ~isnull(tryparse(Int64, ARGS[2])); tot_n_runs    = parse(Int64, ARGS[2]);
 else                                  tot_n_runs = 1; 
 end
 
-sourcedir = "../Farms" * chomp(readstring(`hostname`))[end-2:end]
-if !isdir(farmdir); mkdir(sourcedir); end
-fbasename = sourcedir * "/" * "farm_C17_"
+source_dir = "../Farms" * chomp(readstring(`hostname`))[end-2:end]
+source_dir = "../Farms025b"
+fbasename = source_dir * "/" * "farm_C17_"
 
-optim_dir = "../Farms" * chomp(readstring(`hostname`))[end-2:end] * "_Optim"
+optim_dir = source_dir * "_Optim"
 if !isdir(optim_dir); mkdir(optim_dir); end
 
 reports_dir = "../Reports" * chomp(readstring(`hostname`))[end-2:end]
@@ -76,7 +76,7 @@ while my_run_number + (nloops*tot_n_runs) <= length(f)
     mypars, extra_pars, hBP, hBA = load(source_dir * "/" * myfile, "mypars", "extra_pars", "hBP", "hBA")
     opto_targets = extra_pars[:opto_targets]
     
-    if mean(opto_targets - [hBP hBA]) < binarized_delta_threshold
+    if mean(abs.(opto_targets - [hBP hBA])) < binarized_delta_threshold && (hBA[2]<hBA[1]-0.05) && (hBA[2]<hBA[3]-0.05)
 
         
         append_to_file(report_file, @sprintf("\n\n*** %d %s: grabbing file %s ***\n\n", my_run_number, 
@@ -95,7 +95,7 @@ while my_run_number + (nloops*tot_n_runs) <= length(f)
         maxiter1 = 1000;   # for func1, the regular search
         testruns = 10000;  # Number of trials for evaluating the results of the model. 10000 is a good number 
 
-        func1 =  (;params...) -> JJ(mypars[:nPro], mypars[:nAnti]; verbose=false, 
+        func1 =  (;params...) -> JJ(mypars[:nPro], mypars[:nAnti]; verbose=false, verbose_file = report_file,
                                     merge(merge(mypars, extra_pars), Dict(params))...)[1]
         try
             pars3, traj3, cost3, cpm_traj3, ftraj3 = 
@@ -107,6 +107,7 @@ while my_run_number + (nloops*tot_n_runs) <= length(f)
 
             # evaluate the result with many trials, for accuracy
             cost, cost1s, cost2s, hP, hA, dP, dA, hBP, hBA = JJ(testruns, testruns; verbose=false, 
+                                                                verbose_file = report_file,
                                                                 make_dict(args, pars3, merge(merge(mypars, extra_pars)))...)
 
             # Write out the results
