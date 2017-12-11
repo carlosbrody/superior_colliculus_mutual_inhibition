@@ -46,11 +46,11 @@ Optimizing existing C17 farms-- running optimizations, 1600 trials per condition
 from their ending points but with a fresh random seed.
 """
 
-if ~isnull(tryparse(Int64, ARGS[1])); my_run_number = parse(Int64, ARGS[1]); 
-else                                  my_run_number = 1; 
+if length(ARGS)>0  &&  ~isnull(tryparse(Int64, ARGS[1])); my_run_number = parse(Int64, ARGS[1]); 
+else                                                      my_run_number = 1; 
 end
-if ~isnull(tryparse(Int64, ARGS[2])); tot_n_runs    = parse(Int64, ARGS[2]); 
-else                                  tot_n_runs = 1; 
+if length(ARGS)>0  &&  ~isnull(tryparse(Int64, ARGS[2])); tot_n_runs    = parse(Int64, ARGS[2]); 
+else                                                      tot_n_runs = 1; 
 end
 
 source_dir = "../Farms" * chomp(readstring(`hostname`))[end-2:end]
