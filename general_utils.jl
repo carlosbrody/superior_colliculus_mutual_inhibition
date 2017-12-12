@@ -126,6 +126,20 @@ function print_vector(vec)
     print_vector(STDOUT, vec)
 end
 
+"""
+function print_vector(fname::String, vec)
+
+Takes a vector and uses @printf to append it to file fname with [%.3f, %.3f] format. 
+
+If passed a symbol (which must evaluate to a vector), then prints the string for that symbol,
+an equals sign, the vector, and ends by adding a carriage return \n.
+"""
+function print_vector(fname::String, vec)
+    ostream = open(fname, "a")
+    print_vector(ostream, vec)
+    close(ostream)
+end
+
 
 """
 function print_vector(stream::IO, vec)
@@ -164,6 +178,21 @@ an equals sign, the vector, and ends by adding a carriage return \n.
 """
 function print_vector_g(vec)
     print_vector_g(STDOUT, vec)
+end
+
+
+"""
+function print_vector_g(fname::String, vec)
+
+Takes a vector and uses @printf to append it to file fname with [%g, %g] format. 
+
+If passed a symbol (which must evaluate to a vector), then prints the string for that symbol,
+an equals sign, the vector, and ends by adding a carriage return \n.
+"""
+function print_vector_g(fname::String, vec)
+    ostream = open(fname, "a")
+    print_vector_g(ostream, vec)
+    close(ostream)
 end
 
 
