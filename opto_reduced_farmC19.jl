@@ -108,7 +108,7 @@ while true
             try
 
                 pars3, traj3, cost3, cpm_traj3, ftraj3 = bbox_Hessian_keyword_minimization(seed, 
-                                                                 args, bbox, func_chatty,  verbose_timestamp=true
+                                                                 args, bbox, func_chatty,  verbose_timestamp=true,
                                                                  start_eta = 0.01, tol=1e-12, verbose_file=report_file,
                                                                  verbose=true, verbose_every=1, maxiter=extra_pars[:maxiter])
             
