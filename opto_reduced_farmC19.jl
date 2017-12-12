@@ -74,7 +74,7 @@ while true
     try
         parsA, trajA, costA, cpm_trajA, ftrajA = bbox_Hessian_keyword_minimization(seed, 
             args, bbox, func_quiet, 
-            start_eta = 0.01, tol=1e-12, verbose_file=report_file,
+            start_eta = 0.01, tol=1e-12, verbose_file=report_file, verbose_timestamp=true,
             verbose=true, verbose_every=1, maxiter=extra_pars[:maxiter])
             
         # evaluate the result with many trials, for accuracy
@@ -108,7 +108,7 @@ while true
             try
 
                 pars3, traj3, cost3, cpm_traj3, ftraj3 = bbox_Hessian_keyword_minimization(seed, 
-                                                                 args, bbox, func_chatty, 
+                                                                 args, bbox, func_chatty,  verbose_timestamp=true
                                                                  start_eta = 0.01, tol=1e-12, verbose_file=report_file,
                                                                  verbose=true, verbose_every=1, maxiter=extra_pars[:maxiter])
             
