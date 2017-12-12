@@ -8,4 +8,4 @@ if ( $#argv != 1 ) then
     exit
 endif
 
-ps -ef | grep $argv[1] | grep -v grep | awk '{print $2}' | xargs kill -9
+ps -ef | grep $argv[1] | grep -v grep | grep -v kill_by_name | awk '{print $2}' | xargs kill -9
