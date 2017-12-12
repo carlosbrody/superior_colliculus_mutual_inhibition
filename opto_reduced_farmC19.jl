@@ -94,7 +94,9 @@ while true
         if mean(abs.(extra_pars[:opto_targets] - [hBPA hBAA])) < extra_pars[:binarized_delta_threshold]  && 
             (!extra_pars[:pro_better_than_anti] || all(hBPA .> hBAA))  &&  
             (hBAA[2] <= hBAA[1] - extra_pars[:anti_perf_delta]) && 
-            (hBAA[2] <= hBAA[3] - extra_pars[:anti_perf_delta])
+            (hBAA[2] <= hBAA[3] - extra_pars[:anti_perf_delta]) && 
+            hBAA[1] > 0.5  &&
+            hBAA[3] > 0.5
 
             append_to_file(report_file, @sprintf("\n\n**** training further **** %s ---\n\n", 
                                                  Dates.format(now(), "e, dd u yyyy HH:MM:SS")))
