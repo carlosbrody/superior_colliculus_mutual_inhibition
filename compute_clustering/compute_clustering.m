@@ -1,5 +1,5 @@
 clear
-clc
+% clc
 close all
 
 
@@ -146,15 +146,26 @@ xlabel('First LDA component')
 ylabel('Second LDA component')
 title('Linear Discriminant projection in parameter space');
 
-% Save the projection matrix and a bunch of other things to LDA_output.mat
+
+% --------------------------------------------------------------------------------
+% - 
+% -      Save the projection matrix and a bunch of other things to LDA_output.mat
+% - 
+% --------------------------------------------------------------------------------
+
 LDprojMatrix = coef';
-filenames    = results.files(good_guys);
+files        = results.files(good_guys);
+cost         = results.cost(good_guys);
+cost         = [cost{:}];
+tcost        = results.tcost(good_guys);
+tcost        = [tcost{:}];
 cluster_ids  = indici;
 params       = para;
 ldparams     = newcoord;
 % LDprojMatrix * params' == ldparams is true
 
-save('LDA_output', 'LDprojMatrix', 'filenames', 'cluster_ids', 'params', 'ldparams')
+save('LDA_output', 'LDprojMatrix', 'files', 'cost', 'tcost', ...
+    'cluster_ids', 'params', 'ldparams')
 
 
 
