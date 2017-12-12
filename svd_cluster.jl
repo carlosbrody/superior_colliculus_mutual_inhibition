@@ -1073,7 +1073,7 @@ Nothing. Plots a figure.
 
 
 """
-function plot_ellipse(center, C,s,fignum )
+function plot_ellipse(center, C,s,fignum;color="r")
     
     # Make a mesh of points    
     p = 0:pi/100:(2*pi);
@@ -1101,7 +1101,7 @@ function plot_ellipse(center, C,s,fignum )
     
     # Plot the ellipse
     figure(fignum)    
-    plot(points[1,:],points[2,:],"r")
+    plot(points[1,:],points[2,:],color)
 
     # # Test code on quadratic surface
     # # Make quadratic surface
@@ -1134,7 +1134,193 @@ function plot_ellipse(center, C,s,fignum )
     
 end
 
-# Builds all necessary matrices and datasets for SVD and rule encoding analysis
+
+
+
+
+
+
+
+"""
+    plots the parameters for two farms, one of which has been reoptimized in PCA space. For each farm run, the ellipse representing the quadratic estimate of an increase of cost of <deltaCost>. 
+
+# OPTIONAL PARAMETERS
+
+- farm_id,  ex. "C17"
+
+- farmdir,  ex. "MiniOptimized"
+
+- f2,       ex. "MiniOptimized_Redux", should be a reoptimized version of <farmdir>
+
+- opto_conditions, how many opto conditions to use
+
+- compute_good_only, if TRUE, threshold for bad farm runs
+
+- threshold, the cutoff for defining good farms
+
+- deltaCost, the increase in cost marked by the ellipses for each farm run
+
+- plot_common_only, if TRUE only plots the farms that are included in both farm directory. Farms could be excluded for bad cost, or bad hessians
+
+- plot_connector, if TRUE plots a dashed lines between the common farms in each directory.
+
+- plot_f2_hessian, if TRUE plot the ellipse for the second directory
+
+"""
+function plot_PCA_Redux(;farm_id="C17", farmdir="MiniOptimized", f2="MiniOptimized_Redux", opto_conditions = 3, compute_good_only=true, threshold=-0.0002, deltaCost = 0.0008333,plot_common_only=true,plot_connector=true, plot_f2_hessian=true)
+
+    # Load responses, results, and hessian from all models
+    if opto_conditions > 1
+    response, results = load(farmdir*farm_id*"_SVD_response_matrix"*string(opto_conditions)*".jld", "response","results")
+    else
+    response, results = load(farmdir*farm_id*"_SVD_response_matrix.jld", "response","results")
+    end
+    response2, results2 = load(f2*farm_id*"_SVD_response_matrix3.jld","response","results");
+
+    hessians = load(farmdir*farm_id*"_hessians.jld")
+    hessians = hessians["hessians"];
+    hessians2 = load(f2*farm_id*"_hessians.jld")
+    hessians2 = hessians2["hessians"];
+
+    # need to filter out NaN rows 
+    # Some farms in some conditions have no errors, so we have NaNs
+    nanrows = any(isnan(response),2);
+    nanrows2 = any(isnan(response2),2);
+    
+    # Filter out farms with bad hessians
+    badhess = Array(Bool,size(hessians,1),1);
+    for i=1:size(hessians,1)
+        evals, evecs = eig(hessians[i,:,:]);
+        badhess[i] = any(evals .<=0);
+    end 
+    nanrows = nanrows | badhess;
+    badhess2 = Array(Bool,size(hessians2,1),1);
+    for i=1:size(hessians2,1)
+        evals, evecs = eig(hessians2[i,:,:]);
+        badhess2[i] = any(evals .<=0);
+    end 
+    nanrows2 = nanrows2 | badhess2;
+ 
+    # Filter out farms with bad cost
+    if compute_good_only
+        tcost = copy(results["tcost"]);
+        badcost = tcost .>= threshold;
+        nanrows = badcost | nanrows;
+        tcost2 = copy(results2["tcost"]);
+        badcost2 = tcost2 .>= threshold;
+        nanrows2 = badcost2 | nanrows2;
+    end
+    
+    # gotta match up farms
+    files1 = copy(results["files"]);
+    files1 = files1[!vec(nanrows),:];
+    for i=1:size(files1,1)
+        files1[i] = files1[i][15:end]; 
+    end
+    files2 = copy(results2["files"]);
+    files2 = files2[!vec(nanrows2),:];
+    for i=1:size(files2,1)
+        files2[i] = files2[i][21:end]; 
+    end
+    common_files = intersect(files1,files2)
+    files1dex = Int[findfirst(files1,x) for x in common_files];
+    files2dex = Int[findfirst(files2,x) for x in common_files];   
+
+    # get parameters
+    p1 = copy(results["params"]);
+    p2 = copy(results2["params"]);
+    # filter parameters
+    p1 = p1[!vec(nanrows),:];
+    p2 = p2[!vec(nanrows2),:];
+    if plot_common_only
+    p1 = p1[files1dex,:];
+    p2 = p2[files2dex,:];
+    end
+    p=[p1; p2];
+
+    # gotta mean subtract and z-score
+    p = p - repmat(mean(p,1), size(p,1),1);
+    stdp = std(p,1);
+    p = p./repmat(stdp,size(p,1),1);
+    p1 = p[1:size(p1,1),:];
+    p2 = p[1+size(p1,1):end,:];
+
+    # compute scale factor for hessian
+    sf = stdp;#1./stdp;
+    sfsf = sf'*sf;
+    
+    # define covariance matrix
+    paramC = cov(p);
+    # do pca on parameter-covariance
+    vals, vecs = eig(paramC);
+    # find projections onto first and second dimensions
+    paramx1 = vecs[:,end-1:end]'*p1';
+    paramx2= vecs[:,end-1:end]'*p2';
+    # plot pca projections
+    figure()
+    fignum = gcf()[:number];
+    if plot_common_only & plot_connector
+        for i=1:size(paramx1,2)
+        plot([paramx1[1,i];paramx2[1,i]],[paramx1[2,i];paramx2[2,i]],"k--");
+        end
+    end
+    plot(paramx1[1,:], paramx1[2,:],"bo");
+    plot(paramx2[1,:], paramx2[2,:],"ro");
+    ylabel("PCA Dim 2")
+    xlabel("PCA Dim 1")
+
+    # filter hessians
+    hessians = hessians[!vec(nanrows),:,:];    
+    if plot_common_only
+    hessians = hessians[files1dex,:,:];
+    end
+    scalevecs = vecs[:,end-1:end]';
+    pcaHess = Array(Float64, size(hessians,1),2,2);
+    hessians2 = hessians2[!vec(nanrows2),:,:];  
+    if plot_common_only
+    hessians2 = hessians2[files2dex,:,:];
+    end
+    pcaHess2 = Array(Float64, size(hessians2,1),2,2);
+
+    for i=1:size(hessians,1)
+        try
+        hessians[i,:,:,] = hessians[i,:,:].*sfsf;
+        pcaHess[i,:,:] = scalevecs*hessians[i,:,:]*scalevecs';
+        plot_ellipse(paramx1[:,i],pcaHess[i,:,:],deltaCost,fignum;color="b")
+        end
+    end
+    for i=1:size(hessians2,1)
+        try
+        hessians2[i,:,:,] = hessians2[i,:,:].*sfsf;
+        pcaHess2[i,:,:] = scalevecs*hessians2[i,:,:]*scalevecs';
+        if plot_f2_hessian
+            plot_ellipse(paramx2[:,i],pcaHess2[i,:,:],deltaCost,fignum;color="r")
+        end
+        end
+    end
+    xlabel("PCA Dim 1")
+    ylabel("PCA Dim 2")
+    title("Blue Original, Red Redux")
+
+end
+
+
+
+
+"""
+     Builds all necessary matrices and datasets for SVD and rule encoding analysis
+
+# PARAMETERS
+-farm_id id of farm, eq "C17"
+
+-farmdir, eq "MiniOptimized"
+
+Builds results matrix, response matrix, hessian matrix, and encoding matrix
+
+# EXAMPLE
+> update_farm("C17","MiniOptimized")
+
+"""
 function update_farm(farm_id, farmdir)
     @printf("Building Results matrix\n")
     results = load_farm_params(farm_id; farmdir=farmdir, verbose_every=1)
@@ -1149,11 +1335,31 @@ function update_farm(farm_id, farmdir)
     encoding, error_types = build_encoding_dataset(farm_id; farmdir=farmdir);
 end
 
+"""
+Plots the SVD approximation of the average cluster dynamics. Tries to load cluster ids from <farmdir><farm_id>_cluster_ids.jld, if that
+fails, it will use a crude clustering based on the sign of U weights in SVD dim1 and dim2. 
+Now plots all 4 trial types pro/anti X hit/miss
 
-# opto_type = 1, 2, or 3, meaning control, delay, or choice inactivations
-# trial_type = "hit-pro", "miss-pro", "hit-anti", or "miss-anti"
-# cluster_num = 1,2,or 3, which cluster the farms in SVD space very crudely by svd-dim1 >/< 0, and svd-dim2 >/< 0.
-function plot_SVD_cluster_approx(; farm_id="C17", farmdir="MiniOptimized", opto_conditions = 3, threshold=-0.0002, rank=2,opto_type=1, trial_type="hit-pro", cluster_num = 1)
+# PARAMETERS
+- farm_id e.g. "C17"
+
+- farmdir eg "MiniOptimized"
+
+- opto_conditions either 1 for control only, or 3 for all opto conditions
+
+- threshold cutoff for defining good farms
+
+- rank of approximation. Can be any number up to number of good farms in dataset, however rank > 2 will be basically the same because cluster weights will average for 0 in all dimensions above 1 or 2.
+
+- opto_type = 1, 2, or 3, meaning control, delay, or choice inactivations
+
+- cluster_num = 1,2,or 3, which cluster the farms in SVD space very crudely by svd-dim1 >/< 0, and svd-dim2 >/< 0.
+
+# EXAMPLE
+
+> plot_SVD_cluster_approx(; opto_type=1, trial_type="hit-pro", cluster_num=1)
+"""
+function plot_SVD_cluster_approx(; farm_id="C17", farmdir="MiniOptimized", opto_conditions = 3, threshold=-0.0002, rank=2,opto_type=1, cluster_num = 1, avg_dynamics=true)
 
     # Load responses, results, and hessian from all models
     if opto_conditions > 1
@@ -1161,11 +1367,7 @@ function plot_SVD_cluster_approx(; farm_id="C17", farmdir="MiniOptimized", opto_
     else
     response, results = load(farmdir*farm_id*"_SVD_response_matrix.jld", "response","results")
     end
-    # because we dont have proper clusters
-#    clusters = load(farmdir*farm_id*"_cluster_ids.jld","clusters")
-    # this is just a dummy
-    clusters = rand(165,3) .< .1;
-
+   
     # NEED TO FILTER OUT BAD FARMS
     nanrows = any(isnan(response),2);
     tcost = results["tcost"];
@@ -1178,36 +1380,83 @@ function plot_SVD_cluster_approx(; farm_id="C17", farmdir="MiniOptimized", opto_
     F = svdfact(r_all);
     
     # CRUDE CLUSTERING
-    utemp = copy(F[:U])
-    clusters[:,1] = (utemp[:,2] .< 0) .& (utemp[:,1] .< 0);
-    clusters[:,2] = (utemp[:,2] .< 0) .& (utemp[:,1] .> 0);
-    clusters[:,3] = (utemp[:,2] .> 0) ;
+    clusters = randn(165,3) .< .33;
+    try
+        clusters = load(farmdir*farm_id*"_cluster_ids.jld","clusters")
+    catch
+        utemp = copy(F[:U])
+        clusters = randn(165,3) .< .33;
+        clusters[:,1] = (utemp[:,2] .< 0) .& (utemp[:,1] .< 0);
+        clusters[:,2] = (utemp[:,2] .< 0) .& (utemp[:,1] .> 0);
+        clusters[:,3] = (utemp[:,2] .> 0) ;
+    end
 
-    nodes = SVD_cluster_approx(clusters[:,cluster_num], rank, opto_type, trial_type,F,m; opto_conditions=opto_conditions)
     figure()
-    plot(nodes[1,:])
-    plot(nodes[2,:])
-    plot(nodes[3,:])
-    plot(nodes[4,:])
+    fignum = gcf()[:number]
+    nodes = SVD_cluster_approx(clusters[:,cluster_num], rank, opto_type, "hit-pro",F,m,r_all; opto_conditions=opto_conditions,avg_dynamics=avg_dynamics)
+    figure(fignum)
+    subplot(2,2,1); title("hit-pro")
+    plot(nodes[1,:],"b-");     plot(nodes[2,:],"r-")
+    plot(nodes[3,:],"r--");     plot(nodes[4,:],"b--")
+    ylim(0,1)
+
+    nodes = SVD_cluster_approx(clusters[:,cluster_num], rank, opto_type, "miss-pro",F,m,r_all; opto_conditions=opto_conditions,avg_dynamics=avg_dynamics)
+    figure(fignum)
+    subplot(2,2,2); title("miss-pro")
+    plot(nodes[1,:],"b-");     plot(nodes[2,:],"r-")
+    plot(nodes[3,:],"r--");     plot(nodes[4,:],"b--")
+    ylim(0,1)
+    nodes = SVD_cluster_approx(clusters[:,cluster_num], rank, opto_type, "hit-anti",F,m,r_all; opto_conditions=opto_conditions,avg_dynamics=avg_dynamics)
+    figure(fignum)
+    subplot(2,2,3); title("hit-anti")
+    plot(nodes[1,:],"b-");     plot(nodes[2,:],"r-")
+    plot(nodes[3,:],"r--");     plot(nodes[4,:],"b--")
+    ylim(0,1)
+    nodes = SVD_cluster_approx(clusters[:,cluster_num], rank, opto_type, "miss-anti",F,m,r_all; opto_conditions=opto_conditions,avg_dynamics=avg_dynamics)
+    figure(fignum)
+    subplot(2,2,4); title("miss-anti")
+
+    plot(nodes[1,:],"b-");     plot(nodes[2,:],"r-")
+    plot(nodes[3,:],"r--");     plot(nodes[4,:],"b--")
+    ylim(0,1)
+
     return nodes
 end
 
-function SVD_cluster_approx(cluster, rank, opto_type, trial_type, F,m; opto_conditions=3)
+"""
+    Helper function for computing the SVD approximation for each cluster
+
+# PARAMETERS
+
+- cluster, a vector of TRUE or FALSE for inclusion of each farm into the cluster
+
+- rank, opto_type, trial_type, opto_conditions: see doc for plot_SVD_cluster_approx()
+
+- F, SVD factorization for response of all farms
+
+- m, mean response vector that was subtracted off before SVD
+
+"""
+function SVD_cluster_approx(cluster, rank, opto_type, trial_type, F,m,r_all; opto_conditions=3, avg_dynamics=true)
+
+    
+    S = copy(F[:S]);
+    U = copy(F[:U]);
     
     # Build the correct low rank in S
-    S = copy(F[:S]);
     S[rank+1:end] = 0;    
 
     # build the cluster U vector
-    U = copy(F[:U])
     u = mean(U[cluster[:],:],1)
     #u[1] and u[2] should be the cluster center x,y location
-    figure()
-    scatter(U[:,1],U[:,2])
-    plot(u[1],u[2], "ro")
-
+  
     # Make the cluster approximation
-    low_rank = u * Diagonal(S)* F[:Vt];
+    if avg_dynamics
+        low_rank = mean(r_all[cluster[:],:],1)   
+    else
+        low_rank = u * Diagonal(S)* F[:Vt];
+    end
+    
     opto_dur = Int(length(low_rank)/opto_conditions)
 
     # Pull the right opto condition
@@ -1219,6 +1468,10 @@ function SVD_cluster_approx(cluster, rank, opto_type, trial_type, F,m; opto_cond
     # Pull the right trial type
     if trial_type     == "hit-pro"
         cdex = 0;
+  figure()
+    scatter(U[:,1],U[:,2])
+    plot(u[1],u[2], "ro")
+
     elseif trial_type == "miss-pro"
         cdex = 1;
     elseif trial_type == "hit-anti"
