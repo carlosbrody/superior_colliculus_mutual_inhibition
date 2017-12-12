@@ -61,18 +61,18 @@ extra_pars = Dict(
 
 
 search_conditions = Dict(   # :param    default_start   search_box  bound_box
-:vW     =>                   [mypars[:vW],                       [-0.5, 0.5],  [-3,   3]], 
-:hW     =>                   [mypars[:hW],                       [-0.5, 0.5],  [-3,   3]],
-:dW     =>                   [mypars[:dW],                       [-0.5, 0.5],  [-3,   3]],
-:sW     =>                   [mypars[:sW],                       [0,    0.5],  [0,    3]],
-:sigma  =>                   [mypars[:sigma],                    [0.1,  0.2],  [-2,   2]],
-:constant_excitation      => [mypars[:constant_excitation],      [-1,     1],  [-30, 30]], 
-:target_period_excitation => [mypars[:target_period_excitation], [0.001,0.5],  [-30  30]],
-:right_light_excitation   => [mypars[:right_light_excitation],   [0.05, 0.5],  [-30, 30]],
-:const_pro_bias           => [mypars[:const_pro_bias],           [-0.5, 0.5],  [-30, 30]],
+:vW     =>                   [mypars[:vW],                       [-1,     1],  [-3,   3]], 
+:hW     =>                   [mypars[:hW],                       [-1,     1],  [-3,   3]],
+:dW     =>                   [mypars[:dW],                       [-1,     1],  [-3,   3]],
+:sW     =>                   [mypars[:sW],                       [0,      1],  [0,    3]],
+:sigma  =>                   [mypars[:sigma],                    [0.05, 0.3],  [-2,   2]],
+:constant_excitation      => [mypars[:constant_excitation],      [-2,     2],  [-30, 30]], 
+:target_period_excitation => [mypars[:target_period_excitation], [-1,     1],  [-30  30]],
+:right_light_excitation   => [mypars[:right_light_excitation],   [-1,     1],  [-30, 30]],
+:const_pro_bias           => [mypars[:const_pro_bias],           [-1,     1],  [-30, 30]],
 :opto_strength            => [mypars[:opto_strength],            [0,      1],  [0,    1]],
-:pro_rule_strength        => [mypars[:pro_rule_strength],        [0,   0.2,],  [0,   30]],
-:anti_rule_strength       => [mypars[:anti_rule_strength],       [0,   0.2,],  [0,   30]],
+:pro_rule_strength        => [mypars[:pro_rule_strength],        [0,   0.5,],  [0,   30]],
+:anti_rule_strength       => [mypars[:anti_rule_strength],       [0,   0.5,],  [0,   30]],
 )
 
 
