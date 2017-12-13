@@ -1,3 +1,16 @@
+README="""
+    LIST OF ALL FUNCTIONS IN THIS FILE
+
+# BACKEND FUNCTIONS
+    build_encoding_dataset(farm_id)
+
+# DATA EXPLORATION FUNCTIONS
+    display_encoding(encoding, error_types, fileindex)
+    scatter_svd_by_index(data, encoding, error_types, opto_type, encode_index,svd_index)
+
+"""
+
+
 
 """
     build_encoding_dataset(farm_id)
@@ -154,4 +167,55 @@ function display_encoding(encoding, error_types, fileindex)
 end
 
 
+"""
+    Plots SVD coordinates aginst encoding indicies
+
+# PARAMETERS
+
+- data, output from SVD_interactive(), the coordinates in SVD dimensions
+
+- encoding, output from SVD_interactive(), the encoding indexes
+
+- error_types, output from SVD_interactive(), the encoding fractions
+
+- opto_type, = 1,2,3 for Control Delay, or Choice inactivation
+
+- encode_index, = 1,2,3 for pro/anti index, right/left index, or diagonal1/diagonal2 index
+
+- svd_index, =1 to ndims, where ndims is the number of SVD dimensions requested from SVD_interactive()
+
+# EXAMPLE
+
+data, filenames, encoding, error_types = SVD_interactive("C17";farmdir="MiniOptimized", backend_mode=true);
+
+Plot the Control data, Pro/Anti Index, SVD Dim 1
+
+scatter_svd_by_index(data,encoding, error_types, 1, 1, 1)
+
+"""
+function scatter_svd_by_index(data, encoding, error_types, opto_type, encode_index,svd_index)
+     index_labels=["Pro/Anti Index", "Right/Left Index", "Diag1/Diag2 Index"];
+     svd_label = "SVD Dim ";
+     figure()
+     subplot(2,2,1)
+     scatter(data[:,svd_index], encoding[:,opto_type,1,1,encode_index])
+     title("Pro-hit")
+     ylabel(index_labels[encode_index])
+
+     
+     subplot(2,2,2)
+     scatter(data[:,svd_index], encoding[:,opto_type,1,2,encode_index])
+     title("Pro-Miss")
+     
+     subplot(2,2,3)
+     scatter(data[:,svd_index], encoding[:,opto_type,2,1,encode_index])
+     title("Anti-hit")
+     ylabel(index_labels[encode_index])
+     xlabel(svd_label*string(svd_index))
+     
+     subplot(2,2,4)
+     scatter(data[:,svd_index], encoding[:,opto_type,2,2,encode_index])
+     title("Anti-Miss")
+     xlabel(svd_label*string(svd_index))
+end
 
