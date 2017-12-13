@@ -6,21 +6,21 @@ builds a database of rule encoding indexes for each farm run in with farmdir/far
 
 # PARAMETERS
 
--farm_id ID of farm to analyze, eq "C17"
+-farm_id        ID of farm to analyze, eq "C17"
 
 # OPTIONAL PARAMETERS 
 
--farmdir, directory where farm run info is held
+-farmdir        directory where farm run info is held
 
--testruns, number of runs to use to compute encoding indicies
+-testruns       number of runs to use to compute encoding indicies
 
-- overrideDict, if you want to override any default parameters. Overrides for all farm runs
+- overrideDict  if you want to override any default parameters. Overrides for all farm runs
 
 # RETURNS (and saves)
 
-- encoding, for N farms X Opto Conditions X pro/anti X hit/miss show the rule encoding strength: mean(pro-anti), positive value ==pro encoding, negative value == anti encoding 
+- encoding      for N farms X Opto Conditions X pro/anti X hit/miss show the rule encoding strength: mean(pro-anti), positive value ==pro encoding, negative value == anti encoding 
 
-- error_types, N farms X opto Conditions X weak/wrong encoding X pro/anti, what percentage of ERROR trials had correct rule encoding at end of delay. Weak coding is |pro-anti| <= 0.2, wrong is the sign is flipped. 
+- error_types   N farms X opto Conditions X weak/wrong encoding X pro/anti, what percentage of ERROR trials had correct rule encoding at end of delay. Weak coding is |pro-anti| <= 0.2, wrong is the sign is flipped. 
 
 """
 function build_encoding_dataset(farm_id; farmdir="MiniOptimized",testruns=1000, overrideDict=Dict())
@@ -86,7 +86,20 @@ function build_encoding_dataset(farm_id; farmdir="MiniOptimized",testruns=1000, 
     return encoding,error_types
 end
 
-# displays the encoding information in the database for the farm run at index <fileindex>
+"""
+    display_encoding(encoding, error_types, fileindex)
+
+displays the encoding information in the database for the farm run at index <fileindex>
+
+# PARAMETERS
+
+- encoding      result from build_encoding_dataset()
+
+- error_types   result from build_encoding_dataset()
+
+- fileindex     the index of which farm to display
+
+"""
 function display_encoding(encoding, error_types, fileindex)
     i = fileindex;
     opto_string = ["Control", "Delay", "Choice"];

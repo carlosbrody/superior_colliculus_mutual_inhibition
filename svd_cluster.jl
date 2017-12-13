@@ -1,20 +1,56 @@
-# Set of functions for doing SVD clustering on neural trajectories
-#
-# To perform analysis on a new farm;
-# > results = load_farm_params(farm_id)
-# > response = build_response_matrix(farm_id)
-# > SVD_analysis(farm_id)
+README="""
+This file contains a set of functions for doing SVD based analysis of neural dynamics on the proanti model.
 
-# I have no idea why I need to include these, but load() won't work unless I do!
+If you have a new farm to analyze, run update_farm() first!
+
+============================
+
+# BACKEND FUNCTIONS         (Need to run first, once for each farm, before any analysis)
+update_farm()               runs all the following:
+    results = load_farm_params()
+    response= build_response_matrix()
+    response= build_response_matrix(;opto_conditions=3)
+    hessian = build_hessian_dataset()
+    encoding, error_types = build_encoding_dataset();
+    response= build_reduced_response_matrix()
+
+# ANALYSIS FUNCTIONS        (Useful for thinking about how the model works)
+SVD_interactive()           SVD analysis on dynamics, INTERACTIVE plots dynamics, and rule encoding
+plot_PCA()                  plots farms in parameter PCA space, with error ellipses
+plot_PCA_Redux()            compares two farms in parameter PCA space, with error ellipses
+plot_SVD_cluster_approx()   Generates the average dynamics for a cluster of farms
+
+# HELPER FUNCTIONS          (Used in some other analyses, but could be useful building blocks)
+run_farm()                  Returns the average dynamics for this farmrun in each trial type
+plot_farm()                 Plots dynamics of a farm (Stolen from Carlos in another file, not maintained)
+plot_farm2()                A more stable, but less useful version of plot_farm()
+plot_ellipse()              plots an ellipse
+SVD_cluster_approx()        Computes average dynamics for a cluster of farms
+
+
+# OLDER FUNCTIONS           (Not really maintained, keeping them around incase they are needed)
+SVD_analysis()              Generates SVD and PCA analysis, non-interactive. 
+plot_SVD_approx()           Generates a low rank approximation to all farm dynamics
+plot_psth()                 plots the average neural response, use plot_farm() instead
+SVD_interactive2()          Use SVD_interactive() instead
+"""
+
+
+
+
+#Need to include pro_anti.jl because it loads some packages. 
 include("pro_anti.jl")
 using HDF5
 
+
 """
-    load_farm_params(farm_id; farmdir="MiniFarms", verbose=true, verbose_every=50)
+    load_farm_params(; farm_id="C17", farmdir="MiniFarms", verbose=true, verbose_every=50)
 
 Load final parameters for each farm run in <MiniFarms/farm_id>. Also loads the training and test cost for each farm. Saves a file <farm_id>_results.jld 
 
 # OPTIONAL PARAMETERS:
+
+- farm_id   Which farm to use
 
 - farmdir   Direction where farm runs are located
 
@@ -27,7 +63,7 @@ Load final parameters for each farm run in <MiniFarms/farm_id>. Also loads the t
 A dict with fields "dirs", "files", "tcost", "cost", and "params"
 
 """
-function load_farm_params(farm_id; farmdir="MiniFarms", verbose=true, verbose_every=50);
+function load_farm_params(;farm_id="C17", farmdir="MiniOptimized", verbose=true, verbose_every=50);
     if typeof(farmdir)==String; farmdir=[farmdir]; end
     results = Dict(); dirs=[]; files =[]; qs=[]; tcosts=[]; costs=[]; pars=[]; n=0;
     for dd in farmdir
@@ -62,16 +98,21 @@ end
 
 Runs the farm at <filename>, <testruns> times. Then computes the average trajectory for each condition: hits/errors X pro/anti. 
 
+# PARAMETERS:
+
+- filename          The path to the farm to run
+
 # OPTIONAL PARAMETERS:
 
-- testruns Number of runs to compute
+- testruns          Number of runs to compute
 
-- overrideDict  If you want to override some model parameters
+- overrideDict      If you want to override some model parameters
 
-- all_conditions If true, returns average trajectory for each opto condition as well 
+- all_conditions    If TRUE, returns average trajectory for each opto condition as well 
+
 # RETURNS
 
-a row vector that contains the average trajectory in each trial type and each opto condition
+- a row vector that contains the average trajectory in each trial type and each opto condition
 
 """
 function run_farm(filename; testruns=200, overrideDict=Dict(),all_conditions=false)
@@ -115,7 +156,6 @@ function run_farm(filename; testruns=200, overrideDict=Dict(),all_conditions=fal
             farm_response = [farm_response avgHP' avgMP' avgHA' avgMA'];
         end
     end
-#    return avgHP, avgMP, avgHA, avgMA 
     return farm_response, numConditions
 end
 
@@ -124,15 +164,19 @@ end
     
 For each farm run, computes the average trajectory for hits/errors X pro/anti. Arranges these average trajectories in a #runs X length(hits/errors X pro/anti)*#timepoints matrix. Saves a file <farm_id>_SVD_response_matrix.jld 
 
+# PARAMETERS:
+
+- farm_id           example "C17"
+
 # OPTIONAL PARAMETERS:
 
-- farmdir   Direction where farm runs are located
+- farmdir           Directory where farm runs are located
     
-- all_conditions If true, compute response matrix for all opto conditions
+- all_conditions    If TRUE, compute response matrix for all opto conditions. If FALSE, just control trials
 
 # RETURNS
 
-Response matrix
+- Response matrix, where each row is the average dynamics of each node for each trial-type X opto_condition
 
 """
 function build_response_matrix(farm_id; farmdir="MiniFarms", all_conditions = false)
@@ -164,29 +208,76 @@ function build_response_matrix(farm_id; farmdir="MiniFarms", all_conditions = fa
 end
 
 
+function build_reduced_response_matrix(farm_id; farmdir="MiniFarms", opto_conditions = 3, time_to_truncate = 0.6)
+
+    # load the already compute response matrix
+    if opto_conditions > 1
+    all_response, results = load(farmdir*farm_id*"_SVD_response_matrix"*string(opto_conditions)*".jld", "response","results")
+    else
+    all_response, results = load(farmdir*farm_id*"_SVD_response_matrix.jld", "response","results")
+    end
+
+    # splice out the rule parts of each trial
+    # need truncation time points
+    mypars, extra_pars, args, pars3 = load(results["files"][1], "mypars", "extra_pars", "args", "pars3")
+    rule_and_delay_period   = mypars[:rule_and_delay_period];
+    target_period           = mypars[:target_period];
+    post_target_period      = mypars[:post_target_period];
+    @printf("Original rule_and_delay_period : %g\n",rule_and_delay_period)
+    @printf("Original target_period         : %g\n",target_period)
+    @printf("Original post_target_period    : %g\n",post_target_period)
+    @printf("NEW rule_and_delay_period      : %g\n",rule_and_delay_period-time_to_truncate)
+
+    ns = Int(floor(time_to_truncate/mypars[:dt]));
+    nt = Int(floor(size(all_response,2)/opto_conditions/4/4));
+    nn = Int(floor(size(all_response,2)/nt))
+    response_matrix = copy(all_response[:,1:(nt-ns)*nn])
+
+    # need to parse each row of all_response into each node/trial/opto/etc
+    for i=1:nn
+        sd = 1+(i-1)*(nt-ns);
+        ed = i*(nt-ns);
+        osd = 1+(i-1)*nt+ns;
+        oed = i*nt;
+        response_matrix[:,1+(i-1)*(nt-ns):i*(nt-ns)] = all_response[:,1+(i-1)*nt+ns:i*nt];
+    end
+
+    # save the reduced response matrix
+     if opto_conditions > 1
+        myfilename = farmdir*farm_id*"_SVD_response_matrix"*string(opto_conditions)*"_reduced.jld";
+    else
+        myfilename = farmdir*farm_id*"_SVD_response_matrix_reduced.jld";
+    end   
+    save(myfilename, Dict("response"=>response_matrix, "results"=>results, "numConditions"=>opto_conditions ))
+
+    return response_matrix
+end
+
 """
-    SVD_analysis(farm_id; opto_conditions = 1)    
+    SVD_analysis(farm_id; farmdir="MiniFarms", opto_conditions = 1, compute_good_only=false, threshold=-0.0002)
 
 Plots a series of analyses based on the SVD of the average neural response
 
 # PARAMETERS:
 
-- farm_id   Which farm to analyze   
+- farm_id               Which farm to analyze, example "C17"
 
  # OPTIONAL PARAMETERS:
+
+- farmdir               Directory of farm runs to analyze
    
-- opto_conditions Number of opto_conditions in SVD_response_matrix
+- opto_conditions       Number of opto_conditions in SVD_response_matrix
 
-- compute_good_only compute SVD only on good farms
+- compute_good_only     If TRUE, compute SVD only on good farms
 
-- threshold for determining good farms
+- threshold             cutoff in cost for determining good farms
 
 # RETURNS
 
 None
 
 """
-function SVD_analysis(farm_id; farmdir="MiniFarms", opto_conditions = 1, compute_good_only=false, threshold=-0.0002)
+function SVD_analysis(farm_id; farmdir="MiniFarms", opto_conditions = 3, compute_good_only=true, threshold=-0.0002)
 
     # Load responses from all models
     if opto_conditions > 1
@@ -346,35 +437,13 @@ function SVD_analysis(farm_id; farmdir="MiniFarms", opto_conditions = 1, compute
     # From the svd1/3 scatter, we see the vector that most separates clusters is svd1-svd3
     bifn_vec = cn-cn3;
     bifn_vec = bifn_vec/norm(bifn_vec);
-    bifn_labels = [bifn_vec args]
- 
-     
-#    figure()
-#    p = copy(results["params"]);
-#    p = p[!vec(nanrows),:];
-#    paramC = cov(p);
-#    vals, vecs = eig(paramC);
-#    paramx = vecs[:,end-1:end]'*p';
-#    scatter(paramx[1,:], paramx[2,:]);
-#
-#    hessians = load(farmdir*farm_id*"_hessians.jld")
-#    hessians = hessians["hessians"];
-#    hessians = hessians[!vec(nanrows),:,:];    
-#    scalevecs = vecs[:,end-1:end]';#.*stdp;
-#    scaleHess = Array(Float64, size(hessians,1),2,2);
-#    for i=1:size(hessians,1)
-#        scaleHess[i,:,:] = scalevecs*hessians[1,:,:]*scalevecs';
-#        scaleC = inv(scaleHess[i,:,:]);
-#        
-#    end
-
-
- 
+    bifn_labels = [bifn_vec args] 
+   
     return F, nanrows, r_all
 end
 
 """
-    SVD_interactive(;threshold =-0.0002, plot_option=1, plot_bad_farms=true, compute_good_only=false)
+    SVD_interactive(farm_id;farmdir="MiniFarms", threshold =-0.0002, plot_option=1, plot_bad_farms=true, compute_good_only=false, opto_conditions = 1,disp_encoding = false)
 
 Puts up an interactive plot of runs plotted in parameter SVD space. (The SVD space is defined
 based on voltage traces versus time, averaged over trials.) Clicking on a dot brings up, in a
@@ -382,28 +451,30 @@ different figure, example trials from the corresponding run.
 
 # PARAMETERS:
     
-- farm_id which farm to analyze
+- farm_id               which farm to analyze, example "C17"
 
 # OPTIONAL PARAMETERS:
 
-- threshold  training costs below this value are considered "successful" (red dots), 
-             above it are "unsuccessful" (blue dots)
+- farmdir               Directory of which farms to analyze
 
-- plot_option  whether to use `plot_farm()` or `plot_farm2()`
+- threshold             training costs below this value are considered "successful" (red dots), above it are "unsuccessful" (blue dots)
 
-- plot_bad_farms  If true, dots for the unsuccessful farms are shown, otherwise not
+- plot_option           whether to use `plot_farm()` or `plot_farm2()` 
 
-- compute_good_only  If true, only the successful runs are used to compute the SVD space
+- plot_bad_farms        If TRUE, dots for the unsuccessful farms are shown, otherwise not
 
-- opto_conditions Number of opto conditions (control only = 1)
+- compute_good_only     If TRUE, only the successful runs are used to compute the SVD space
+
+- opto_conditions       Number of opto conditions (control only = 1)
+
+- disp_encoding         If TRUE, prints rule encoding index in the console after clicking on a farm run
 
 # RETURNS
 
 None
 
-    
 """
-function SVD_interactive(farm_id;farmdir="MiniFarms", threshold =-0.0002, plot_option=1, plot_bad_farms=true, compute_good_only=false, opto_conditions = 1,disp_encoding = false)
+function SVD_interactive(farm_id;farmdir="MiniFarms", threshold =-0.0002, plot_option=1, plot_bad_farms=false, compute_good_only=true, opto_conditions = 3,disp_encoding = true)
     # get response matrix
     if opto_conditions > 1
     response, results = load(farmdir*farm_id*"_SVD_response_matrix"*string(opto_conditions)*".jld", "response","results")
@@ -497,10 +568,12 @@ end
 """
     SVD_interactive2(;threshold =-0.0002, plot_option=1, plot_bad_farms=true, compute_good_only=false)
 
-Just like `SVD)interactive()`, but puts up two synchronized side-by-side panels, showing first versus third
+WARNING, this function hasn't been updated, you probably want to use SVD_interactive() unless you know what you are doing. 
+
+Just like `SVD_interactive()`, but puts up two synchronized side-by-side panels, showing first versus third
 as well as second versus first from the U matrix of the SVD.
 
-Thsi function puts up an interactive plot of runs plotted in parameter SVD space. (The SVD space 
+This function puts up an interactive plot of runs plotted in parameter SVD space. (The SVD space 
 is defined based on voltage traces versus time, averaged over trials.) Clicking on a dot brings up, 
 in a different figure, example trials from the corresponding run.
 
@@ -658,6 +731,8 @@ plot_farm_trials = 10
 """
     params = plot_farm(filename; testruns=nothing, fignum=3, overrideDict=Dict())
 
+WARNING, this function was stolen from Carlos in another file. This version is likely outdated...
+
     Plots multiple trials from a single run of a farm.
 
 # PARAMETERS
@@ -804,7 +879,6 @@ end
 
 """
     plot_SVD_approx(rank, condition, F; opto_conditions)
-
     
 # PARAMETERS
 
@@ -935,15 +1009,6 @@ function build_hessian_dataset(farm_id; farmdir="MiniOptimized")
         farm_hessian = ftraj3[2,end];
         hessians[i,:,:] = farm_hessian;
 
-        # This recovers "cost3" - the training cost
-#         func1 = (;params...)-> JJ(mypars[:nPro], mypars[:nAnti]; verbose=false,seedrand=extra_pars[:seedrand], merge(merge(mypars, extra_pars), Dict(params))...)[1]       
-#        farm_value, farm_grad, farm_hessian = keyword_vgh(func1, args, pars3);
-
-        # This recovers "cost" - the test cost
-#         func2 = (;params...)-> JJ(testruns, testruns; verbose=false,seedrand=extra_pars[:seedrand], merge(merge(mypars, extra_pars), Dict(params))...)[1]       
-#        farm_value, farm_grad, farm_hessian = keyword_vgh(func1, args, pars3);
-
-        # do a check to see if farm_value and tcost match
         @printf("%g %s %g\n",i, filename, results["tcost"][i])
     end
 
@@ -951,6 +1016,16 @@ function build_hessian_dataset(farm_id; farmdir="MiniOptimized")
     save(myfilename, Dict("hessians"=>hessians))
 
     return hessians
+
+# THIS CODE COMPUTES THE HESSIAN FROM SCRATCH, JUST KEEPING IT HERE IN CASE IT IS NEEDED
+# This recovers "cost3" - the training cost
+# func1 = (;params...)-> JJ(mypars[:nPro], mypars[:nAnti]; verbose=false,seedrand=extra_pars[:seedrand], merge(merge(mypars, extra_pars), Dict(params))...)[1]       
+# farm_value, farm_grad, farm_hessian = keyword_vgh(func1, args, pars3);
+# This recovers "cost" - the test cost
+# func2 = (;params...)->JJ(testruns, testruns; verbose=false,seedrand=extra_pars[:seedrand], merge(merge(mypars, extra_pars), Dict(params))...)[1]
+# farm_value, farm_grad, farm_hessian = keyword_vgh(func1, args, pars3);
+# do a check to see if farm_value and tcost match
+
 end
 
 
@@ -962,15 +1037,16 @@ Computes PCA on parameters for each farm, and then estimates the hessian approxi
 
 # OPTIONAL PARAMETERS:
 
-- farmdir   Direction where farm runs are located
+- farmdir               Directory where farm runs are located
 
-- opto_conditions Loads the results from the SVD response matrix computed on all opto conditions, or just the control. Note that this doesnt change the results of this file, it just changes where the results matrix is loaded from. 
+- opto_conditions       Loads the results from the SVD response matrix computed on all opto conditions, or just the control. 
+                        Note that this doesnt change the results of this file, it just changes where the results matrix is loaded from. 
 
-- compute_good_only If true, computes PCA and ellipses only on farm runs with a cost lower than threshold
+- compute_good_only     If TRUE, computes PCA and ellipses only on farm runs with a cost lower than threshold
 
-- threshold The benchmark used to define good vs. bad runs
+- threshold             The benchmark used to define good vs. bad runs
 
-- deltaCost The relative change in cost that the ellipses will plot. 
+- deltaCost             The relative change in cost that the ellipses will plot. 
     
 # RETURNS
 
@@ -1059,13 +1135,13 @@ Plots an ellipse with mean center, and major and minor axes given by the eigenva
 
 # PARAMETERS:
 
-- center a vector for the center of the ellipse. eq [0; 0] is the origin
+- center            a vector for the center of the ellipse. eq [0; 0] is the origin
 
-- C a matrix that defines the major and minor axes. 
+- C                 a matrix that defines the major and minor axes. 
 
-- s a scale factor. If C is a inverse covariance matrix, then s=1.96 gives 95% confidence intervals
+- s                 a scale factor. If C is a inverse covariance matrix, then s=1.96 gives 95% confidence intervals
 
-- fignum. Which figure to plot on. Wants the figure number, not the figure object. 
+- fignum            Which figure to plot on. Wants the figure number, not the figure object. 
     
 # RETURNS
 
@@ -1142,27 +1218,30 @@ end
 
 
 """
-    plots the parameters for two farms, one of which has been reoptimized in PCA space. For each farm run, the ellipse representing the quadratic estimate of an increase of cost of <deltaCost>. 
+    plot_PCA_Redux(;farm_id="C17", farmdir="MiniOptimized", f2="MiniOptimized_Redux", opto_conditions = 3, compute_good_only=true, threshold=-0.0002, deltaCost = 0.0008333,plot_common_only=true,plot_connector=true, plot_f2_hessian=true)
+
+plots the parameters for two farms, one of which has been reoptimized in PCA space. For each farm run, the ellipse representing the quadratic estimate of an increase of cost of <deltaCost>. 
 
 # OPTIONAL PARAMETERS
 
-- farm_id,  ex. "C17"
+- farm_id,              ex. "C17"
 
-- farmdir,  ex. "MiniOptimized"
+- farmdir,              ex. "MiniOptimized"
 
-- f2,       ex. "MiniOptimized_Redux", should be a reoptimized version of <farmdir>
+- f2,                   ex. "MiniOptimized_Redux", should be a reoptimized version of <farmdir>
 
-- opto_conditions, how many opto conditions to use
+- opto_conditions       how many opto conditions to use
 
-- compute_good_only, if TRUE, threshold for bad farm runs
+- compute_good_only     if TRUE, threshold for bad farm runs
 
-- threshold, the cutoff for defining good farms
+- threshold             the cutoff for defining good farms
 
-- deltaCost, the increase in cost marked by the ellipses for each farm run
+- deltaCost             the increase in cost marked by the ellipses for each farm run
 
-- plot_common_only, if TRUE only plots the farms that are included in both farm directory. Farms could be excluded for bad cost, or bad hessians
+- plot_common_only      if TRUE only plots the farms that are included in both farm directory. 
+                        Farms could be excluded for bad cost, or bad hessians
 
-- plot_connector, if TRUE plots a dashed lines between the common farms in each directory.
+- plot_connector        if TRUE plots a dashed lines between the common farms in each directory.
 
 - plot_f2_hessian, if TRUE plot the ellipse for the second directory
 
@@ -1308,22 +1387,21 @@ end
 
 
 """
-     Builds all necessary matrices and datasets for SVD and rule encoding analysis
+    Builds all necessary matrices and datasets for SVD and rule encoding analysis
 
 # PARAMETERS
--farm_id id of farm, eq "C17"
+-farm_id        id of farm, eq "C17"
 
--farmdir, eq "MiniOptimized"
-
-Builds results matrix, response matrix, hessian matrix, and encoding matrix
+-farmdir        example "MiniOptimized"
 
 # EXAMPLE
-> update_farm("C17","MiniOptimized")
+
+- update_farm("C17","MiniOptimized")
 
 """
 function update_farm(farm_id, farmdir)
     @printf("Building Results matrix\n")
-    results = load_farm_params(farm_id; farmdir=farmdir, verbose_every=1)
+    results = load_farm_params(;farm_id=farm_id, farmdir=farmdir, verbose_every=1)
     @printf("Building Response matrix\n")
     response= build_response_matrix(farm_id; farmdir=farmdir)
     @printf("Building Response matrix all conditions\n")
@@ -1336,28 +1414,34 @@ function update_farm(farm_id, farmdir)
 end
 
 """
+    plot_SVD_cluster_approx(; farm_id="C17", farmdir="MiniOptimized", opto_conditions = 3, threshold=-0.0002, rank=2,opto_type=1, cluster_num = 1, avg_dynamics=true)
+
 Plots the SVD approximation of the average cluster dynamics. Tries to load cluster ids from <farmdir><farm_id>_cluster_ids.jld, if that
 fails, it will use a crude clustering based on the sign of U weights in SVD dim1 and dim2. 
 Now plots all 4 trial types pro/anti X hit/miss
 
-# PARAMETERS
-- farm_id e.g. "C17"
+# OPTIONAL PARAMETERS
+- farm_id           e.g. "C17"
 
-- farmdir eg "MiniOptimized"
+- farmdir           eg "MiniOptimized"
 
-- opto_conditions either 1 for control only, or 3 for all opto conditions
+- opto_conditions   either 1 for control only, or 3 for all opto conditions
 
-- threshold cutoff for defining good farms
+- threshold         cutoff for defining good farms
 
-- rank of approximation. Can be any number up to number of good farms in dataset, however rank > 2 will be basically the same because cluster weights will average for 0 in all dimensions above 1 or 2.
+- rank              rank of approximation. Can be any number up to number of good farms in dataset.
+                    however rank > 2 will be basically the same because cluster weights will average for 0 in all dimensions above 1 or 2.
 
-- opto_type = 1, 2, or 3, meaning control, delay, or choice inactivations
+- opto_type         = 1, 2, or 3, meaning control, delay, or choice inactivations
 
-- cluster_num = 1,2,or 3, which cluster the farms in SVD space very crudely by svd-dim1 >/< 0, and svd-dim2 >/< 0.
+- cluster_num       = 1,2,or 3, which cluster the farms in SVD space very crudely by svd-dim1 >/< 0, and svd-dim2 >/< 0.
+
+- avg_dynamics      if TRUE, does approximation by average dynamics. If FALSE, uses SVD. Averaging slightly faster, same result. 
 
 # EXAMPLE
 
 > plot_SVD_cluster_approx(; opto_type=1, trial_type="hit-pro", cluster_num=1)
+
 """
 function plot_SVD_cluster_approx(; farm_id="C17", farmdir="MiniOptimized", opto_conditions = 3, threshold=-0.0002, rank=2,opto_type=1, cluster_num = 1, avg_dynamics=true)
 
@@ -1428,13 +1512,24 @@ end
 
 # PARAMETERS
 
-- cluster, a vector of TRUE or FALSE for inclusion of each farm into the cluster
+- cluster           a vector of TRUE or FALSE for inclusion of each farm into the cluster
 
-- rank, opto_type, trial_type, opto_conditions: see doc for plot_SVD_cluster_approx()
+- rank              : see doc for plot_SVD_cluster_approx()
 
-- F, SVD factorization for response of all farms
+- opto_type         : see doc for plot_SVD_cluster_approx()
 
-- m, mean response vector that was subtracted off before SVD
+- trial_type        : see doc for plot_SVD_cluster_approx()
+
+- opto_conditions   : see doc for plot_SVD_cluster_approx()
+
+- F                 SVD factorization for response of all farms
+
+- m                 mean response vector that was subtracted off before SVD
+
+- r_all             response matrix for all farms
+
+- avg_dynamics      If TRUE, compute approximation by averaging dynamics in r_all. 
+                    If FALSE, compute using SVD (same result)
 
 """
 function SVD_cluster_approx(cluster, rank, opto_type, trial_type, F,m,r_all; opto_conditions=3, avg_dynamics=true)
