@@ -20,6 +20,6 @@ set my_instance        = $argv[1]
 set zone               = "us-east1-c"
 
 
-echo "gcloud compute ssh --zone $zone --command ""sudo \rm -rf * ; sudo \rm -rf .julia ; sudo \rm -rf ../marinopagan/* ; sudo \rm -rf ../alexpiet/* ; sudo \rm -rf ../alex.piet/"" $my_google_username@$my_instance"
+echo "gcloud compute ssh --zone $zone --command ""sudo \rm -rf * ; sudo \rm -rf .julia ; sudo \rm /usr/bin/julia ; sudo \rm -rf ../marinopagan/* ; sudo \rm -rf ../alexpiet/* ; sudo \rm -rf ../alex.piet/*"" $my_google_username@$my_instance"
 
-gcloud compute ssh --zone $zone --command "sudo \rm -rf * ; sudo \rm -rf .julia ; sudo \rm -rf ../marinopagan/* ; sudo \rm -rf ../alexpiet/* ; sudo \rm -rf ../alex.piet/*" $my_google_username@$my_instance
+gcloud compute ssh --zone $zone --command "sudo \rm -rf * ; sudo \rm -rf .julia ; sudo \rm /usr/bin/julia ; sudo \rm -rf ../marinopagan/* ; sudo \rm -rf ../alexpiet/* ; sudo \rm -rf ../alex.piet/*" $my_google_username@$my_instance
