@@ -1,4 +1,4 @@
-"""
+README="""
 This file contains a set of functions for doing SVD based analysis of neural dynamics on the proanti model.
 
 If you have a new farm to analyze, run update_farm() first!
@@ -9,9 +9,10 @@ If you have a new farm to analyze, run update_farm() first!
 update_farm()               runs all the following:
     results = load_farm_params()
     response= build_response_matrix()
-    response= build_response_matrix()
+    response= build_response_matrix(;opto_conditions=3)
     hessian = build_hessian_dataset()
     encoding, error_types = build_encoding_dataset();
+    response= build_reduced_response_matrix()
 
 # ANALYSIS FUNCTIONS        (Useful for thinking about how the model works)
 SVD_interactive()           SVD analysis on dynamics, INTERACTIVE plots dynamics, and rule encoding
@@ -26,6 +27,7 @@ plot_farm2()                A more stable, but less useful version of plot_farm(
 plot_ellipse()              plots an ellipse
 SVD_cluster_approx()        Computes average dynamics for a cluster of farms
 
+
 # OLDER FUNCTIONS           (Not really maintained, keeping them around incase they are needed)
 SVD_analysis()              Generates SVD and PCA analysis, non-interactive. 
 plot_SVD_approx()           Generates a low rank approximation to all farm dynamics
@@ -35,9 +37,8 @@ SVD_interactive2()          Use SVD_interactive() instead
 
 
 
-"""
-Need to include pro_anti.jl because it loads some packages. 
-"""
+
+#Need to include pro_anti.jl because it loads some packages. 
 include("pro_anti.jl")
 using HDF5
 
@@ -206,6 +207,51 @@ function build_response_matrix(farm_id; farmdir="MiniFarms", all_conditions = fa
     return response_matrix
 end
 
+
+function build_reduced_response_matrix(farm_id; farmdir="MiniFarms", opto_conditions = 3, time_to_truncate = 0.6)
+
+    # load the already compute response matrix
+    if opto_conditions > 1
+    all_response, results = load(farmdir*farm_id*"_SVD_response_matrix"*string(opto_conditions)*".jld", "response","results")
+    else
+    all_response, results = load(farmdir*farm_id*"_SVD_response_matrix.jld", "response","results")
+    end
+
+    # splice out the rule parts of each trial
+    # need truncation time points
+    mypars, extra_pars, args, pars3 = load(results["files"][1], "mypars", "extra_pars", "args", "pars3")
+    rule_and_delay_period   = mypars[:rule_and_delay_period];
+    target_period           = mypars[:target_period];
+    post_target_period      = mypars[:post_target_period];
+    @printf("Original rule_and_delay_period : %g\n",rule_and_delay_period)
+    @printf("Original target_period         : %g\n",target_period)
+    @printf("Original post_target_period    : %g\n",post_target_period)
+    @printf("NEW rule_and_delay_period      : %g\n",rule_and_delay_period-time_to_truncate)
+
+    ns = Int(floor(time_to_truncate/mypars[:dt]));
+    nt = Int(floor(size(all_response,2)/opto_conditions/4/4));
+    nn = Int(floor(size(all_response,2)/nt))
+    response_matrix = copy(all_response[:,1:(nt-ns)*nn])
+
+    # need to parse each row of all_response into each node/trial/opto/etc
+    for i=1:nn
+        sd = 1+(i-1)*(nt-ns);
+        ed = i*(nt-ns);
+        osd = 1+(i-1)*nt+ns;
+        oed = i*nt;
+        response_matrix[:,1+(i-1)*(nt-ns):i*(nt-ns)] = all_response[:,1+(i-1)*nt+ns:i*nt];
+    end
+
+    # save the reduced response matrix
+     if opto_conditions > 1
+        myfilename = farmdir*farm_id*"_SVD_response_matrix"*string(opto_conditions)*"_reduced.jld";
+    else
+        myfilename = farmdir*farm_id*"_SVD_response_matrix_reduced.jld";
+    end   
+    save(myfilename, Dict("response"=>response_matrix, "results"=>results, "numConditions"=>opto_conditions ))
+
+    return response_matrix
+end
 
 """
     SVD_analysis(farm_id; farmdir="MiniFarms", opto_conditions = 1, compute_good_only=false, threshold=-0.0002)
