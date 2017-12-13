@@ -1,7 +1,11 @@
 
 
-include("pro_anti.jl")
+if !isdefined(:plot_PA)
+    include("pro_anti.jl")
+end
 
+setups_dir = "Setups"
+my_setup_filename = "setup_C20.jld"
 
 
 mypars = Dict(
@@ -59,7 +63,6 @@ extra_pars = Dict(
                         ],
 )
 
-
 search_conditions = Dict(   # :param    default_start   search_box  bound_box
 :vW     =>                   [mypars[:vW],                       [-1,     1],  [-3,   3]], 
 :hW     =>                   [mypars[:hW],                       [-1,     1],  [-3,   3]],
@@ -82,3 +85,7 @@ for k in keys(search_conditions)
     bbox = merge(bbox, Dict(k=>search_conditions[k][3]))
 end
 
+
+if !isdir(setups_dir); mkdir(setups_dir); end
+save(setups_dir * "/" * my_setup_filename, Dict("mypars"=>mypars, "extra_pars"=>extra_pars, 
+                                          "search_conditions"=>search_conditions, "bbox"=>bbox))
