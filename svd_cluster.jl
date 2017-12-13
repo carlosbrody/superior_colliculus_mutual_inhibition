@@ -469,7 +469,7 @@ function SVD_analysis(farm_id; farmdir="MiniFarms", opto_conditions = 3, compute
 end
 
 """
-    SVD_interactive(farm_id;farmdir="MiniFarms", threshold =-0.0002, plot_option=1, plot_bad_farms=true, compute_good_only=false, opto_conditions = 1,disp_encoding = false)
+    SVD_interactive(farm_id;farmdir="MiniFarms", threshold =-0.0002, plot_option=1, plot_bad_farms=false, compute_good_only=true, opto_conditions = 3,disp_encoding = true, use_reduced_SVD=false, backend_mode=false, ndims=2)
 
 Puts up an interactive plot of runs plotted in parameter SVD space. (The SVD space is defined
 based on voltage traces versus time, averaged over trials.) Clicking on a dot brings up, in a
@@ -497,12 +497,31 @@ different figure, example trials from the corresponding run.
 
 - use_reduced_SVD       if TRUE, uses truncated SVD response matrix with shortened rule period
 
+- backend_mode          If TRUE, then does not plot anything. Instead it returns two variables, DATA, and string_IDs. In backend_mode, compute_good_only must be set to TRUE. If disp_encoding is also true, returns two encoding variables encoding and error_types as well.
+
+- ndims                 Number of SVD dimensions to return in backend_mode
+
 # RETURNS
 
-None
+None, unless in backend mode. In backend mode:
+
+- DATA, a npoints x ndims matrix with the SVD coordinates of each farm run
+
+- string_IDS, a npoints vector of the file names for each farm run
+
+If disp_encoding is also true:
+
+- encoding, a npoints x opto_conditions x pro/anti x hit/miss x 3 encoding indicies matrix
+
+- error_types,  a npoints x opto_conditions x pro/anti x hit/miss x 3 indicies. Instead of the indicies, shows percentage of trials with positive sign for each index. 
+
 
 """
-function SVD_interactive(farm_id;farmdir="MiniFarms", threshold =-0.0002, plot_option=1, plot_bad_farms=false, compute_good_only=true, opto_conditions = 3,disp_encoding = true, use_reduced_SVD=false)
+function SVD_interactive(farm_id;farmdir="MiniFarms", threshold =-0.0002, plot_option=1, plot_bad_farms=false, compute_good_only=true, opto_conditions = 3,disp_encoding = true, use_reduced_SVD=false, backend_mode=false, ndims=2)
+
+    if backend_mode & !compute_good_only
+        error("Backend mode doesn't play nice with including the bad farms right now...")
+    end
 
     # Load responses from all models
     if use_reduced_SVD
@@ -561,41 +580,51 @@ function SVD_interactive(farm_id;farmdir="MiniFarms", threshold =-0.0002, plot_o
     files = results["files"];
     files = files[!vec(nanrows),:];
     if disp_encoding
-    encoding = encoding[!vec(nanrows),:,:,:];
-    error_types = error_types[!vec(nanrows),:,:,:];
+        encoding = encoding[!vec(nanrows),:,:,:];
+        error_types = error_types[!vec(nanrows),:,:,:];
     end
 
-    function mycallback(xy, r, h, ax)
-        index = find(u1 .== xy[1])
-        @printf("You selected farm # %d", index[1])  
-        print("\n")
-        filename = files[index[1]]
-        print(filename)
-        print("\n")
-        print(disp_cost[index[1]])
-        print("\n")
-        print("\n")
-       
+    if backend_mode
+        DATA = u[:,1:ndims]; 
+        string_IDs = files;
         if disp_encoding
-        display_encoding(encoding, error_types, index[1])
-        end
-        if plot_option == 1
-            plot_farm(filename)
+            return DATA, string_IDs, encoding, error_types
         else
-            plot_farm2(filename)
+            return DATA, string_IDs
         end
-        print("\n")
-
-    end   
-    pygui(true)
-    BP = install_nearest_point_callback(figure(100), mycallback)
-    if plot_bad_farms
-        plot(u[:,1],u[:,3],"bo")
+    else
+        function mycallback(xy, r, h, ax)
+            index = find(u1 .== xy[1])
+            @printf("You selected farm # %d", index[1])  
+            print("\n")
+            filename = files[index[1]]
+            print(filename)
+            print("\n")
+            print(disp_cost[index[1]])
+            print("\n")
+            print("\n")
+           
+            if disp_encoding
+            display_encoding(encoding, error_types, index[1])
+            end
+            if plot_option == 1
+                plot_farm(filename)
+            else
+                plot_farm2(filename)
+            end
+            print("\n")
+    
+        end   
+        pygui(true)
+        BP = install_nearest_point_callback(figure(100), mycallback)
+        if plot_bad_farms
+            plot(u[:,1],u[:,3],"bo")
+        end
+        plot(u1good, u2good, "ro")
+        title("SVD U columns 1 and 3")
+        ylabel("SVD Dim 3")
+        xlabel("SVD Dim 1")      
     end
-    plot(u1good, u2good, "ro")
-    title("SVD U columns 1 and 3")
-    ylabel("SVD Dim 3")
-    xlabel("SVD Dim 1")   
 
 end
 
