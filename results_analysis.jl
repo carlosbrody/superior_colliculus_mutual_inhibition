@@ -29,7 +29,8 @@ Package and return a summary of results from a number of runs.
 
 # OPTIONAL PARAMETERS:
 
-- farmdir      Directory in which the files are found
+- farmdir      String indicating directory in which the files are found; alternatively, a vector
+               of strings; runs from all of those directories will be loaded.
 
 - verbose      If true, print a brief progress report every verbose_every files loaded
 
@@ -55,7 +56,7 @@ function farmload(farm_id; farmdir="../NewFarms", verbose=true, verbose_every=50
 
     if typeof(farmdir)==String; farmdir=[farmdir]; end
     
-    results = Dict(); dirs=[]; files =[]; qs=[]; tcosts=[]; costs=[]; pars=[]; 
+    results = Dict(); dirs=[]; files =[]; qs=[]; tcosts=[]; costs=[]; pars=[]; hBPs=[]; hBAs=[];
     grads = []; hessians = Array{Array{Float64}}(0,1);
     n=0;
     for dd in farmdir
@@ -72,7 +73,7 @@ function farmload(farm_id; farmdir="../NewFarms", verbose=true, verbose_every=50
             # end
             close(fj)
 
-            args, params, traj3, cost = load(myfile, "args", "pars3", "traj3", "cost")
+            args, params, traj3, cost, hBP, hBA = load(myfile, "args", "pars3", "traj3", "cost", "hBP", "hBA")
 
             if     !haskey(results, args);       results["args"] = args;
             elseif !all(results["args"].==args); error("Not all files have same args!"); 
@@ -81,6 +82,9 @@ function farmload(farm_id; farmdir="../NewFarms", verbose=true, verbose_every=50
             files = [files ; myfile]; dirs = [dirs ; dd]
             qs = [qs ; qu_out]; tcosts = [tcosts; traj3[2,end]]; costs = [costs; cost]
             if length(pars) ==0; pars =params';  else pars  = [pars  ; params']; end
+            if length(hBPs) ==0; hBPs =hBP';     else hBPs  = [hBPs  ; hBP'];    end
+            if length(hBAs) ==0; hBAs =hBA';     else hBAs  = [hBAs  ; hBA'];    end
+            
             if mygrad==nothing
                 if length(grads)==0; grads=[mygrad];   else grads = [grads ; [mygrad]]; end
             else
@@ -108,6 +112,8 @@ function farmload(farm_id; farmdir="../NewFarms", verbose=true, verbose_every=50
     results["params"]   = pars
     results["grads"]    = grads
     results["hessians"] = hessians
+    results["hBP"]      = hBPs
+    results["hBA"]      = hBAs
 
     return results
 end
@@ -122,17 +128,34 @@ Data structure for interactive scatterplots
 
 `interactive_scatter()` returns one of these objects; used to manage GUI handling.
 
-Fields are:
+A mutlidimensional set of data points is plotted in a set of scatterplots, each of which 
+shows the scatterplot of one dimension against another. Each data point is identified
+by a unique string.  When the user clicks on one of the axes, the closest point to it
+is identified, and if defined, a callback function is called, with the string ID that
+datapoint passed as one of its parameters.
+
+The points can be divided into different subsets of them, with each set plotted
+in its own color. In addition, a series of initially invisible dots can also be 
+added to the plot. If scatter_highlight() is defined as the callback function, then
+these initially invidible points will become sequentially visible as the user clicks 
+on the scatterplots.
+
+The main function that is called to set things up is `interactive_scatter()`. The 
+usual callback is `scatter_highlight()`. 
+
+These functions work with a scatter_data data structure, defined here.
+
+The data structure's fields are:
 
     Data::Array{Float64}     # npoints-by-ndims Array{Float64} of original data
-    stringIDs::Array{String} # npoints-long vector of unique strings, identifying the corresponding rows of Data. (E.g., the filename from which that point came.)
-    I::Array{Array{Int64}}   # Vector of index vectors. I[i] is a vector, containing row numbers of "set i" points
+    stringIDs::Array{String} # npoints-long vector of unique strings, each identifying the corresponding rows of Data. (E.g., the filename from which that point came.)
+    I::Array{Array{Int64}}   # Vector of index vectors. Each element, for example, I[i] is a vector, whose elements in turn are integers, indicating the row numbers in Data that correspond to the "set i" points
     # --- stuff about graphics handling of the plots:
     axisHandles::Array{PyCall.PyObject}  # handles to the plotted axes
-    axisDims::Array{Int64}               # naxes-by-2, indicating x- and y-axes dimension for each axis plot. E.g., the number 2 would indicate here the 2nd column of Data
-    dotHandles::Array{PyCall.PyObject}   # naxes-by-ndots, extra dots plotted
+    axisDims::Array{Int64}               # naxes-by-2. Each row indicates the x- and y-axes dimension for each axis plot. E.g., if row j contains [2 3] that means that the jth scatterplot has column 2 of Data as its x-axis and column 3 of Data as its y-axis
+    dotHandles::Array{PyCall.PyObject}   # naxes-by-ndots, handles to the extra, initially invisible, dots plotted
     callback::Any                        # A function that could be called after a button press. 
-                                         # Function should be callback(str, SD::scatterdata). 
+                                         # Function should be defined as taking two parameters, callback(str, SD::scatterdata). 
                                          # str will be one of the strings in stringIDs
 
 """
@@ -153,12 +176,28 @@ SD = interactive_scatters(Data, stringIDs; set_indices=nothing,
     n_invisible_dots = 3, invisible_colors = ["c"; "b"; "m"],
     fignum = nothing, axisHandles = nothing, plot_colors = ["r"; "g"; "k"], markersize=10, marker=".")
 
-Given a set of multidimensional data points, puts up at most two scatterplots of different dimensions
+A mutlidimensional set of data points is plotted in a set of scatterplots, each of which 
+shows the scatterplot of one dimension against another. Each data point is identified
+by a unique string.  When the user clicks on one of the axes, the closest point to it
+is identified, and if defined, a callback function is called, with the string ID that
+datapoint passed as one of its parameters.
+
+The points can be divided into different subsets of them, with each set plotted
+in its own color. In addition, a series of initially invisible dots can also be 
+added to the plot. If scatter_highlight() is defined as the callback function, then
+these initially invidible points will become sequentially visible as the user clicks 
+on the scatterplots.
+
+The main function that is called to set things up is `interactive_scatter()`. The 
+usual callback is `scatter_highlight()`. 
+
+`interactive_scatter()`: Given a set of multidimensional data points, puts up at most 
+two scatterplots of different dimensions
 against each other. (If data has only two dimensions, only one scatterplot goes up.)
 In addition, enables GUI interactivity: users can associate a callback function
 with buttonclicks on the plots. Also puts up some invisible points on the plot with can later
-be used by interactive_highlight().  Returns a data structure with info as to what is plotted where,
-meant to be used by GUI callbacks and functions such as interactive_highlight().
+be used by `scatter_highlight()`.  Returns a data structure with info as to what is plotted where,
+meant to be used by GUI callbacks and functions such as `scatter_highlight()`.
 
 If the user clicks on one of the plots, the plotted data point closest to the clicked point
 will be identified, and if the user callback was defined, then user_callback will be called 
@@ -177,7 +216,7 @@ requested to be plotted, in different colors.
 # OPTIONAL PARAMETERS:
 
 - set_indices           Default is a vector with one element, which itself is 1:size(Data,1), 
-                        i.e., plot all points in Data as "set 1" points. 
+                        i.e., default will plot all points in Data as "set 1" points. 
                         If passed, set_indices should be a vector of vectors; each
                         element should be a vectors of integers, each within 1:size(Data,2). 
                         The rows of Data in set_indices[i] will be plotted with color plot_colors[i].
@@ -212,6 +251,19 @@ requested to be plotted, in different colors.
 # RETURNS
 
 - SD::scatter_data      A structure, holindg information about the plot. See documentation for scatter_data   
+
+
+# EXAMPLE
+
+```jldoctest
+pygui(true)
+npoints    = 10
+Data       = randn(npoints,2)
+string_IDs = map(x -> @sprintf("%d", x), 1:npoints)
+remove_all_BPs()  # delete any previous click handlers, for cleanliness
+
+SD = interactive_scatters(Data, string_IDs, fignum=20, user_callback=scatter_highlight);
+```jldoctest
 
 """ 
 function interactive_scatters(Data, stringIDs; set_indices=nothing, 
