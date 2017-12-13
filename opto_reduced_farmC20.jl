@@ -38,7 +38,7 @@ extra_pars[:pro_better_than_anti]      = true   # if true, in each condition pro
 
 append_to_file(report_file, @sprintf("\n\n\nStarting with random seed %d\n\n\n", extra_pars[:seedrand]))
 
-just_testing = true; if just_testing   # 
+just_testing = false; if just_testing   # 
     extra_pars[:maxiter]                   = 4
     extra_pars[:testruns]                  = 100
     extra_pars[:few_trials]                = 10
