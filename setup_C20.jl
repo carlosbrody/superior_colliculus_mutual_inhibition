@@ -87,5 +87,9 @@ end
 
 
 if !isdir(setups_dir); mkdir(setups_dir); end
-save(setups_dir * "/" * my_setup_filename, Dict("mypars"=>mypars, "extra_pars"=>extra_pars, 
-                                          "search_conditions"=>search_conditions, "bbox"=>bbox))
+if chomp(readstring(`hostname`))[1:7] != "proanti"
+    # If not on a VM machine, we're probably not running parallelized versions where the saves might step on each other
+    # so we're ok to save:
+    save(setups_dir * "/" * my_setup_filename, Dict("mypars"=>mypars, "extra_pars"=>extra_pars, 
+                                                    "search_conditions"=>search_conditions, "bbox"=>bbox))
+end
