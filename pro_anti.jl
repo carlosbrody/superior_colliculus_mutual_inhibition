@@ -558,7 +558,17 @@ target_period is different, for backwards compatibility it defaults to 0.1.
     
 - hBA    Anti binarized hits
 
-If model_details is set to true, also returns proValls, antiValls, opto_fraction, pro_input, anti_input
+If model_details is set to true, also returns the following (nopto is number of opto conditions, nruns_each is total number of unique period duration combinations)
+
+- proValls          Array, nopto-by-nruns_each of Float64 Arrays, each of which is 4-by-nsteps-nPro and is V versus time for each trial
+
+- antiValls         Array, nopto-by-nruns_each of Float64 Arrays, each of which is 4-by-nsteps-nPro and is V versus time for each trial
+
+- opto_fraction
+
+- pro_input
+
+- anti_input
 
 
 
@@ -626,6 +636,9 @@ function JJ(nPro, nAnti; pro_target=0.9, anti_target=0.7,
     nruns_each = length(rule_and_delay_periods)*length(target_periods)*length(post_target_periods)    # runs per opto condition
     nruns      = nruns_each*noptos  # total conditions
 
+    # --- WARNING!!!! BUG HERE, Should have been nruns_each, not nruns. Keeping 
+    # it as is for backwards compatibility, but all final costs will come out divided
+    # by noptos (because there will be that factor of columns of untouched zeros)
     if FDversion() < 0.6
         cost1s = ForwardDiffZeros(noptos, nruns, nderivs=nderivs, difforder=difforder)
         cost2s = ForwardDiffZeros(noptos, nruns, nderivs=nderivs, difforder=difforder)
@@ -641,8 +654,8 @@ function JJ(nPro, nAnti; pro_target=0.9, anti_target=0.7,
     hBP = zeros(noptos, nruns_each);   # Pro binarized hits, as computed by binarizing (equivalent to theta1->0)
     hBA = zeros(noptos, nruns_each);   # Anti binarized hits
 
-    proValls         = [];
-    antiValls        = [];
+    proValls         = Array{Array{Float64}}(noptos, nruns_each);
+    antiValls        = Array{Array{Float64}}(noptos, nruns_each);
     opto_fraction    = [];
     pro_input        = [];
     anti_input       = [];
@@ -678,15 +691,18 @@ function JJ(nPro, nAnti; pro_target=0.9, anti_target=0.7,
                             nderivs=nderivs, difforder=difforder, my_params...)
                         # run_ntrials_opto(nPro, nAnti; nderivs=nderivs, difforder=difforder, my_params...)
 
-                    if length(proValls)==0
-                        proValls = zeros(4, size(proVall,2), size(proVall,3), noptos)
-                    end
-                    if length(antiValls)==0
-                        antiValls = zeros(4, size(antiVall,2), size(antiVall,3), noptos)
-                    end
-                    proValls[:,:,:,nopto]  = get_value(proVall)
-                    antiValls[:,:,:,nopto] = get_value(antiVall)
+                    # if length(proValls)==0
+                    #    proValls = zeros(4, size(proVall,2), size(proVall,3), noptos)
+                    # end
+                    # if length(antiValls)==0
+                    #    antiValls = zeros(4, size(antiVall,2), size(antiVall,3), noptos)
+                    # end
+                    # proValls[:,:,:,nopto]  = get_value(proVall)
+                    # antiValls[:,:,:,nopto] = get_value(antiVall)
                     # @printf(ostr, "size of proValls is "); print(size(proValls)); print("\n")
+                    # print("size(proValls)="); print(size(proValls)); print("\n")
+                    proValls[nopto,  n] = proVall
+                    antiValls[nopto, n] = antiVall
                     
                     hitsP  = 0.5*(1 + tanh.((proVs[1,:]-proVs[4,:,])/theta1))
                     diffsP = tanh.((proVs[1,:,]-proVs[4,:])/theta2).^2
