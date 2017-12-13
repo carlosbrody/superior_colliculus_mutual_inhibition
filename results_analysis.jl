@@ -176,7 +176,7 @@ SD = interactive_scatters(Data, stringIDs; set_indices=nothing,
     n_invisible_dots = 3, invisible_colors = ["c"; "b"; "m"],
     fignum = nothing, axisHandles = nothing, plot_colors = ["r"; "g"; "k"], markersize=10, marker=".")
 
-A mutlidimensional set of data points is plotted in a set of scatterplots, each of which 
+A multidimensional set of data points is plotted in a set of scatterplots, each of which 
 shows the scatterplot of one dimension against another. Each data point is identified
 by a unique string.  When the user clicks on one of the axes, the closest point to it
 is identified, and if defined, a callback function is called, with the string ID that
@@ -191,8 +191,8 @@ on the scatterplots.
 The main function that is called to set things up is `interactive_scatter()`. The 
 usual callback is `scatter_highlight()`. 
 
-`interactive_scatter()`: Given a set of multidimensional data points, puts up at most 
-two scatterplots of different dimensions
+This function, `interactive_scatter()`: Given a set of multidimensional data points, 
+puts up at most two scatterplots of different dimensions
 against each other. (If data has only two dimensions, only one scatterplot goes up.)
 In addition, enables GUI interactivity: users can associate a callback function
 with buttonclicks on the plots. Also puts up some invisible points on the plot with can later
@@ -400,6 +400,22 @@ end
 """
     scatter_highlight(stringID, SD::scatter_data)
 
+A multidimensional set of data points is plotted in a set of scatterplots, each of which 
+shows the scatterplot of one dimension against another. Each data point is identified
+by a unique string.  When the user clicks on one of the axes, the closest point to it
+is identified, and if defined, a callback function is called, with the string ID that
+datapoint passed as one of its parameters.
+
+The points can be divided into different subsets of them, with each set plotted
+in its own color. In addition, a series of initially invisible dots can also be 
+added to the plot. If scatter_highlight() is defined as the callback function, then
+these initially invidible points will become sequentially visible as the user clicks 
+on the scatterplots.
+
+The main function that is called to set things up is `interactive_scatter()`. The 
+usual callback is `scatter_highlight()`. 
+
+This function, 'scatter_highlight()`:
 Finds the row in SD.stringIDs that equals stringID, and then for each axis in SD.axisHandles,
 sets the first SD.dotHandle's x,y data to the positon of the corresponding row of SD.Data; 
 moves the second SD.dotHandle to where the first used to be; moves the third to where the
