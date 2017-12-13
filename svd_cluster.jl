@@ -9,11 +9,10 @@ If you have a new farm to analyze, run update_farm() first!
 update_farm()               runs all the following:
     results = load_farm_params()
     response= build_response_matrix()
-    response= build_response_matrix(;opto_conditions=3)
+    response= build_reduced_response_matrix()
     hessian = build_hessian_dataset()
     encoding, error_types = build_encoding_dataset();
-    response= build_reduced_response_matrix()
-
+    
 # ANALYSIS FUNCTIONS        (Useful for thinking about how the model works)
 SVD_interactive()           SVD analysis on dynamics, INTERACTIVE plots dynamics, and rule encoding
 plot_PCA()                  plots farms in parameter PCA space, with error ellipses
@@ -207,7 +206,27 @@ function build_response_matrix(farm_id; farmdir="MiniFarms", all_conditions = fa
     return response_matrix
 end
 
+"""
+    build_reduced_response_matrix(farm_id; farmdir="MiniFarms", opto_conditions = 3, time_to_truncate = 0.6)
 
+Truncates the SVD response matrix. This is useful to equalize the time durations of different trial epochs. 
+The original SVD response matrix must have already been computed. 
+
+# PARAMETERS
+
+- farm_id           Name of farm, example "C17"
+
+- farmdir           Directory of farm, example "MiniFarms"
+
+- opto_conditions   How many opto_conditions to use in the SVD response matrix, see build_response_matrix()
+
+- time_to_truncate  Duration to remove from the start of each trial, in seconds. 
+
+# RETURNS
+
+Truncated response matrix, also saves the response matrix with to: <name of the original>*"_reduced.jld"
+
+"""
 function build_reduced_response_matrix(farm_id; farmdir="MiniFarms", opto_conditions = 3, time_to_truncate = 0.6)
 
     # load the already compute response matrix
@@ -272,18 +291,25 @@ Plots a series of analyses based on the SVD of the average neural response
 
 - threshold             cutoff in cost for determining good farms
 
+- use_reduced_SVD       if TRUE, uses the truncated SVD response matrix with a shortened rule period
+
 # RETURNS
 
 None
 
 """
-function SVD_analysis(farm_id; farmdir="MiniFarms", opto_conditions = 3, compute_good_only=true, threshold=-0.0002)
+function SVD_analysis(farm_id; farmdir="MiniFarms", opto_conditions = 3, compute_good_only=true, threshold=-0.0002,use_reduced_SVD=false)
 
     # Load responses from all models
-    if opto_conditions > 1
-    response, results = load(farmdir*farm_id*"_SVD_response_matrix"*string(opto_conditions)*".jld", "response","results")
+    if use_reduced_SVD
+        reduced = "_reduced";
     else
-    response, results = load(farmdir*farm_id*"_SVD_response_matrix.jld", "response","results")
+        reduced = "";       
+    end
+    if opto_conditions > 1
+    response, results = load(farmdir*farm_id*"_SVD_response_matrix"*string(opto_conditions)*reduced*".jld", "response","results")
+    else
+    response, results = load(farmdir*farm_id*"_SVD_response_matrix"*reduced*".jld", "response","results")
     end
 
     # need to filter out NaN rows 
@@ -469,18 +495,27 @@ different figure, example trials from the corresponding run.
 
 - disp_encoding         If TRUE, prints rule encoding index in the console after clicking on a farm run
 
+- use_reduced_SVD       if TRUE, uses truncated SVD response matrix with shortened rule period
+
 # RETURNS
 
 None
 
 """
-function SVD_interactive(farm_id;farmdir="MiniFarms", threshold =-0.0002, plot_option=1, plot_bad_farms=false, compute_good_only=true, opto_conditions = 3,disp_encoding = true)
-    # get response matrix
-    if opto_conditions > 1
-    response, results = load(farmdir*farm_id*"_SVD_response_matrix"*string(opto_conditions)*".jld", "response","results")
+function SVD_interactive(farm_id;farmdir="MiniFarms", threshold =-0.0002, plot_option=1, plot_bad_farms=false, compute_good_only=true, opto_conditions = 3,disp_encoding = true, use_reduced_SVD=false)
+
+    # Load responses from all models
+    if use_reduced_SVD
+        reduced = "_reduced";
     else
-    response, results = load(farmdir*farm_id*"_SVD_response_matrix.jld", "response","results")
+        reduced = "";       
     end
+    if opto_conditions > 1
+    response, results = load(farmdir*farm_id*"_SVD_response_matrix"*string(opto_conditions)*reduced*".jld", "response","results")
+    else
+    response, results = load(farmdir*farm_id*"_SVD_response_matrix"*reduced*".jld", "response","results")
+    end
+
     if disp_encoding
     include("rule_encoding.jl")
     encoding, error_types = load(farmdir*farm_id*"_encoding.jld", "encoding","error_types")
@@ -594,18 +629,26 @@ PARAMETERS:
 
 - opto_conditions Number of opto conditions (control only = 1)
 
+- use_reduced_SVD   If TRUE, uses truncated SVD response matrix with shortened rule period
+
 # RETURNS
 
 None
 
     
 """
-function SVD_interactive2(farm_id;farmdir="MiniFarms", threshold =-0.0002, plot_option=1, plot_bad_farms=false, compute_good_only=false, opto_conditions=1)
-    # get response matrix
-    if opto_conditions > 1
-    response, results = load(farmdir*farm_id*"_SVD_response_matrix"*string(opto_conditions)*".jld", "response","results")
+function SVD_interactive2(farm_id;farmdir="MiniFarms", threshold =-0.0002, plot_option=1, plot_bad_farms=false, compute_good_only=false, opto_conditions=1, use_reduced_SVD=false)
+
+    # Load responses from all models
+    if use_reduced_SVD
+        reduced = "_reduced";
     else
-    response, results = load(farmdir*farm_id*"_SVD_response_matrix.jld", "response","results")
+        reduced = "";       
+    end
+    if opto_conditions > 1
+    response, results = load(farmdir*farm_id*"_SVD_response_matrix"*string(opto_conditions)*reduced*".jld", "response","results")
+    else
+    response, results = load(farmdir*farm_id*"_SVD_response_matrix"*reduced*".jld", "response","results")
     end
 
     # set up filter by nan
@@ -1047,6 +1090,8 @@ Computes PCA on parameters for each farm, and then estimates the hessian approxi
 - threshold             The benchmark used to define good vs. bad runs
 
 - deltaCost             The relative change in cost that the ellipses will plot. 
+
+- use_reduced_SVD       If TRUE, uses truncated SVD with shortened rule period
     
 # RETURNS
 
@@ -1054,13 +1099,18 @@ Nothing. Plots a figure.
 
 
 """
-function plot_PCA(farm_id; farmdir="MiniOptimized", opto_conditions = 3, compute_good_only=true, threshold=-0.0002, deltaCost = 0.0008333)
+function plot_PCA(farm_id; farmdir="MiniOptimized", opto_conditions = 3, compute_good_only=true, threshold=-0.0002, deltaCost = 0.0008333, use_reduced_SVD=false)
 
     # Load responses, results, and hessian from all models
-    if opto_conditions > 1
-    response, results = load(farmdir*farm_id*"_SVD_response_matrix"*string(opto_conditions)*".jld", "response","results")
+    if use_reduced_SVD
+        reduced = "_reduced";
     else
-    response, results = load(farmdir*farm_id*"_SVD_response_matrix.jld", "response","results")
+        reduced = "";       
+    end
+    if opto_conditions > 1
+    response, results = load(farmdir*farm_id*"_SVD_response_matrix"*string(opto_conditions)*reduced*".jld", "response","results")
+    else
+    response, results = load(farmdir*farm_id*"_SVD_response_matrix"*reduced*".jld", "response","results")
     end
     hessians = load(farmdir*farm_id*"_hessians.jld")
     hessians = hessians["hessians"];
@@ -1243,19 +1293,26 @@ plots the parameters for two farms, one of which has been reoptimized in PCA spa
 
 - plot_connector        if TRUE plots a dashed lines between the common farms in each directory.
 
-- plot_f2_hessian, if TRUE plot the ellipse for the second directory
+- plot_f2_hessian       if TRUE plot the ellipse for the second directory
+
+- use_reduced_SVD       If TRUE, uses truncated SVD response matrix with shortened rule period
 
 """
-function plot_PCA_Redux(;farm_id="C17", farmdir="MiniOptimized", f2="MiniOptimized_Redux", opto_conditions = 3, compute_good_only=true, threshold=-0.0002, deltaCost = 0.0008333,plot_common_only=true,plot_connector=true, plot_f2_hessian=true)
+function plot_PCA_Redux(;farm_id="C17", farmdir="MiniOptimized", f2="MiniOptimized_Redux", opto_conditions = 3, compute_good_only=true, threshold=-0.0002, deltaCost = 0.0008333,plot_common_only=true,plot_connector=true, plot_f2_hessian=true, use_reduced_SVD=false)
 
     # Load responses, results, and hessian from all models
-    if opto_conditions > 1
-    response, results = load(farmdir*farm_id*"_SVD_response_matrix"*string(opto_conditions)*".jld", "response","results")
+    if use_reduced_SVD
+        reduced = "_reduced";
     else
-    response, results = load(farmdir*farm_id*"_SVD_response_matrix.jld", "response","results")
+        reduced = "";       
     end
-    response2, results2 = load(f2*farm_id*"_SVD_response_matrix3.jld","response","results");
-
+    if opto_conditions > 1
+    response, results = load(farmdir*farm_id*"_SVD_response_matrix"*string(opto_conditions)*reduced*".jld", "response","results")
+    response2, results2 = load(f2*farm_id*"_SVD_response_matrix"*string(opto_conditions)*reduced*".jld","response","results");
+    else
+    response, results = load(farmdir*farm_id*"_SVD_response_matrix"*reduced*".jld", "response","results")
+    response2, results2 = load(f2*farm_id*"_SVD_response_matrix"*reduced*".jld","response","results");
+    end
     hessians = load(farmdir*farm_id*"_hessians.jld")
     hessians = hessians["hessians"];
     hessians2 = load(f2*farm_id*"_hessians.jld")
@@ -1402,12 +1459,18 @@ end
 function update_farm(farm_id, farmdir)
     @printf("Building Results matrix\n")
     results = load_farm_params(;farm_id=farm_id, farmdir=farmdir, verbose_every=1)
+
     @printf("Building Response matrix\n")
     response= build_response_matrix(farm_id; farmdir=farmdir)
+    response= build_reduced_response_matrix(farm_id; farmdir=farmdir, opto_conditions=1)
+
     @printf("Building Response matrix all conditions\n")
     response= build_response_matrix(farm_id; farmdir=farmdir, all_conditions=true)
+    response= build_reduced_response_matrix(farm_id; farmdir=farmdir, opto_conditions=3)
+
     @printf("Building Hessian matrix\n")
     hessian = build_hessian_dataset(farm_id; farmdir=farmdir)
+
     @printf("Building Encoding matrix\n")
     include("rule_encoding.jl")
     encoding, error_types = build_encoding_dataset(farm_id; farmdir=farmdir);
@@ -1438,18 +1501,25 @@ Now plots all 4 trial types pro/anti X hit/miss
 
 - avg_dynamics      if TRUE, does approximation by average dynamics. If FALSE, uses SVD. Averaging slightly faster, same result. 
 
+- use_reduced_SVD   If TRUE, uses truncated SVD response matrix with shortened rule period
+
 # EXAMPLE
 
 > plot_SVD_cluster_approx(; opto_type=1, trial_type="hit-pro", cluster_num=1)
 
 """
-function plot_SVD_cluster_approx(; farm_id="C17", farmdir="MiniOptimized", opto_conditions = 3, threshold=-0.0002, rank=2,opto_type=1, cluster_num = 1, avg_dynamics=true)
+function plot_SVD_cluster_approx(; farm_id="C17", farmdir="MiniOptimized", opto_conditions = 3, threshold=-0.0002, rank=2,opto_type=1, cluster_num = 1, avg_dynamics=true, use_reduced_SVD=false)
 
     # Load responses, results, and hessian from all models
-    if opto_conditions > 1
-    response, results = load(farmdir*farm_id*"_SVD_response_matrix"*string(opto_conditions)*".jld", "response","results")
+    if use_reduced_SVD
+        reduced = "_reduced";
     else
-    response, results = load(farmdir*farm_id*"_SVD_response_matrix.jld", "response","results")
+        reduced = "";       
+    end
+    if opto_conditions > 1
+    response, results = load(farmdir*farm_id*"_SVD_response_matrix"*string(opto_conditions)*reduced*".jld", "response","results")
+    else
+    response, results = load(farmdir*farm_id*"_SVD_response_matrix"*reduced*".jld", "response","results")
     end
    
     # NEED TO FILTER OUT BAD FARMS
