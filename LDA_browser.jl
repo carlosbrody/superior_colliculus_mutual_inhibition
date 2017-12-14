@@ -7,6 +7,9 @@
 #
 #######################################################
 
+using MultivariateStats
+using Clustering
+
 if !isdefined(:histo_params)
     # error("You must call include(\"results_analysis.jl\") before calling include(\"C17_browser.jl\")")
     @printf("Loading results_analysis.jl\n")
@@ -25,27 +28,42 @@ plt[:close](1); plt[:close](2); plt[:close](3); plt[:close](4); plt[:close](5)
 # Carlos' favored configuration, but adjust to suit -- use capture_current_figure_configuration() 
 # to see code that reproduces a configuration you like once you find it
 
-figure(1); set_current_fig_position(1325, 41, 640, 982)   # x, y, width, height
+figure(1); set_current_fig_position(1325, 41, 640, 672)   # x, y, width, height
 figure(2); set_current_fig_position(645, 785, 680, 408)
 figure(3); set_current_fig_position(0, 785, 641, 407)
 figure(4); set_current_fig_position(3, 23, 1288, 797)
-figure(5); set_current_fig_position(1338, 998, 540, 200)
+figure(5); set_current_fig_position(1338, 736, 540, 450)
 
 figure(5)
-ax1 = subplot(2,2,1); axisMove(-0.05, 0); axisWidthChange(1.1, lock="l")
-ax2 = subplot(2,2,2); axisMove(0.05, 0); axisWidthChange(0.6, lock="r")
-ax3 = subplot(2,1,2); axisMove(0.05, 0)
+ax1 = axes([0.01, 0.84, 0.37, 0.15])
 rad = kbMonitorModule.radio_buttons(ax1, ["Don't plot trials", "Plot trials (wait for it)"])
-tbx = dbx = []  # define these outside the try/catch so the vars are available outside the try/catch
-try 
-    tbx = kbMonitorModule.text_box(ax2, "ntrials to run ", "10")
-    dbx = kbMonitorModule.text_box(ax3, "Override ", "")
-catch
-    @printf("\nI couldn't make the ntrials to run and Override text boxes for you.\n")
-    tbx = Dict(:text=>"10")
-    dbx = Dict(:text=>"")
-end
 
+npla = 4; axheight = 0.1; axy = 0.02; 
+plax = Array{PyCall.PyObject}(npla,1); ylax = Array{PyCall.PyObject}(npla,1)
+plb  = Array{PyCall.PyObject}(npla,1); ylb  = Array{PyCall.PyObject}(npla,1)
+for i=1:npla
+    plax[i] = axes([0.13, axy, 0.49, axheight])
+    plb[i]  = kbMonitorModule.text_box(plax[i], "plottable", "")
+    ylax[i] = axes([0.75, axy, 0.24, axheight])
+    ylb[i]  = kbMonitorModule.text_box(ylax[i], "ylim", "")
+    
+    axy = axy+axheight+0.02
+end
+# Default is to plot V and Pro_R - Pro_L:
+plb[end][:set_val](" V ");               ylb[end][:set_val]("[-0.02, 1.02] ")
+plb[end-1][:set_val](" V[1,:]-V[4,:] "); ylb[end-1][:set_val]("[-1.02, 1.02] ")
+
+
+
+axy += 0.04
+ax3 = axes([0.13, axy, 0.86, axheight])
+dbx = kbMonitorModule.text_box(ax3, "Override ", "")
+
+axy += axheight + 0.04
+ax4 = axes([0.2, axy, 0.3, axheight])
+tbx = kbMonitorModule.text_box(ax4, "ntrials to run ", "6")
+
+# ax5 = axes([0.68, axy, 0.3, axheight])   working on adding xlims control
 
 ##########################################################
 #
@@ -54,7 +72,7 @@ end
 ##########################################################
 
 cost_choice = "cost"   # "cost" is test cost, "tcost" is training cost
-threshold   = -0.00025  # Below this is a "successful" run
+threshold   = -0.0002  # Below this is a "successful" run
 
 
 nsucc = length(find(res[cost_choice].<threshold))
@@ -66,19 +84,31 @@ pause(0.001)
 
 # The callback function that will be called after clicking on a data dot:
 function highlight_all(fname, LD, SV)
-    PCA_highlight(fname, SV);   # Color the selected dots in the PC plot
-    scatter_highlight(fname, LD);   # Color the selected dots in the SVD plot
-    histo_highlight(fname, HD)  # Color the selected bars in the histograms
+    PCA_highlight(fname, SV);       # Color the selected dots in the SV plot
+    scatter_highlight(fname, LD);   # Color the selected dots in the LDA plot
+    histo_highlight(fname, HD)      # Color the selected bars in the histograms
     pause(0.001);   # We don't really care about the 1 ms pause; just a convenient way to flush all pending graphics commandsj
+
     if rad[:value_selected] == "Plot trials (wait for it)"
-        if ~isnull(tryparse(Int64, tbx[:text])); 
-            ntrials = parse(Int64, tbx[:text])
-        else
-            @printf("Couldn't parse the ntrials to plot\n")
-            ntrials = 10
+        if ~isnull(tryparse(Int64, tbx[:text]));               ntrials = parse(Int64, tbx[:text])
+        else; @printf("Couldn't parse the ntrials to plot\n"); ntrials = 10
+        end
+        plottables = Array{String}(0,1); ylims = Array{Any}(0,1); ylabels = Array{String}(0,1)
+        for i=npla:-1:1
+            if plb[i][:text] != ""
+                plottables = [plottables ; plb[i][:text]]
+                ylabels    = [ylabels    ; plb[i][:text]]
+                if ylb[i][:text] == ""
+                    ylims = [ylims ; nothing]
+                else
+                    ylims = [ylims ; [eval(parse(ylb[4][:text]))]]
+                end                
+            end
         end
         try
-            plot_farm(fname, testruns=ntrials, fignum=4, overrideDict=eval(parse("Dict("*dbx[:text]*")"))) 
+            plot_farm(fname, testruns=ntrials, fignum=4, 
+                plottables=plottables, ylabels=ylabels, ylims=ylims, 
+                overrideDict=eval(parse("Dict("*dbx[:text]*")"))) 
         catch e
             @printf("Couldn't plot farm, error %s\n", e)
         end
@@ -87,10 +117,34 @@ end
 
 
 # Put up the LDA plot
-G = matread("compute_clustering/LDA_output.mat")
-set_indices = [find(G["cluster_ids"].==1), find(G["cluster_ids"].==2), find(G["cluster_ids"].==3)]
-LD = interactive_scatters(G["ldparams"]', G["filenames"], set_indices=set_indices, plot_set2=true,
-user_callback=(fname, Trash) -> highlight_all(fname, LD, SV), fignum=2, axisDims = [1 2]);
+use_marino = true   # if true, loads the cluster labels and linear discriminant projections from the output of Marino's matlab code
+if use_marino
+    G = matread("compute_clustering/LDA_output.mat")
+    idx = find(G[cost_choice].<=threshold)
+    G["cluster_ids"] = G["cluster_ids"][idx]
+    G["ldparams"]    = G["ldparams"][:,idx]
+    G["files"]       = G["files"][idx]
+    set_indices = [find(G["cluster_ids"].==1), find(G["cluster_ids"].==2), find(G["cluster_ids"].==3)]
+    LD = interactive_scatters(G["ldparams"]', G["files"], set_indices=set_indices, plot_set2=true,
+        user_callback=(fname, Trash) -> highlight_all(fname, LD, SV), fignum=2, axisDims = [1 2]);
+else # compute cluster labels and linear discriminant projections ourselves
+    G1 = load("MiniOptimizedC17_SVD_response_matrix3.jld")   # these include the trial-averaged PSTHS Alex produced
+    idx = find(G1["results"][cost_choice].<=threshold)       # choose runs
+    dynamics_data = G1["response"][idx,:]                    # get the PSTHS
+    fnames = G1["results"]["files"][idx]                     #    and their corresponding filenames
+    params = G1["results"]["params"][idx,:]                  #    and their corresponding parameter values
+
+    cluster_ids = assignments(kmeans(dynamics_data', 3, init=:kmcen))   # label each run with a cluster id
+    
+    M = fit(SubspaceLDA, params', 3, cluster_ids)            # do multiclass LDA in param space with those cluster ids
+    ld_data = transform(M, params')'                         # get the parameters in the LDA projection
+
+    # Now put it on the screen
+    set_indices = [find(cluster_ids.==1), find(cluster_ids.==2), find(cluster_ids.==3)]
+    LD = interactive_scatters(ld_data, fnames, set_indices=set_indices, plot_set2=true,
+        user_callback=(fname, Trash) -> highlight_all(fname, LD, SV), fignum=2, axisDims = [1 2]);
+    
+end
 pause(0.001)
 
 # Put up the SVD plot
