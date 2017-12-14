@@ -1,3 +1,16 @@
+README="""
+    LIST OF ALL FUNCTIONS IN THIS FILE
+
+# BACKEND FUNCTIONS
+    build_encoding_dataset(farm_id)
+
+# DATA EXPLORATION FUNCTIONS
+    display_encoding(encoding, error_types, fileindex)
+    scatter_svd_by_index(data, encoding, error_types, opto_type, encode_index,svd_index)
+
+"""
+
+
 
 """
     build_encoding_dataset(farm_id)
@@ -18,9 +31,10 @@ builds a database of rule encoding indexes for each farm run in with farmdir/far
 
 # RETURNS (and saves)
 
-- encoding      for N farms X Opto Conditions X pro/anti X hit/miss show the rule encoding strength: mean(pro-anti), positive value ==pro encoding, negative value == anti encoding 
+- encoding      A matrix: N farms X Opto Conditions X pro/anti X hit/miss X 3 encoding indicies. (1) Pro-anti, (2) R-L, (3) diagonal1-diagonal2
 
-- error_types   N farms X opto Conditions X weak/wrong encoding X pro/anti, what percentage of ERROR trials had correct rule encoding at end of delay. Weak coding is |pro-anti| <= 0.2, wrong is the sign is flipped. 
+- error_types   A matrix: N farms X Opto Conditions X pro/anti X hit/miss X 3 encoding indicies. (1) Pro-anti, (2) R-L, (3) diagonal1-diagonal2. Instead of showing the average encoding value, it shows the fraction of trials with a positive index. 
+
 
 """
 function build_encoding_dataset(farm_id; farmdir="MiniOptimized",testruns=1000, overrideDict=Dict())
@@ -28,20 +42,21 @@ function build_encoding_dataset(farm_id; farmdir="MiniOptimized",testruns=1000, 
     mypars,extra_pars = load(results["files"][1],"mypars","extra_pars")
     sample_point = Int(floor(mypars[:rule_and_delay_periods][1]/mypars[:dt]))
 
-    # for N farms X Opto Conditions X pro/anti X hit/miss show the rule encoding strength: mean(pro-anti)/var(pro-anti)
-    # positive value ==pro encoding, negative value == anti encoding 
-    encoding    = Array(Float64,length(results["cost"]),size(extra_pars[:opto_periods],1),2,2);
+    # for N farms X Opto Conditions X pro/anti X hit/miss show theencoding strength: Three indexes
+    # 1. pro-anti       positive value ==pro encoding, negative value == anti encoding 
+    # 2. right-left     positive value ==right choice, negative value == left choice
+    # 3. diagonal       (proR+antiL) - (proL+antiR)
+
+    encoding    = Array(Float64,length(results["cost"]),size(extra_pars[:opto_periods],1),2,2,3);
     
-    # for N farms X opto Conditions X weak/wrong encoding X pro/anti, what percentage of ERROR trials had correct rule encoding at end of delay ?
-    error_types = Array(Float64,length(results["cost"]),size(extra_pars[:opto_periods],1),2,2);
+    # for N farms X opto Conditions X pro/anti x hit/miss x three indexes, what percentage of trials had each encoding at end of delay?
+    error_types = Array(Float64,length(results["cost"]),size(extra_pars[:opto_periods],1),2,2,3);
     for i = 1:length(results["cost"])
         filename = results["files"][i];
         @printf("%d/%d, %s:  \n", i, length(results["cost"]), filename)
         mypars, extra_pars, args, pars3 = load(filename, "mypars", "extra_pars", "args", "pars3")
 
-        opto_string = ["Control", "Delay", "Choice"];
         for j=1:size(extra_pars[:opto_periods],1);
-        @printf("%s:  \n", opto_string[j])
         # get set of runs
         these_pars = merge(mypars, extra_pars);
         these_pars = merge(these_pars, Dict(
@@ -55,28 +70,59 @@ function build_encoding_dataset(farm_id; farmdir="MiniOptimized",testruns=1000, 
         hitBA = find(antiVs[4,:] .> antiVs[1,:])
         missBA= find(antiVs[4,:] .< antiVs[1,:])              
 
-        # for correct pro and anti trials, get pro-anti for each run
+        # INDEX 1
+        # for correct pro and anti trials, get pro-anti for each trial
         prosh = proF[1,sample_point,hitBP]' + proF[4,sample_point,hitBP]' - proF[2,sample_point,hitBP]' - proF[3,sample_point,hitBP]';
         prosm = proF[1,sample_point,missBP]'+ proF[4,sample_point,missBP]'- proF[2,sample_point,missBP]'- proF[3,sample_point,missBP]';
         antih = antiF[1,sample_point,hitBA]' + antiF[4,sample_point,hitBA]' - antiF[2,sample_point,hitBA]' - antiF[3,sample_point,hitBA]';
         antim = antiF[1,sample_point,missBA]'+ antiF[4,sample_point,missBA]'- antiF[2,sample_point,missBA]'- antiF[3,sample_point,missBA]';
         # compute mean difference for each pro/anti X hit/miss
-        encoding[i,j,1,1] = mean(prosh);#/var(prosh);
-        encoding[i,j,1,2] = mean(prosm);#/var(prosm);
-        encoding[i,j,2,1] = mean(antih);#/var(antih);
-        encoding[i,j,2,2] = mean(antim);#/var(antim);
+        encoding[i,j,1,1,1] = mean(prosh);
+        encoding[i,j,1,2,1] = mean(prosm);
+        encoding[i,j,2,1,1] = mean(antih);
+        encoding[i,j,2,2,1] = mean(antim);
+        # for N farms X opto Conditions X pro/anti x hit/miss, percentage of trials with sign of each index?
+        error_types[i,j,1,1,1] = sum(prosh .>= 0)/length(prosh);
+        error_types[i,j,1,2,1] = sum(prosm .>= 0)/length(prosm);
+        error_types[i,j,2,1,1] = sum(antih .>= 0)/length(antih);
+        error_types[i,j,2,2,1] = sum(antim .>= 0)/length(antim);  
 
-    # for N farms X opto Conditions X weak encoding/wrong encoding X pro/anti, what percentage of ERROR trials had correct rule encoding at end of delay period?
-        error_types[i,j,1,1] = sum(prosm .<= .2)/length(prosm);
-        error_types[i,j,1,2] = sum(antim .>= -.2)/length(antim);
-        error_types[i,j,2,1] = sum(prosm .<= 0)/length(prosm);
-        error_types[i,j,2,2] = sum(antim .>= 0)/length(antim);  
-        @printf("Pro  hit/miss:  %.2g / %.2g \n", encoding[i,j,1,1], encoding[i,j,1,2])
-        @printf("Anti hit/miss:  %.2g / %.2g \n", encoding[i,j,2,1], encoding[i,j,2,2])
+        # INDEX 2
+        # for correct pro and anti trials, get right-left for each run
+        prosh = proF[1,sample_point,hitBP]' + proF[2,sample_point,hitBP]' - proF[3,sample_point,hitBP]' - proF[4,sample_point,hitBP]';
+        prosm = proF[1,sample_point,missBP]'+ proF[2,sample_point,missBP]'- proF[3,sample_point,missBP]'- proF[4,sample_point,missBP]';
+        antih = antiF[1,sample_point,hitBA]' + antiF[2,sample_point,hitBA]' - antiF[3,sample_point,hitBA]' - antiF[4,sample_point,hitBA]';
+        antim = antiF[1,sample_point,missBA]'+ antiF[2,sample_point,missBA]'- antiF[3,sample_point,missBA]'- antiF[4,sample_point,missBA]';
+        # compute mean difference for each pro/anti X hit/miss
+        encoding[i,j,1,1,2] = mean(prosh);
+        encoding[i,j,1,2,2] = mean(prosm);
+        encoding[i,j,2,1,2] = mean(antih);
+        encoding[i,j,2,2,2] = mean(antim);
+        # for N farms X opto Conditions X pro/anti x hit/miss, percentage of trials with sign of each index?
+        error_types[i,j,1,1,2] = sum(prosh .>= 0)/length(prosh);
+        error_types[i,j,1,2,2] = sum(prosm .>= 0)/length(prosm);
+        error_types[i,j,2,1,2] = sum(antih .>= 0)/length(antih);
+        error_types[i,j,2,2,2] = sum(antim .>= 0)/length(antim);  
 
-        @printf("Weak Encoding pro/anti:  %.2g / %.2g \n", error_types[i,j,1,1], error_types[i,j,1,2])
-        @printf("Wrong Encoding pro/anti:  %.2g / %.2g \n", error_types[i,j,2,1], error_types[i,j,2,2])
+        # INDEX 3
+        # for correct pro and anti trials, get diagonal1-diagonal2 for each run
+        prosh = proF[1,sample_point,hitBP]' + proF[3,sample_point,hitBP]' - proF[2,sample_point,hitBP]' - proF[4,sample_point,hitBP]';
+        prosm = proF[1,sample_point,missBP]'+ proF[3,sample_point,missBP]'- proF[2,sample_point,missBP]'- proF[4,sample_point,missBP]';
+        antih = antiF[1,sample_point,hitBA]' + antiF[3,sample_point,hitBA]' - antiF[2,sample_point,hitBA]' - antiF[4,sample_point,hitBA]';
+        antim = antiF[1,sample_point,missBA]'+ antiF[3,sample_point,missBA]'- antiF[2,sample_point,missBA]'- antiF[4,sample_point,missBA]';
+        # compute mean difference for each pro/anti X hit/miss
+        encoding[i,j,1,1,3] = mean(prosh);
+        encoding[i,j,1,2,3] = mean(prosm);
+        encoding[i,j,2,1,3] = mean(antih);
+        encoding[i,j,2,2,3] = mean(antim);
+        # for N farms X opto Conditions X pro/anti x hit/miss, percentage of trials with sign of each index?
+        error_types[i,j,1,1,3] = sum(prosh .>= 0)/length(prosh);
+        error_types[i,j,1,2,3] = sum(prosm .>= 0)/length(prosm);
+        error_types[i,j,2,1,3] = sum(antih .>= 0)/length(antih);
+        error_types[i,j,2,2,3] = sum(antim .>= 0)/length(antim);  
+
         end
+        display_encoding(encoding,error_types,i)
         @printf("\n")
     end
 
@@ -105,14 +151,71 @@ function display_encoding(encoding, error_types, fileindex)
     opto_string = ["Control", "Delay", "Choice"];
     for j=1:3;
         @printf("%s:  \n", opto_string[j])
-        @printf("Pro  hit/miss:  %.2g / %.2g \n", encoding[i,j,1,1], encoding[i,j,1,2])
-        @printf("Anti hit/miss:  %.2g / %.2g \n", encoding[i,j,2,1], encoding[i,j,2,2])
-        @printf("Weak Encoding pro/anti:  %2.g%% / %2.g%% \n", error_types[i,j,1,1]*100, error_types[i,j,1,2]*100)
-        @printf("Wrong Encoding pro/anti:  %2.g%% / %2.g%% \n", error_types[i,j,2,1]*100, error_types[i,j,2,2]*100)
+        @printf("Pro  HIT  :%10.2g %10.2g %10.2g \n", encoding[i,j,1,1,1], encoding[i,j,1,1,2], encoding[i,j,1,1,3])
+        @printf("Pro  MISS :%10.2g %10.2g %10.2g \n", encoding[i,j,1,2,1], encoding[i,j,1,2,2], encoding[i,j,1,2,3])
+        @printf("Anti HIT  :%10.2g %10.2g %10.2g \n", encoding[i,j,2,1,1], encoding[i,j,2,1,2], encoding[i,j,2,1,3])
+        @printf("Anti MISS :%10.2g %10.2g %10.2g \n", encoding[i,j,2,2,1], encoding[i,j,2,2,2], encoding[i,j,2,2,3])
+        @printf("-----------\n")
+        @printf("Pro  HIT  :%9d%% %9d%% %9d%% \n",round(error_types[i,j,1,1,1]*100), round(error_types[i,j,1,1,2]*100),round(error_types[i,j,1,1,3]*100))
+        @printf("Pro  MISS :%9d%% %9d%% %9d%% \n",round(error_types[i,j,1,2,1]*100), round(error_types[i,j,1,2,2]*100),round(error_types[i,j,1,2,3]*100))
+        @printf("Anti HIT  :%9d%% %9d%% %9d%% \n",round(error_types[i,j,2,1,1]*100), round(error_types[i,j,2,1,2]*100),round(error_types[i,j,2,1,3]*100))
+        @printf("Anti MISS :%9d%% %9d%% %9d%% \n",round(error_types[i,j,2,2,1]*100), round(error_types[i,j,2,2,2]*100),round(error_types[i,j,2,2,3]*100))
+        @printf("\n")
     end
     @printf("\n")
 
 end
 
 
+"""
+    Plots SVD coordinates aginst encoding indicies
+
+# PARAMETERS
+
+- data, output from SVD_interactive(), the coordinates in SVD dimensions
+
+- encoding, output from SVD_interactive(), the encoding indexes
+
+- error_types, output from SVD_interactive(), the encoding fractions
+
+- opto_type, = 1,2,3 for Control Delay, or Choice inactivation
+
+- encode_index, = 1,2,3 for pro/anti index, right/left index, or diagonal1/diagonal2 index
+
+- svd_index, =1 to ndims, where ndims is the number of SVD dimensions requested from SVD_interactive()
+
+# EXAMPLE
+
+data, filenames, encoding, error_types = SVD_interactive("C17";farmdir="MiniOptimized", backend_mode=true);
+
+Plot the Control data, Pro/Anti Index, SVD Dim 1
+
+scatter_svd_by_index(data,encoding, error_types, 1, 1, 1)
+
+"""
+function scatter_svd_by_index(data, encoding, error_types, opto_type, encode_index,svd_index)
+     index_labels=["Pro/Anti Index", "Right/Left Index", "Diag1/Diag2 Index"];
+     svd_label = "SVD Dim ";
+     figure()
+     subplot(2,2,1)
+     scatter(data[:,svd_index], encoding[:,opto_type,1,1,encode_index])
+     title("Pro-hit")
+     ylabel(index_labels[encode_index])
+
+     
+     subplot(2,2,2)
+     scatter(data[:,svd_index], encoding[:,opto_type,1,2,encode_index])
+     title("Pro-Miss")
+     
+     subplot(2,2,3)
+     scatter(data[:,svd_index], encoding[:,opto_type,2,1,encode_index])
+     title("Anti-hit")
+     ylabel(index_labels[encode_index])
+     xlabel(svd_label*string(svd_index))
+     
+     subplot(2,2,4)
+     scatter(data[:,svd_index], encoding[:,opto_type,2,2,encode_index])
+     title("Anti-Miss")
+     xlabel(svd_label*string(svd_index))
+end
 
