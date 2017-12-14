@@ -11,7 +11,7 @@ include("rate_networks.jl")  # that will also include general_utils.jl, constrai
 """
     plot_PA(t, U, V; fignum=1, clearfig=true, rule_and_delay_period=1, target_period=1, 
         post_target_period=1, fontsize=20, color_list = [0 0 1; 1 0 0 ; 1 0.5 0.5 ; 0 1 1],
-        singleton_color = [0 0.5 0],
+        singleton_color = [0 0.5 0], linestyle = "-",
         plottables = ["V", "U", "V[1,:]-V[4,:]"], ylabels = ["V", "U", "Pro_R - Pro_L"],
         ylims = [[-0.02, 1.02], nothing, [-1.02, 1.02]], plot_Us = nothing,
         ax_set=nothing, other_unused_params...)
@@ -51,6 +51,8 @@ The things to plot are determined by the three optional parameters `plottables`,
             the element should be a 2-long vector of Float64, indicating the minimum and
             the maximum for the y axis, respectively.
 
+- linestyle Style for the lines that will be plotted. E.g., "-" or "--".
+
 - ax_set    If passed, should be a vector of axis handles, equal in length to 
             plottables. If not passed, new axes will be created, vertically stacked, number 
             equal to length of plottables.
@@ -84,7 +86,7 @@ The things to plot are determined by the three optional parameters `plottables`,
 """
 function plot_PA(t, U, V; fignum=1, clearfig=true, rule_and_delay_period=1, target_period=1, 
     post_target_period=1, fontsize=20, color_list = [0 0 1; 1 0 0 ; 1 0.5 0.5 ; 0 1 1],
-    singleton_color = [0 0.5 0],
+    singleton_color = [0 0.5 0],  linestyle = "-",
     plottables = ["V", "U", "V[1,:]-V[4,:]"], ylabels = ["V", "U", "Pro_R - Pro_L"],
     ylims = [[-0.02, 1.02], nothing, [-1.02, 1.02]], plot_Us = nothing,
     ax_set=nothing, other_unused_params...)
@@ -134,7 +136,7 @@ function plot_PA(t, U, V; fignum=1, clearfig=true, rule_and_delay_period=1, targ
         safe_axes(ax_set[i])
         plotvals = replacer(plottables[i], vardict)
         if size(plotvals,1) != length(t); plotvals = plotvals'; end
-        h = plot(t, plotvals)
+        h = plot(t, plotvals, linestyle=linestyle)
         if length(h)==1
             setp(h, color=singleton_color[:])
         else
@@ -349,8 +351,9 @@ end
 
 """
 proVs, antiVs, pro_fullV, anti_fullV, opto_fraction, pro_input, anti_input = 
-    run_ntrials(nPro, nAnti; plot_list=[], start_pro=[-0.5,-0.5,-0.5,-0.5], start_anti=[-0.5,-0.5,-0.5,-0.5],
-        profig=1, antifig=2, plot_Us=true, clearfig=true, ax_set=Dict(), 
+    run_ntrials(nPro, nAnti; plot_list=[], 
+        start_pro=[-0.5,-0.5,-0.5,-0.5], start_anti=[-0.5,-0.5,-0.5,-0.5],
+        profig=1, antifig=2, clearfig=true, ax_set = nothing, hit_linestyle="-", err_linestyle="-",
         opto_units = 1:4, nderivs=0, difforder=0, model_params...)
 
 Runs a set of proAnti model trials.  See model_params above for definition of all the parameters. In addition,
@@ -378,6 +381,12 @@ Runs a set of proAnti model trials.  See model_params above for definition of al
 - difforder    For ForwardDiff
 
 - clearfig     if ax_set is not empty, then clearfig=true clears the figure
+
+- hit_linestyle  A string indicating the linestyle for hit trials. E.g., "-" or "--".
+               If this is passed as the empty string, "", then hits are not plotted.
+
+- err_linestyle  A string indicating the linestyle for error trials. E.g., "-" or "--".
+               If this is passed as the empty string, "", then errors are not plotted.
 
 - ax_set       If passed, should be a vector with two elements, the first for the Pro
                axes, the second for the Anti axes. Each element should itself be a vector,
@@ -456,12 +465,12 @@ proVs, antiVs, pro_fullV, anti_fullV, opto_strength, pro_input, anti_input =
     run_ntrials(nPro, nAnti; plot_list=[1:5;], 
     plottables = ["V", "(V[1,:]+V[4,:]) - (V[2,:]+V[3,:])", "V[1,:]-V[4,:]"],
     ylabels = ["V", "Pro - Anti rule encoding", "Pro_R - Pro_L"],
-    ylims = [[-0.02, 1.02], nothing, nothing],
+    ylims = [[-0.02, 1.02], nothing, nothing], err_linestyle="--",
     my_params...)
 ```
 """
 function run_ntrials(nPro, nAnti; plot_list=[], start_pro=[-0.5,-0.5,-0.5,-0.5], start_anti=[-0.5,-0.5,-0.5,-0.5],
-    profig=1, antifig=2, clearfig=true, ax_set = nothing,
+    profig=1, antifig=2, clearfig=true, ax_set = nothing, hit_linestyle="-", err_linestyle="-",
     opto_units = 1:4, nderivs=0, difforder=0, model_params...)
 
     if FDversion() >= 0.6
@@ -527,9 +536,14 @@ function run_ntrials(nPro, nAnti; plot_list=[], start_pro=[-0.5,-0.5,-0.5,-0.5],
         if FDversion() < 0.6; proVall[:,:,i] = temp; else proVall[:,:,i] = get_value(temp); end
         # print("typeof(proVs) = "); print(typeof(proVs)); print("\n")
         proVs[:,i] = Vend
-        if any(plot_list.==i) 
-            plot_PA(t, get_value(pro_fullU), get_value(proVall[:,:,i]); clearfig=false,
-                fignum=profig, ax_set=pro_ax_set, model_params...)
+        if any(plot_list.==i) && (hit_linestyle!="" || err_linestyle !="")
+            if hit_linestyle==err_linestyle || (hit_linestyle!="" && Vend[1] >= Vend[4])
+                plot_PA(t, get_value(pro_fullU), get_value(proVall[:,:,i]); clearfig=false,
+                    fignum=profig, ax_set=pro_ax_set, linestyle=hit_linestyle, model_params...)
+            elseif err_linestyle!="" 
+                plot_PA(t, get_value(pro_fullU), get_value(proVall[:,:,i]); clearfig=false,
+                    fignum=profig, ax_set=pro_ax_set, linestyle=err_linestyle, model_params...)
+            end
         end
     end
 
@@ -541,9 +555,14 @@ function run_ntrials(nPro, nAnti; plot_list=[], start_pro=[-0.5,-0.5,-0.5,-0.5],
         Uend, Vend, anti_fullU, temp = forwardModel(start_anti, do_plot=false, opto_units=opto_units; model_params...)
         if FDversion() < 0.6; antiVall[:,:,i] = temp; else antiVall[:,:,i] = get_value(temp); end
         antiVs[:,i] = Vend
-        if any(plot_list.==i) 
-            plot_PA(t, get_value(anti_fullU), get_value(antiVall[:,:,i]); clearfig=false,
-            fignum=antifig, ax_set=anti_ax_set, model_params...)
+        if any(plot_list.==i) && (hit_linestyle!="" || err_linestyle !="")
+            if hit_linestyle==err_linestyle || (hit_linestyle!="" && Vend[4] > Vend[1])
+                plot_PA(t, get_value(anti_fullU), get_value(antiVall[:,:,i]); clearfig=false,
+                    fignum=antifig, ax_set=anti_ax_set, linestyle=hit_linestyle, model_params...)
+            elseif err_linestyle!="" 
+                plot_PA(t, get_value(anti_fullU), get_value(antiVall[:,:,i]); clearfig=false,
+                fignum=antifig, ax_set=anti_ax_set, linestyle=err_linestyle, model_params...)
+            end
         end
     end
         
