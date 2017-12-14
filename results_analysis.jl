@@ -1030,7 +1030,7 @@ plot_farm_trials = 10    #  The number of trials to be plotted per farm run
     params = plot_farm(filename; testruns=400, setup_file=nothing, fignum=3, 
         plottables = ["V", "V[1,:]-V[4,:]"], ylabels=["V", "ProR-ProL"], 
         ylims = [[-0.02, 1.02], [-1.02, 1.02]], plot_list = [1:20;],    
-        hit_linestyle="-", err_linestyle="--",
+        hit_linestyle="-", err_linestyle="--", xlims=nothing,
         overrideDict=Dict())
 
     Plots multiple trials from a single run of a farm.
@@ -1076,6 +1076,9 @@ In the later case, a setup_file must be defined, to set the other parameters
             the element should be a 2-long vector of Float64, indicating the minimum and
             the maximum for the y axis, respectively.
 
+- xlims     Either nothing (autoscale) or a 2-long vector of Float64, to be applied
+            to all axes
+
 - hit_linestyle  A string indicating the linestyle for hit trials. E.g., "-" or "--".
                If this is passed as the empty string, "", then hits are not plotted.
 
@@ -1100,7 +1103,7 @@ plot_farm("MiniOptimized/farm_C17_Farms024_0058.jld", fignum=200, testruns=20, s
 function plot_farm(filename; testruns=400, setup_file=nothing, fignum=3, 
     plottables = ["V", "V[1,:]-V[4,:]"], ylabels=["V", "ProR-ProL"], 
     ylims = [[-0.02, 1.02], [-1.02, 1.02]], plot_list = [1:20;],    
-    hit_linestyle="-", err_linestyle="--",
+    hit_linestyle="-", err_linestyle="--", xlims=nothing,
     overrideDict=Dict())
 
     mypars=extra_pars=args=pars3=[]  # define to be available outside if block
@@ -1151,7 +1154,7 @@ function plot_farm(filename; testruns=400, setup_file=nothing, fignum=3,
 
         proVs, antiVs = run_ntrials(testruns, testruns; plot_list=plot_list, 
             ax_set = [pax_set, aax_set], 
-            plottables = plottables, ylabels=ylabels, ylims=ylims,
+            plottables = plottables, ylabels=ylabels, ylims=ylims, xlims=xlims,
             hit_linestyle=hit_linestyle, err_linestyle=err_linestyle, 
             merge(make_dict(args, pars3, these_pars), overrideDict)...);
 

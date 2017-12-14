@@ -38,6 +38,9 @@ figure(5)
 ax1 = axes([0.01, 0.84, 0.37, 0.15])
 rad = kbMonitorModule.radio_buttons(ax1, ["Don't plot trials", "Plot trials (wait for it)"])
 
+ax0 = axes([0.5, 0.8, 0.37, 0.19])
+heb = kbMonitorModule.radio_buttons(ax0, ["all", "hit only", "err only"])
+
 npla = 4; axheight = 0.1; axy = 0.02; 
 plax = Array{PyCall.PyObject}(npla,1); ylax = Array{PyCall.PyObject}(npla,1)
 plb  = Array{PyCall.PyObject}(npla,1); ylb  = Array{PyCall.PyObject}(npla,1)
@@ -51,19 +54,21 @@ for i=1:npla
 end
 # Default is to plot V and Pro_R - Pro_L:
 plb[end][:set_val](" V ");               ylb[end][:set_val]("[-0.02, 1.02] ")
-plb[end-1][:set_val](" V[1,:]-V[4,:] "); ylb[end-1][:set_val]("[-1.02, 1.02] ")
+# plb[end-1][:set_val](" V[1,:]-V[4,:] "); ylb[end-1][:set_val]("[-1.02, 1.02] ")
+plb[end-1][:set_val](" 0.5*(V[1,:]+V[4,:])-0.5*(V[2,:]+V[3,:]) "); ylb[end-1][:set_val]("[-1.02, 1.02] ")
+plb[end-2][:set_val](" V[1,:]-V[4,:] "); ylb[end-2][:set_val]("[-1.02, 1.02] ")
 
 
-
-axy += 0.04
+axy += 0.02
 ax3 = axes([0.13, axy, 0.86, axheight])
 dbx = kbMonitorModule.text_box(ax3, "Override ", "")
 
-axy += axheight + 0.04
+axy += axheight + 0.03
 ax4 = axes([0.2, axy, 0.3, axheight])
 tbx = kbMonitorModule.text_box(ax4, "ntrials to run ", "6")
 
-# ax5 = axes([0.68, axy, 0.3, axheight])   working on adding xlims control
+ax5 = axes([0.68, axy, 0.3, axheight])   # working on adding xlims control
+xlb = kbMonitorModule.text_box(ax5, "xlims", "")
 
 ##########################################################
 #
@@ -101,13 +106,19 @@ function highlight_all(fname, LD, SV)
                 if ylb[i][:text] == ""
                     ylims = [ylims ; nothing]
                 else
-                    ylims = [ylims ; [eval(parse(ylb[4][:text]))]]
+                    ylims = [ylims ; [eval(parse(ylb[i][:text]))]]
                 end                
             end
         end
+        xlims = xlb[:text]=="" ? nothing : eval(parse(xlb[:text]))
+        if heb[:value_selected]     == "all";      hstyle="-"; estyle="--";
+        elseif heb[:value_selected] == "hit only"; hstyle="-"; estyle="";
+        else                                       hstyle="";  estyle="--";
+        end
         try
             plot_farm(fname, testruns=ntrials, fignum=4, 
-                plottables=plottables, ylabels=ylabels, ylims=ylims, 
+                plottables=plottables, ylabels=ylabels, ylims=ylims, xlims=xlims,
+                hit_linestyle = hstyle, err_linestyle = estyle,
                 overrideDict=eval(parse("Dict("*dbx[:text]*")"))) 
         catch e
             @printf("Couldn't plot farm, error %s\n", e)
