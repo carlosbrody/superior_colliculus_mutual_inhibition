@@ -1024,16 +1024,31 @@ end
 
 plot_farm_trials = 10    #  The number of trials to be plotted per farm run
 
+
+
 """
-    params = plot_farm(filename; testruns=nothing, fignum=3, overrideDict=Dict())
+    params = plot_farm(filename; testruns=400, setup_file=nothing, fignum=3, 
+        plottables = ["V", "V[1,:]-V[4,:]"], ylabels=["V", "ProR-ProL"], 
+        ylims = [[-0.02, 1.02], [-1.02, 1.02]], plot_list = [1:20;],    
+        hit_linestyle="-", err_linestyle="--",
+        overrideDict=Dict())
 
     Plots multiple trials from a single run of a farm.
 
 # PARAMETERS
 
-- filename    The filename of the .jld file containing the run, to be loaded
+- filename    Eithe a String, the filename of the .jld file containing the run, 
+to be loaded; OR an Array{Float64} vector, containing the parameter values.
+In the later case, a setup_file must be defined, to set the other parameters 
+(see optional parameters below).
 
 # OPTIONAL PARAMETERS
+
+- setup_file  if filename is actaually a parameter vector, then this optional parameter
+              should be passed as a string pointing to a .jld file that when loaded, will contain
+              variables "mypars", "extra_pars", and "search_conditions" -- the names of the arguments
+              corresponding to the different entries of the parameter vector will be taken to be 
+              the string versions of the keys of the dictionary "search_conditions".
 
 - testruns    Number of trials to run. Defaults to value of global variable plot_farm_trials.
 
@@ -1044,11 +1059,67 @@ plot_farm_trials = 10    #  The number of trials to be plotted per farm run
               `overrideDict = Dict(:sigma=>0.001)` will run with that value
               of sigma, no whater what the file said.
 
+- plottables   A vector of strings. Each of these strings indicates something to 
+            plot; the strings will be evaluated in a context where the variables "V", "U", 
+            and "t" are instantiated to have the values passed to `plot_PA()`. Thus 
+            plottables=["V", "V[1,:]-V[4,:]"] indicates that two axes should be used, on
+            the first one V will be plotted, on the second V[1,:]-V[4,:].
+                The strings can be any arbitrary Julia expression, with the condition that
+            their evaluation should produce something with either nrows or ncolumns
+            equal to length(t).
+
+- ylabels   A vector of strings, should be equal in length to plottables; Each element
+            here will be used as the y label for the corresponding axis.
+
+- ylims     A vector of Any, should be in length to plottables. If an element is
+            `nothing`, then allow automatic scaling of the y axes for this axis. Otherwise,
+            the element should be a 2-long vector of Float64, indicating the minimum and
+            the maximum for the y axis, respectively.
+
+- hit_linestyle  A string indicating the linestyle for hit trials. E.g., "-" or "--".
+               If this is passed as the empty string, "", then hits are not plotted.
+
+- err_linestyle  A string indicating the linestyle for error trials. E.g., "-" or "--".
+               If this is passed as the empty string, "", then errors are not plotted.
+
+
+# RETURNS
+
+- params     The parameters of the farm that was plotted.
+
+# EXAMPLE CALL
+
+```jldoctest
+plot_farm("MiniOptimized/farm_C17_Farms024_0058.jld", fignum=200, testruns=20, setup_file="Setups/setup_C21.jld", plot_list=[1:5;],
+    plottables = ["V", "V[1,:]+V[4,:] - (V[2,:]+V[3,:])"], ylabels=["V", "Rule encoding"],
+    ylims = [[-0.02, 1.02], nothing],
+    overrideDict=Dict(:dt=>0.0025));
+
+```jldoctest
 """
-function plot_farm(filename; testruns=400, fignum=3, overrideDict=Dict())
+function plot_farm(filename; testruns=400, setup_file=nothing, fignum=3, 
+    plottables = ["V", "V[1,:]-V[4,:]"], ylabels=["V", "ProR-ProL"], 
+    ylims = [[-0.02, 1.02], [-1.02, 1.02]], plot_list = [1:20;],    
+    hit_linestyle="-", err_linestyle="--",
+    overrideDict=Dict())
 
-    mypars, extra_pars, args, pars3 = load(filename, "mypars", "extra_pars", "args", "pars3")
-
+    mypars=extra_pars=args=pars3=[]  # define to be available outside if block
+    if typeof(filename)==String
+        mypars, extra_pars, args, pars3 = load(filename, "mypars", "extra_pars", "args", "pars3")
+    else
+        if setup_file==nothing
+            error("If filename is not a string, need a setup file that, when loaded, defines mypars, extra_pars, and search_conditions. E.g., setup_file=\"Setups/setup_C20.jld\"")
+        end
+        if ! (typeof(filename)<:Array{Float64})
+            error("If filename is not a string, it should be a vector of Float64s")
+        end
+        mypars, extra_pars, search_conditions=load(setup_file, "mypars", "extra_pars", "search_conditions")
+        args = map(k -> String(k), keys(search_conditions))
+        pars3 = filename
+        if length(args) != length(pars3)
+            error("If filename is not a string, it should be a vector with length equal to the number of keys in setup_file")
+        end
+    end 
 
     pygui(true)
     figure(fignum); clf();
@@ -1057,38 +1128,54 @@ function plot_farm(filename; testruns=400, fignum=3, overrideDict=Dict())
     for period = 1:3
         these_pars = merge(mypars, extra_pars);
         these_pars = merge(these_pars, Dict(
-        # :opto_strength=>0.3, 
-        :opto_times=>reshape(extra_pars[:opto_periods][period,:], 1, 2),
-        # :opto_times=>["target_start-0.4" "target_start"],
-        # :opto_times=>["target_start" "target_end"],
-        # :post_target_period=>0.3,
-        # :rule_and_delay_period=>1.2,
-        # :dt=>0.005,
+            :opto_times=>reshape(extra_pars[:opto_periods][period,:], 1, 2),
         ))
 
         # The plot_list should be the one we give it below, not whatever was in the stored parameters
         delete!(these_pars, :plot_list)
+        
+        nplots  = length(plottables)
+        pax_set = Array{PyCall.PyObject}(nplots,1)
+        aax_set = Array{PyCall.PyObject}(nplots,1)
+        for i=1:nplots
+            pax_set[i] = subplot(2*nplots, 3, period + 3*(i-1));
+            if i<=nplots/2; axisHeightChange(0.9, lock="t")
+            else            axisHeightChange(0.9, lock="c")
+            end
+            
+            aax_set[i] = subplot(2*nplots, 3, period + 3*(nplots+i-1));
+            if i<=nplots/2; axisHeightChange(0.9, lock="c")
+            else            axisHeightChange(0.9, lock="b")
+            end
+        end
 
-        pvax = subplot(4,3,period);   axisHeightChange(0.9, lock="t")
-        pdax = subplot(4,3,period+3); axisHeightChange(0.9, lock="c"); 
-        avax = subplot(4,3,period+6); axisHeightChange(0.9, lock="c")
-        adax = subplot(4,3,period+9); axisHeightChange(0.9, lock="b")
-
-        proVs, antiVs = run_ntrials(testruns, testruns; plot_list=[1:20;], plot_Us=false, 
-            ax_set = Dict("pro_Vax"=>pvax, "pro_Dax"=>pdax, "anti_Vax"=>avax, "anti_Dax"=>adax),
-        merge(make_dict(args, pars3, these_pars), overrideDict)...);
+        proVs, antiVs = run_ntrials(testruns, testruns; plot_list=plot_list, 
+            ax_set = [pax_set, aax_set], 
+            plottables = plottables, ylabels=ylabels, ylims=ylims,
+            hit_linestyle=hit_linestyle, err_linestyle=err_linestyle, 
+            merge(make_dict(args, pars3, these_pars), overrideDict)...);
 
         hBP = length(find(proVs[1,:]  .> proVs[4,:])) /size(proVs, 2)
         hBA = length(find(antiVs[4,:] .> antiVs[1,:]))/size(antiVs,2)
         # @printf("period %d:  hBP=%.2f%%, hBA=%.2f%%\n\n", period, 100*hBP, 100*hBA)
 
-        safe_axes(pvax); title(@sprintf("%s  PRO hits = %.2f%%", pstrings[period], 100*hBP))
-        safe_axes(avax); title(@sprintf("ANTI hits = %.2f%%", 100*hBA))
-        safe_axes(pdax); remove_xtick_labels(); xlabel("")
-        if period > 1
-            remove_ytick_labels([pvax, pdax, avax, adax])
+        safe_axes(pax_set[1]); title(@sprintf("%s  PRO hits = %.2f%%", pstrings[period], 100*hBP))
+        safe_axes(aax_set[1]); title(@sprintf("ANTI hits = %.2f%%", 100*hBA))
+        for i=1:(nplots-1)
+            safe_axes(pax_set[i]); remove_xtick_labels(); xlabel("")
+            safe_axes(aax_set[i]); remove_xtick_labels(); xlabel("")
         end
-        
+        safe_axes(pax_set[end]); remove_xtick_labels(); xlabel("")
+        if period > 1
+            remove_ytick_labels(pax_set)
+            remove_ytick_labels(aax_set)
+        end
+
+        if period==2 && typeof(filename)<:String
+            safe_axes(pax_set[1])
+            text(mean(xlim()), ylim()[2] + 0.35*(ylim()[2]-ylim()[1]), filename,
+                fontsize=18, horizontalalignment="center")
+        end
         figure(fignum)[:canvas][:draw]()
         pause(0.0001)
     end
