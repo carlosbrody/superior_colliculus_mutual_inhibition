@@ -580,8 +580,8 @@ function SVD_interactive(farm_id;farmdir="MiniFarms", threshold =-0.0002, plot_o
     files = results["files"];
     files = files[!vec(nanrows),:];
     if disp_encoding
-        encoding = encoding[!vec(nanrows),:,:,:];
-        error_types = error_types[!vec(nanrows),:,:,:];
+        encoding = encoding[!vec(nanrows),:,:,:,:];
+        error_types = error_types[!vec(nanrows),:,:,:,:];
     end
 
     if backend_mode

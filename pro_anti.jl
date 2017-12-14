@@ -9,14 +9,20 @@ include("rate_networks.jl")  # that will also include general_utils.jl, constrai
 
 
 """
-    plot_PA(t, U, V; fignum=1, clearfig=true, rule_and_delay_period=1, target_period=1, post_target_period=1,
-        plot_Us=true, ax_set=Dict(), other_unused_params...)
+    plot_PA(t, U, V; fignum=1, clearfig=true, rule_and_delay_period=1, target_period=1, 
+        post_target_period=1, fontsize=20, color_list = [0 0 1; 1 0 0 ; 1 0.5 0.5 ; 0 1 1],
+        singleton_color = [0 0.5 0], linestyle = "-",
+        plottables = ["V", "U", "V[1,:]-V[4,:]"], ylabels = ["V", "U", "Pro_R - Pro_L"],
+        ylims = [[-0.02, 1.02], nothing, [-1.02, 1.02]], plot_Us = nothing,
+        ax_set=nothing, other_unused_params...)
 
-Helper function for plotting ProAnti results. Given a time axis and nunits-by-nsteps U and V matrices, will 
-plot them (first clearing the figure if clearfig=true but overlaying if clearfig=false) in three vertically-
-arranged subplots. The top one has V as a function of time, with the two Pro units in blues and the two Anti 
-units in reds, dark colors for the left side of the brain, light colors for the right.  The middle subplot
-has Us. And the bottom subplot shows the difference between the two Pro units as a function of time.
+Helper function for plotting ProAnti results. Given a time axis and nunits-by-ntimesteps 
+U and V matrices, will plot an arbitrary number of functions of them. Default is to 
+plot V vs time, U versus time, and V[1,:]-V[4,:] versus time in three vertically
+arranged subplots.
+
+The things to plot are determined by the three optional parameters `plottables`,
+`ylabels`, and `ylims'
 
 # PARAMETERS:
 
@@ -28,7 +34,45 @@ has Us. And the bottom subplot shows the difference between the two Pro units as
 
 # OPTIONAL PARAMETERS:
 
-- fignum   Which figure to plot on
+- plottables   A vector of strings. Each of these strings indicates something to 
+            plot; the strings will be evaluated in a context where the variables "V", "U", 
+            and "t" are instantiated to have the values passed to `plot_PA()`. Thus 
+            plottables=["V", "V[1,:]-V[4,:]"] indicates that two axes should be used, on
+            the first one V will be plotted, on the second V[1,:]-V[4,:].
+                The strings can be any arbitrary Julia expression, with the condition that
+            their evaluation should produce something with either nrows or ncolumns
+            equal to length(t).
+
+- ylabels   A vector of strings, should be equal in length to plottables; Each element
+            here will be used as the y label for the corresponding axis.
+
+- ylims     A vector of Any, should be in length to plottables. If an element is
+            `nothing`, then allow automatic scaling of the y axes for this axis. Otherwise,
+            the element should be a 2-long vector of Float64, indicating the minimum and
+            the maximum for the y axis, respectively.
+
+- linestyle Style for the lines that will be plotted. E.g., "-" or "--".
+
+- ax_set    If passed, should be a vector of axis handles, equal in length to 
+            plottables. If not passed, new axes will be created, vertically stacked, number 
+            equal to length of plottables.
+
+            Finally, for backwards compatibility, ax_set may also be a Dict, in which case it is 
+            expected to have keys "Vax", "Uax", and "Dax", each with value equal to an axis handle, 
+            on which V, U, and V[1,:] - V[4,:] will be plotted. In this backwards compatibility
+            mode, if plot_Us=false, then U is not plotted and "Uax" is not needed.
+
+- plot_Us  If passed, should be either true or false, and indicates that we are in 
+            backwards compatibility mode (see ax_set above).
+
+- singleton_color   If the result of evaluating plottables[i] has one dimension
+            of length 1 (i.e., it is a vector, not a matrix) then that line will be plotted in
+            this color.
+
+- color_list If all dimensions of the result of evaluating plottables[i] are bigger than 1,
+            then the color order of the resulting lines plotted will be the rows of color_list
+
+- fignum   Which figure to plot on; only used if ax_set is empty
 
 - clearfig   If ax_set is empty and clearfig=true, clears the figure before doing anything
 
@@ -38,91 +82,82 @@ has Us. And the bottom subplot shows the difference between the two Pro units as
 
 - post_target_period   duration of the post_target period; a vertical line will be placed at its end
 
-- plot_Us    If true, makes an axis for, and plots, U.  If false ignores U.
-
-- ax_set     A dictionary. If it has an enty with key "Vax", the value should be an 
-             axis handle, on which V will be plotted. Value for key "Uax" will be axis where U should be plotted;
-             and value for key "Dax" will be axis where the difference is plotted. 
-             If ax_set is not empty, clearfig is ignored and the figure is not cleared beforehand.
-
 
 """
-function plot_PA(t, U, V; fignum=1, clearfig=true, rule_and_delay_period=1, target_period=1, post_target_period=1,
-    plot_Us=true, ax_set=Dict(), other_unused_params...)
-    figure(fignum)
-    if isempty(ax_set) && clearfig; clf(); end
+function plot_PA(t, U, V; fignum=1, clearfig=true, rule_and_delay_period=1, target_period=1, 
+    post_target_period=1, fontsize=20, color_list = [0 0 1; 1 0 0 ; 1 0.5 0.5 ; 0 1 1],
+    singleton_color = [0 0.5 0],  linestyle = "-",
+    plottables = ["V", "U", "V[1,:]-V[4,:]"], ylabels = ["V", "U", "Pro_R - Pro_L"],
+    ylims = [[-0.02, 1.02], nothing, [-1.02, 1.02]], plot_Us = nothing,
+    ax_set=nothing, other_unused_params...)
     
-    if ~haskey(ax_set, "Vax")
-        if plot_Us; ax1 = subplot(3,1,1); else ax1=subplot(2,1,1); end;
-    else
-        ax1 = safe_axes(ax_set["Vax"], fontsize=20)
-    end
-    h = plot(t, V'); 
-    setp(h[1], color=[0, 0, 1])
-    setp(h[2], color=[1, 0, 0])
-    setp(h[3], color=[1, 0.5, 0.5])
-    setp(h[4], color=[0, 1, 1])
-    ylabel("V")
-
-    ax = gca()
-    oldlims = [ylim()[1]+0.1, ylim()[2]-0.1]
-    ylim(minimum([V[:];oldlims[1]])-0.1, maximum([V[:];oldlims[2]])+0.1)
-    yl = [ylim()[1], ylim()[2]]
-    vlines([rule_and_delay_period, 
-            rule_and_delay_period+target_period,
-            rule_and_delay_period+target_period+post_target_period], 
-            -0.05, 1.05, linewidth=2)
-    if yl[1]<0.02
-        yl[1] = -0.02
-    end
-    if yl[2]>0.98
-        yl[2] = 1.02
-    end
-    ylim(yl)
-    grid(true)
-    remove_xtick_labels(ax1)
-        
-    if plot_Us
-        if ~haskey(ax_set, "Uax")
-            ax2 = subplot(3,1,2)
+    if plot_Us != nothing || typeof(ax_set)<:Dict
+    # Backwards compatibility mode!
+        if plot_Us==true || plot_Us==nothing
+            plottables = ["V", "U", "V[1,:]-V[4,:]"]
+            ylabels    = ["V", "U", "Pro_R - Pro_L"]
+            ylims      = [[-0.02, 1.02], nothing, [-1.02, 1.02]]
+            if typeof(ax_set)<:Dict
+                ax_set = [ax_set["Vax"], ax_set["Uax"], ax_set["Dax"]]
+            end
         else
-            ax2 = safe_axes(ax_set["Uax"])
+            plottables = ["V", "V[1,:]-V[4,:]"]
+            ylabels    = ["V", "Pro_R - Pro_L"]
+            ylims      = [[-0.02, 1.02], [-1.02, 1.02]]
+            if typeof(ax_set)<:Dict
+                ax_set = [ax_set["Vax"], ax_set["Dax"]]
+            end
         end
-        hu = plot(t, U')
-        oldlims = [ylim()[1]+0.1, ylim()[2]-0.1]
-        ylim(minimum([U[:];oldlims[1]])-0.1, maximum([U[:];oldlims[2]])+0.1)
-        setp(hu[1], color=[0, 0, 1])
-        setp(hu[2], color=[1, 0, 0])
-        setp(hu[3], color=[1, 0.5, 0.5])
-        setp(hu[4], color=[0, 1, 1])
-        ylabel("U"); 
+    end
+    
+    if ax_set==nothing
+        figure(fignum)
+        if clearfig; clf(); end
+    end
+        
+    nplots = length(plottables)
+    if length(ylabels) != nplots
+        error("Must have as many entries in ylabels as things that will be plotted")
+    end
+    if ax_set==nothing
+        ax_set = Array{PyCall.PyObject}(nplots,1)
+        for i=1:nplots
+            ax_set[i] = subplot(nplots,1,i)
+            ax_set[i] = safe_axes(ax_set[i], fontsize=20)
+        end
+    end
+    if length(ax_set) != nplots
+        error("Must have as many entries in ax_set as things that will be plotted")
+    end
+
+    vardict = Dict("V"=>V, "U"=>U, "t"=>t)
+    
+    for i=1:nplots
+        safe_axes(ax_set[i])
+        plotvals = replacer(plottables[i], vardict)
+        if size(plotvals,1) != length(t); plotvals = plotvals'; end
+        h = plot(t, plotvals, linestyle=linestyle)
+        if length(h)==1
+            setp(h, color=singleton_color[:])
+        else
+            for j=1:length(h); setp(h[j], color=color_list[j,:]); end
+        end
+        ylabel(ylabels[i])
+
+        if ylims[i]==nothing
+            oldlims = [ylim()[1]+0.1, ylim()[2]-0.1]
+            ylim(minimum([plotvals[:];oldlims[1]])-0.1, maximum([plotvals[:];oldlims[2]])+0.1)
+        else
+            ylim(ylims[i][1], ylims[i][2])
+        end
         vlines([rule_and_delay_period, 
                 rule_and_delay_period+target_period,
                 rule_and_delay_period+target_period+post_target_period], 
                 ylim()[1], ylim()[2], linewidth=2)
-        remove_xtick_labels(ax2)
-
+        xlim((t[1]-0.01, t[end]+0.01))
         grid(true)
+        if i<nplots; remove_xtick_labels(ax_set[i]); else xlabel("t"); end
     end
-    
-    if ~haskey(ax_set, "Dax")
-        if plot_Us; ax3 = subplot(3,1,3); else ax3=subplot(2,1,2); end;
-    else
-        ax3 = safe_axes(ax_set["Dax"])
-    end
-
-    delta = V[1,:] - V[4,:]
-    hr = plot(t, delta, "g")
-    oldlims = [ylim()[1]+0.1, ylim()[2]-0.1]
-    ylim(minimum([delta[:];oldlims[1]])-0.1, maximum([delta[:];oldlims[2]])+0.1)
-    vlines([rule_and_delay_period, 
-            rule_and_delay_period+target_period,
-            rule_and_delay_period+target_period+post_target_period], 
-            ylim()[1], ylim()[2], linewidth=2)
-    hlines(0, t[1], t[end], linewidth=2)
-    xlabel("t"); ylabel("Pro R - Pro L")
-    grid(true)
-        
 end
 
 
@@ -316,8 +351,9 @@ end
 
 """
 proVs, antiVs, pro_fullV, anti_fullV, opto_fraction, pro_input, anti_input = 
-    run_ntrials(nPro, nAnti; plot_list=[], start_pro=[-0.5,-0.5,-0.5,-0.5], start_anti=[-0.5,-0.5,-0.5,-0.5],
-        profig=1, antifig=2, plot_Us=true, clearfig=true, ax_set=Dict(), 
+    run_ntrials(nPro, nAnti; plot_list=[], 
+        start_pro=[-0.5,-0.5,-0.5,-0.5], start_anti=[-0.5,-0.5,-0.5,-0.5],
+        profig=1, antifig=2, clearfig=true, ax_set = nothing, hit_linestyle="-", err_linestyle="-",
         opto_units = 1:4, nderivs=0, difforder=0, model_params...)
 
 Runs a set of proAnti model trials.  See model_params above for definition of all the parameters. In addition,
@@ -344,15 +380,72 @@ Runs a set of proAnti model trials.  See model_params above for definition of al
 
 - difforder    For ForwardDiff
 
-- plot_Us      If true, plots Us, not just Vs.
-
 - clearfig     if ax_set is not empty, then clearfig=true clears the figure
 
-- ax_set       A Dict(), with keys "pro_Vax", "pro_Uax", "pro_Dax" and "anti_Vax", "anti_Uax", "anti_Dax" 
-               whose values are corresponding axis handles, to be passed to plot_PA()
+- hit_linestyle  A string indicating the linestyle for hit trials. E.g., "-" or "--".
+               If this is passed as the empty string, "", then hits are not plotted.
+
+- err_linestyle  A string indicating the linestyle for error trials. E.g., "-" or "--".
+               If this is passed as the empty string, "", then errors are not plotted.
+
+- ax_set       If passed, should be a vector with two elements, the first for the Pro
+               axes, the second for the Anti axes. Each element should itself be a vector,
+               composed of axis handles that will be used for plotting, of length equal to
+               plottables.
+
+               Alternatively, for backwards compatibility, ax_set may be a Dict(), 
+               with keys "pro_Vax", "pro_Uax", "pro_Dax" and "anti_Vax", "anti_Uax", "anti_Dax" 
+               whose values are corresponding axis handles, to be passed to `plot_PA()`
+
+- plot_Us      For backwards compatibility (for updated usage, see `plottables` in
+               OPTIONAL PARAMS below.) If passed, should be either true (plot also the Us) or false
+               (drop the Us). The new `plottables` is much more flexible.
 
 - model_params   Further optional params, will be passed onto forwardModel() (e.g., opto times, although
                 opto_times is first passed through parse_opto_times())
+
+# FURTHER OPTIONAL PARAMETERS THAT WILL BE PASSED ON TO PLOT_PA()
+
+- plottables   A vector of strings. Each of these strings indicates something to 
+            plot; the strings will be evaluated in a context where the variables "V", "U", 
+            and "t" are instantiated to have the values passed to `plot_PA()`. Thus 
+            plottables=["V", "V[1,:]-V[4,:]"] indicates that two axes should be used, on
+            the first one V will be plotted, on the second V[1,:]-V[4,:].
+                The strings can be any arbitrary Julia expression, with the condition that
+            their evaluation should produce something with either nrows or ncolumns
+            equal to length(t).
+
+- ylabels   A vector of strings, should be equal in length to plottables; Each element
+            here will be used as the y label for the corresponding axis.
+
+- ylims     A vector of Any, should be in length to plottables. If an element is
+            `nothing`, then allow automatic scaling of the y axes for this axis. Otherwise,
+            the element should be a 2-long vector of Float64, indicating the minimum and
+            the maximum for the y axis, respectively.
+
+- ax_set    If passed, should be a vector of axis handles, equal in length to 
+            plottables. If not passed, new axes will be created, vertically stacked, number 
+            equal to length of plottables.
+
+            Finally, for backwards compatibility, ax_set may also be a Dict, in which case it is 
+            expected to have keys "Vax", "Uax", and "Dax", each with value equal to an axis handle, 
+            on which V, U, and V[1,:] - V[4,:] will be plotted. In this backwards compatibility
+            mode, if plot_Us=false, then U is not plotted and "Uax" is not needed.
+
+- plot_Us  If passed, should be either true or false, and indicates that we are in 
+            backwards compatibility mode (see ax_set above).
+
+- singleton_color   If the result of evaluating plottables[i] has one dimension
+            of length 1 (i.e., it is a vector, not a matrix) then that line will be plotted in
+            this color.
+
+- color_list If all dimensions of the result of evaluating plottables[i] are bigger than 1,
+            then the color order of the resulting lines plotted will be the rows of color_list
+
+- fignum   Which figure to plot on; only used if ax_set is empty
+
+- clearfig   If ax_set is empty and clearfig=true, clears the figure before doing anything
+
 
 
 # RETURNS
@@ -365,9 +458,19 @@ Runs a set of proAnti model trials.  See model_params above for definition of al
 
 - anti_fullVs  all Vs, across all times, for all Anti trials (4-by-nsteps-by-nAnti)
 
+
+# EXAMPLE
+```jldoctest
+proVs, antiVs, pro_fullV, anti_fullV, opto_strength, pro_input, anti_input = 
+    run_ntrials(nPro, nAnti; plot_list=[1:5;], 
+    plottables = ["V", "(V[1,:]+V[4,:]) - (V[2,:]+V[3,:])", "V[1,:]-V[4,:]"],
+    ylabels = ["V", "Pro - Anti rule encoding", "Pro_R - Pro_L"],
+    ylims = [[-0.02, 1.02], nothing, nothing], err_linestyle="--",
+    my_params...)
+```
 """
 function run_ntrials(nPro, nAnti; plot_list=[], start_pro=[-0.5,-0.5,-0.5,-0.5], start_anti=[-0.5,-0.5,-0.5,-0.5],
-    profig=1, antifig=2, plot_Us=true,  clearfig=true, ax_set = Dict(),
+    profig=1, antifig=2, clearfig=true, ax_set = nothing, hit_linestyle="-", err_linestyle="-",
     opto_units = 1:4, nderivs=0, difforder=0, model_params...)
 
     if FDversion() >= 0.6
@@ -379,19 +482,30 @@ function run_ntrials(nPro, nAnti; plot_list=[], start_pro=[-0.5,-0.5,-0.5,-0.5],
         # print("get_eltype(varbag)="); print(get_eltype(varbag)); print("\n")
     end
     
-    pro_ax_set = Dict()
-    anti_ax_set = Dict()
-    if haskey(ax_set, "pro_Vax");  pro_ax_set["Vax"]  = ax_set["pro_Vax"]; end;
-    if haskey(ax_set, "pro_Uax");  pro_ax_set["Uax"]  = ax_set["pro_Uax"]; end;
-    if haskey(ax_set, "pro_Dax");  pro_ax_set["Dax"]  = ax_set["pro_Dax"]; end;                        
-    if haskey(ax_set, "anti_Vax"); anti_ax_set["Vax"] = ax_set["anti_Vax"]; end;
-    if haskey(ax_set, "anti_Dax"); anti_ax_set["Dax"] = ax_set["anti_Dax"]; end;
-    if haskey(ax_set, "anti_Uax"); anti_ax_set["Uax"] = ax_set["anti_Uax"]; end;
+    pro_ax_set  = nothing
+    anti_ax_set = nothing
+    if typeof(ax_set)<:Dict
+        pro_ax_set  = Dict()
+        anti_ax_set = Dict()
+        if haskey(ax_set, "pro_Vax");  pro_ax_set["Vax"]  = ax_set["pro_Vax"]; end;
+        if haskey(ax_set, "pro_Uax");  pro_ax_set["Uax"]  = ax_set["pro_Uax"]; end;
+        if haskey(ax_set, "pro_Dax");  pro_ax_set["Dax"]  = ax_set["pro_Dax"]; end;                        
+        if haskey(ax_set, "anti_Vax"); anti_ax_set["Vax"] = ax_set["anti_Vax"]; end;
+        if haskey(ax_set, "anti_Dax"); anti_ax_set["Dax"] = ax_set["anti_Dax"]; end;
+        if haskey(ax_set, "anti_Uax"); anti_ax_set["Uax"] = ax_set["anti_Uax"]; end;
 
-    # If we were passed pro and anti axes, their figure numbers override profig and antifig:
-    if haskey(ax_set, "pro_Vax");  profig =ax_set["pro_Vax"][:figure][:number];  end
-    if haskey(ax_set, "anti_Vax"); antifig=ax_set["anti_Vax"][:figure][:number]; end
-    
+        # If we were passed pro and anti axes, their figure numbers override profig and antifig:
+        if haskey(ax_set, "pro_Vax");  profig =ax_set["pro_Vax"][:figure][:number];  end
+        if haskey(ax_set, "anti_Vax"); antifig=ax_set["anti_Vax"][:figure][:number]; end
+    elseif ax_set != nothing
+        pro_ax_set  = ax_set[1]
+        anti_ax_set = ax_set[2]
+
+        # If we were passed pro and anti axes, their figure numbers override profig and antifig:
+        profig  = pro_ax_set[1][:figure][:number]
+        antifig = anti_ax_set[1][:figure][:number]
+    end
+
     model_params = Dict(model_params)
     pro_input,  t, nsteps = make_input("Pro" ; nderivs=nderivs, difforder=difforder, model_params...)
     anti_input, t, nsteps = make_input("Anti"; nderivs=nderivs, difforder=difforder, model_params...)
@@ -415,32 +529,40 @@ function run_ntrials(nPro, nAnti; plot_list=[], start_pro=[-0.5,-0.5,-0.5,-0.5],
     proVall  = zeros(4, nsteps, nPro);
     antiVall = zeros(4, nsteps, nAnti);
     # --- PRO ---
-    if length(plot_list)>0; figure(profig); if isempty(pro_ax_set) && clearfig; clf(); end; end
+    if length(plot_list)>0; figure(profig); if (pro_ax_set==nothing) && clearfig; clf(); end; end
     model_params = make_dict(["input"], [pro_input], model_params)
     for i=1:nPro
         Uend, Vend, pro_fullU, temp = forwardModel(start_pro, do_plot=false, opto_units=opto_units; model_params...)
         if FDversion() < 0.6; proVall[:,:,i] = temp; else proVall[:,:,i] = get_value(temp); end
         # print("typeof(proVs) = "); print(typeof(proVs)); print("\n")
         proVs[:,i] = Vend
-        if any(plot_list.==i) 
-            plot_PA(t, get_value(pro_fullU), get_value(proVall[:,:,i]); clearfig=false,
-                fignum=profig, ax_set=pro_ax_set, plot_Us=plot_Us, clearfig=false, model_params...)
-            # subplot(3,1,1); title("PRO")
+        if any(plot_list.==i) && (hit_linestyle!="" || err_linestyle !="")
+            if hit_linestyle==err_linestyle || (hit_linestyle!="" && Vend[1] >= Vend[4])
+                plot_PA(t, get_value(pro_fullU), get_value(proVall[:,:,i]); clearfig=false,
+                    fignum=profig, ax_set=pro_ax_set, linestyle=hit_linestyle, model_params...)
+            elseif err_linestyle!="" 
+                plot_PA(t, get_value(pro_fullU), get_value(proVall[:,:,i]); clearfig=false,
+                    fignum=profig, ax_set=pro_ax_set, linestyle=err_linestyle, model_params...)
+            end
         end
     end
 
     # --- ANTI ---
-    if length(plot_list)>0; figure(antifig); if isempty(anti_ax_set) && clearfig; clf(); end; end
+    if length(plot_list)>0; figure(antifig); if (anti_ax_set==nothing) && clearfig; clf(); end; end
     model_params = make_dict(["input"], [anti_input], model_params)
     for i=1:nAnti
         startU = [-0.5, -0.5, -0.5, -0.5]
         Uend, Vend, anti_fullU, temp = forwardModel(start_anti, do_plot=false, opto_units=opto_units; model_params...)
         if FDversion() < 0.6; antiVall[:,:,i] = temp; else antiVall[:,:,i] = get_value(temp); end
         antiVs[:,i] = Vend
-        if any(plot_list.==i) 
-            plot_PA(t, get_value(anti_fullU), get_value(antiVall[:,:,i]); clearfig=false,
-            fignum=antifig, ax_set=anti_ax_set, plot_Us=plot_Us, clearfig=false, model_params...)
-            # subplot(3,1,1); title("ANTI")
+        if any(plot_list.==i) && (hit_linestyle!="" || err_linestyle !="")
+            if hit_linestyle==err_linestyle || (hit_linestyle!="" && Vend[4] > Vend[1])
+                plot_PA(t, get_value(anti_fullU), get_value(antiVall[:,:,i]); clearfig=false,
+                    fignum=antifig, ax_set=anti_ax_set, linestyle=hit_linestyle, model_params...)
+            elseif err_linestyle!="" 
+                plot_PA(t, get_value(anti_fullU), get_value(antiVall[:,:,i]); clearfig=false,
+                fignum=antifig, ax_set=anti_ax_set, linestyle=err_linestyle, model_params...)
+            end
         end
     end
         
