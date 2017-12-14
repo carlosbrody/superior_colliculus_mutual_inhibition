@@ -101,7 +101,7 @@ function replacer(P, mypars)   # run through an expression tree, replacing known
         return P
     end
     for i=1:length(P.args)
-        if typeof(P.args[i])<:Expr || typeof(P.args[i])<:Symbol
+        if typeof(P.args[i])<:Symbol || (typeof(P.args[i])<:Expr) # && P.args[i].head != :tuple)
             P.args[i] = replacer(P.args[i], mypars)
         end
     end
