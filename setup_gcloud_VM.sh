@@ -17,7 +17,11 @@ else
     set my_google_username = carlosbrody
 endif
 set my_instance        = $argv[1]
-set zone               = "us-east1-c"
+if ( $argv[1] == "proanti009" ) then
+    set zone = "us-east1-b"
+else
+    set zone = "us-east1-c"
+endif
 
 echo "gcloud compute scp --zone $zone package_installs.sh julia_start.jl grow_ForwardDiffChunks.sh $my_google_username@$my_instance":
 gcloud compute scp --zone $zone package_installs.sh julia_start.jl grow_ForwardDiffChunks.sh "$my_google_username@$my_instance":

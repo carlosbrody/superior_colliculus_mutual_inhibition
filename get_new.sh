@@ -34,7 +34,7 @@ endif
 
 
 # Get a local list of all the remote files
-echo "gcloud compute ssh  --zone=$zone --command=cd $rootdir/$remdir ; ls $*patt* carlosbrody@$argv[1] | sort | uniq > temp_remote.txt"
+echo "gcloud compute ssh  --zone=$zone --command=cd $rootdir/$remdir ; ls *$patt* carlosbrody@$argv[1] | sort | uniq > temp_remote.txt"
 gcloud compute ssh  --zone=$zone --command="cd $rootdir/$remdir ; ls *$patt*" carlosbrody@$argv[1] | sort | uniq > temp_remote.txt
 
 
@@ -63,8 +63,8 @@ echo "pushd $localdir ; tar xvfz temp_tarball.tz ; \rm temp_tarball.tz ; popd"
 pushd $localdir ; tar xvfz temp_tarball.tz ; \rm temp_tarball.tz ; popd
 
 # Clean up locally
-echo "\rm temp_remote.txt temp_local.txt temp_newfiles.txt"
-\rm temp_remote.txt temp_local.txt temp_newfiles.txt
+echo "\rm temp_remote.txt $localdir/temp_local.txt temp_newfiles.txt"
+\rm temp_remote.txt $localdir/temp_local.txt temp_newfiles.txt
 
 # Clean up remotely
 echo "gcloud compute ssh  --zone=$zone --command cd $rootdir/$remdir ; \rm temp_tarball.tz carlosbrody@$argv[1]"
