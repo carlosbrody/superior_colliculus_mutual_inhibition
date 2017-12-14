@@ -8,7 +8,8 @@
 #######################################################
 
 if !isdefined(:histo_params)
-    error("You must call include(\"results_analysis.jl\") before calling include(\"C17_browser.jl\")")
+    # error("You must call include(\"results_analysis.jl\") before calling include(\"C17_browser.jl\")")
+    include("results_analysis.jl")
 end
 
 if !isdefined(:res)
@@ -86,13 +87,13 @@ end
 # Put up the PCA plot
 PC = plot_PCA(res; threshold=threshold, cost_choice=cost_choice, 
     user_callback = (fname, Trash) -> highlight_all(fname, PC, SV),
-    plot_unsuccessful=false, unsuccessful_threshold=0.0001, compute_good_only=true, fignum=2);
+    plot_unsuccessful=false, unsuccessful_threshold=0.0001, compute_good_only=false, fignum=2);
 pause(0.001)
 
 # Put up the SVD plot
 SV = plot_SVD(threshold=threshold, cost_choice=cost_choice, 
     user_callback = (fname, Trash) -> highlight_all(fname, PC, SV),
-    plot_unsuccessful=false, compute_good_only=true, fignum=3);
+    plot_unsuccessful=false, compute_good_only=false, fignum=3);
 
 # Print out some instructions for the user
 docstring = """
@@ -122,52 +123,6 @@ with that sigma and that rule_and_delay_period.
 """
 
 @printf("%s", docstring)
-
-
-
-# DON'T MODIFY THIS FILE -- the source is in file Results Analysis.ipynb. Look there for further documentation and examples of running the code.
-
-
-"""
-    make_mini_farm()
-
-Takes the C17 runs in ../Farms024, ../Farms025, and ../Farms026, which are not on git,
-and puts a small-size sumamry of them in "MiniFarms/". That MiniFarms directory is
-a reasonabale size for git (only 63MBytes compred to GBytes)
-
-The MiniFarms directory can be used for the C17_browser in lieu of the original farms.
-
-"""
-function make_min_farm(;fromdirs=["../Farms024", "../Farms025", "../Farms026"], todir="MiniFarms")
-    
-    res = farmload("C17", verbose=true, farmdir=fromdirs)
-
-    if ~isdir(todir); mkdir(todir); end;
-
-    sdict = []; dirname=[]; filename=[]
-
-    for i in 1:length(res["tcost"])    
-        mypars, extra_pars, args, pars3 = load(res["files"][i], "mypars", "extra_pars", 
-            "args", "pars3")
-        sdict = Dict("mypars"=>mypars, "extra_pars"=>extra_pars, 
-            "args"=>args, "pars3"=>pars3)
-        for k in keys(res)
-            if k=="tcost"
-                sdict["traj3"] = [0 ; res["tcost"][i]; 0]
-            elseif !(k=="args" || k=="params")
-                sdict[k] = res[k][i]
-            end
-        end
-
-        dirname, filename = splitdir(res["files"][i]); dirname=splitdir(dirname)[2]
-
-        save("MiniFarms/"*filename[1:9]*dirname*"_"*filename[10:end], sdict)
-        if rem(i, 20)==0
-            @printf("Did %d/%d\n", i, length(res["tcost"]))
-        end
-    end
-end
-
 
 
 
