@@ -423,18 +423,6 @@ Runs a set of proAnti model trials.  See model_params above for definition of al
             the element should be a 2-long vector of Float64, indicating the minimum and
             the maximum for the y axis, respectively.
 
-- ax_set    If passed, should be a vector of axis handles, equal in length to 
-            plottables. If not passed, new axes will be created, vertically stacked, number 
-            equal to length of plottables.
-
-            Finally, for backwards compatibility, ax_set may also be a Dict, in which case it is 
-            expected to have keys "Vax", "Uax", and "Dax", each with value equal to an axis handle, 
-            on which V, U, and V[1,:] - V[4,:] will be plotted. In this backwards compatibility
-            mode, if plot_Us=false, then U is not plotted and "Uax" is not needed.
-
-- plot_Us  If passed, should be either true or false, and indicates that we are in 
-            backwards compatibility mode (see ax_set above).
-
 - singleton_color   If the result of evaluating plottables[i] has one dimension
             of length 1 (i.e., it is a vector, not a matrix) then that line will be plotted in
             this color.
