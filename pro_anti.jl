@@ -13,7 +13,7 @@ include("rate_networks.jl")  # that will also include general_utils.jl, constrai
         post_target_period=1, fontsize=20, color_list = [0 0 1; 1 0 0 ; 1 0.5 0.5 ; 0 1 1],
         singleton_color = [0 0.5 0], linestyle = "-",
         plottables = ["V", "U", "V[1,:]-V[4,:]"], ylabels = ["V", "U", "Pro_R - Pro_L"],
-        ylims = [[-0.02, 1.02], nothing, [-1.02, 1.02]], plot_Us = nothing,
+        ylims = [[-0.02, 1.02], nothing, [-1.02, 1.02]], xlims = nothing, plot_Us = nothing,
         ax_set=nothing, other_unused_params...)
 
 Helper function for plotting ProAnti results. Given a time axis and nunits-by-ntimesteps 
@@ -50,6 +50,9 @@ The things to plot are determined by the three optional parameters `plottables`,
             `nothing`, then allow automatic scaling of the y axes for this axis. Otherwise,
             the element should be a 2-long vector of Float64, indicating the minimum and
             the maximum for the y axis, respectively.
+
+- xlims     Either nothing (autoscale) or a 2-long vector of Float64, to be applied
+            to all axes
 
 - linestyle Style for the lines that will be plotted. E.g., "-" or "--".
 
@@ -88,7 +91,7 @@ function plot_PA(t, U, V; fignum=1, clearfig=true, rule_and_delay_period=1, targ
     post_target_period=1, fontsize=20, color_list = [0 0 1; 1 0 0 ; 1 0.5 0.5 ; 0 1 1],
     singleton_color = [0 0.5 0],  linestyle = "-",
     plottables = ["V", "U", "V[1,:]-V[4,:]"], ylabels = ["V", "U", "Pro_R - Pro_L"],
-    ylims = [[-0.02, 1.02], nothing, [-1.02, 1.02]], plot_Us = nothing,
+    ylims = [[-0.02, 1.02], nothing, [-1.02, 1.02]], xlims = nothing, plot_Us = nothing,
     ax_set=nothing, other_unused_params...)
     
     if plot_Us != nothing || typeof(ax_set)<:Dict
@@ -154,7 +157,11 @@ function plot_PA(t, U, V; fignum=1, clearfig=true, rule_and_delay_period=1, targ
                 rule_and_delay_period+target_period,
                 rule_and_delay_period+target_period+post_target_period], 
                 ylim()[1], ylim()[2], linewidth=2)
-        xlim((t[1]-0.01, t[end]+0.01))
+        if xlims==nothing
+            xlim((t[1]-0.01, t[end]+0.01))
+        else
+            xlim(xlims[1], xlims[2])
+        end
         grid(true)
         if i<nplots; remove_xtick_labels(ax_set[i]); else xlabel("t"); end
     end
@@ -423,6 +430,9 @@ Runs a set of proAnti model trials.  See model_params above for definition of al
             the element should be a 2-long vector of Float64, indicating the minimum and
             the maximum for the y axis, respectively.
 
+- xlims     Either nothing (autoscale) or a 2-long vector of Float64, to be applied
+            to all axes
+
 - singleton_color   If the result of evaluating plottables[i] has one dimension
             of length 1 (i.e., it is a vector, not a matrix) then that line will be plotted in
             this color.
@@ -528,9 +538,11 @@ function run_ntrials(nPro, nAnti; plot_list=[], start_pro=[-0.5,-0.5,-0.5,-0.5],
             if hit_linestyle==err_linestyle || (hit_linestyle!="" && Vend[1] >= Vend[4])
                 plot_PA(t, get_value(pro_fullU), get_value(proVall[:,:,i]); clearfig=false,
                     fignum=profig, ax_set=pro_ax_set, linestyle=hit_linestyle, model_params...)
-            elseif err_linestyle!="" 
+                # @printf("Pro hit! linestyle=%s, Vend=", hit_linestyle); print(Vend); print("\n")
+            elseif err_linestyle!="" && Vend[1] < Vend[4]
                 plot_PA(t, get_value(pro_fullU), get_value(proVall[:,:,i]); clearfig=false,
                     fignum=profig, ax_set=pro_ax_set, linestyle=err_linestyle, model_params...)
+                # @printf("Pro miss! linestyle=%s, Vend=", err_linestyle); print(Vend); print("\n")
             end
         end
     end
@@ -547,7 +559,7 @@ function run_ntrials(nPro, nAnti; plot_list=[], start_pro=[-0.5,-0.5,-0.5,-0.5],
             if hit_linestyle==err_linestyle || (hit_linestyle!="" && Vend[4] > Vend[1])
                 plot_PA(t, get_value(anti_fullU), get_value(antiVall[:,:,i]); clearfig=false,
                     fignum=antifig, ax_set=anti_ax_set, linestyle=hit_linestyle, model_params...)
-            elseif err_linestyle!="" 
+            elseif err_linestyle!=""  &&  Vend[4] <= Vend[1]
                 plot_PA(t, get_value(anti_fullU), get_value(antiVall[:,:,i]); clearfig=false,
                 fignum=antifig, ax_set=anti_ax_set, linestyle=err_linestyle, model_params...)
             end
