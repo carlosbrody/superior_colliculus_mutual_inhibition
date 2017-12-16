@@ -358,7 +358,7 @@ end
 
 """
 proVs, antiVs, pro_fullV, anti_fullV, opto_fraction, pro_input, anti_input = 
-    run_ntrials(nPro, nAnti; plot_list=[], 
+        run_ntrials(nPro, nAnti; plot_list=[], selectize =  "true",
         start_pro=[-0.5,-0.5,-0.5,-0.5], start_anti=[-0.5,-0.5,-0.5,-0.5],
         profig=1, antifig=2, clearfig=true, ax_set = nothing, hit_linestyle="-", err_linestyle="-",
         opto_units = 1:4, nderivs=0, difforder=0, model_params...)
@@ -382,6 +382,9 @@ Runs a set of proAnti model trials.  See model_params above for definition of al
 - start_pro    A 4-by-1 vector of starting U values on Pro trials for the 4 units
 
 - start_anti   A 4-by-1 vector of starting U values on Anti trials for the 4 units
+
+- selectize    A string to be evaluated for each trial; only those trials for which
+               it evaluates to true will be plotted
 
 - nderivs      For ForwardDiff
 
@@ -469,7 +472,7 @@ proVs, antiVs, pro_fullV, anti_fullV, opto_strength, pro_input, anti_input =
 """
 function run_ntrials(nPro, nAnti; plot_list=[], start_pro=[-0.5,-0.5,-0.5,-0.5], start_anti=[-0.5,-0.5,-0.5,-0.5],
     profig=1, antifig=2, clearfig=true, ax_set = nothing, hit_linestyle="-", err_linestyle="-",
-    opto_units = 1:4, nderivs=0, difforder=0, model_params...)
+    opto_units = 1:4, nderivs=0, difforder=0, selectize=true, model_params...)
 
     if FDversion() >= 0.6
         # All the variables that we MIGHT choose to differentiate w.r.t. go into this bag -- further down
@@ -479,7 +482,7 @@ function run_ntrials(nPro, nAnti; plot_list=[], start_pro=[-0.5,-0.5,-0.5,-0.5],
         varbag = (start_pro, start_anti, model_params)
         # print("get_eltype(varbag)="); print(get_eltype(varbag)); print("\n")
     end
-    
+
     pro_ax_set  = nothing
     anti_ax_set = nothing
     if typeof(ax_set)<:Dict
@@ -534,7 +537,12 @@ function run_ntrials(nPro, nAnti; plot_list=[], start_pro=[-0.5,-0.5,-0.5,-0.5],
         if FDversion() < 0.6; proVall[:,:,i] = temp; else proVall[:,:,i] = get_value(temp); end
         # print("typeof(proVs) = "); print(typeof(proVs)); print("\n")
         proVs[:,i] = Vend
-        if any(plot_list.==i) && (hit_linestyle!="" || err_linestyle !="")
+        sDict = Dict("t"=>t, "V"=>proVall[:,:,i], "U"=>pro_fullU, "Vend"=>Vend,
+            "rule" =>0.5*(proVall[1,:,i]+proVall[4,:,i]-proVall[2,:,i]-proVall[3,:,i]),
+            "decis"=>proVall[1,:,i] - proVall[4,:,i],
+            "ispro"=>true, "isanti"=>false, 
+            "ishit"=>Vend[1]>=Vend[4], "iserr"=>Vend[1]<Vend[4])
+        if any(plot_list.==i) && (hit_linestyle!="" || err_linestyle !="") && replacer(selectize, sDict)
             if hit_linestyle==err_linestyle || (hit_linestyle!="" && Vend[1] >= Vend[4])
                 plot_PA(t, get_value(pro_fullU), get_value(proVall[:,:,i]); clearfig=false,
                     fignum=profig, ax_set=pro_ax_set, linestyle=hit_linestyle, model_params...)
@@ -555,7 +563,12 @@ function run_ntrials(nPro, nAnti; plot_list=[], start_pro=[-0.5,-0.5,-0.5,-0.5],
         Uend, Vend, anti_fullU, temp = forwardModel(start_anti, do_plot=false, opto_units=opto_units; model_params...)
         if FDversion() < 0.6; antiVall[:,:,i] = temp; else antiVall[:,:,i] = get_value(temp); end
         antiVs[:,i] = Vend
-        if any(plot_list.==i) && (hit_linestyle!="" || err_linestyle !="")
+        sDict = Dict("t"=>t, "V"=>antiVall[:,:,i], "U"=>anti_fullU, "Vend"=>Vend,
+            "ispro"=>false, "isanti"=>true, 
+            "rule" =>0.5*(antiVall[1,:,i]+antiVall[4,:,i]-antiVall[2,:,i]-antiVall[3,:,i]),
+            "decis"=>antiVall[1,:,i] - antiVall[4,:,i],
+            "ishit"=>Vend[1]<Vend[4], "iserr"=>Vend[1]>=Vend[4])
+        if any(plot_list.==i) && (hit_linestyle!="" || err_linestyle !="") && replacer(selectize, sDict)
             if hit_linestyle==err_linestyle || (hit_linestyle!="" && Vend[4] > Vend[1])
                 plot_PA(t, get_value(anti_fullU), get_value(antiVall[:,:,i]); clearfig=false,
                     fignum=antifig, ax_set=anti_ax_set, linestyle=hit_linestyle, model_params...)
