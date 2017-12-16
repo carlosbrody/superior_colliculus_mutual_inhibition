@@ -18,6 +18,7 @@ SVD_interactive()           SVD analysis on dynamics, INTERACTIVE plots dynamics
 plot_PCA()                  plots farms in parameter PCA space, with error ellipses
 plot_PCA_Redux()            compares two farms in parameter PCA space, with error ellipses
 plot_SVD_cluster_approx()   Generates the average dynamics for a cluster of farms
+SVD_psth_interactive()      Plots average PSTH, and SVD approximated PSTH
 
 # HELPER FUNCTIONS          (Used in some other analyses, but could be useful building blocks)
 run_farm()                  Returns the average dynamics for this farmrun in each trial type
@@ -167,6 +168,8 @@ end
     build_response_matrix(farm_id)
     
 For each farm run, computes the average trajectory for hits/errors X pro/anti. Arranges these average trajectories in a #runs X length(hits/errors X pro/anti)*#timepoints matrix. Saves a file <farm_id>_SVD_response_matrix.jld 
+
+If the farm has multiple durations of task events, it will only use the first one (i.e., rule_and_delay_periods...)
 
 # PARAMETERS:
 
@@ -506,6 +509,8 @@ different figure, example trials from the corresponding run.
 
 - ndims                 Number of SVD dimensions to return in backend_mode
 
+- psth_mode             If TRUE, then returns SVD matrix F, response mean m, and response r_all
+
 # RETURNS
 
 None, unless in backend mode. In backend mode:
@@ -522,10 +527,13 @@ If disp_encoding is also true:
 
 
 """
-function SVD_interactive(farm_id;farmdir="MiniFarms", threshold =-0.0002, plot_option=1, plot_bad_farms=false, compute_good_only=true, opto_conditions = 3,disp_encoding = true, use_reduced_SVD=false, backend_mode=false, ndims=2)
+function SVD_interactive(farm_id;farmdir="MiniFarms", threshold =-0.0002, plot_option=1, plot_bad_farms=false, compute_good_only=true, opto_conditions = 3,disp_encoding = true, use_reduced_SVD=false, backend_mode=false, ndims=2, psth_mode=false)
 
     if backend_mode & !compute_good_only
         error("Backend mode doesn't play nice with including the bad farms right now...")
+    end
+    if psth_mode & (!backend_mode | disp_encoding)
+        error("PSTH mode requires BACKEND_MODE=true, and DISP_ENCODING=false")
     end
 
     # Load responses from all models
@@ -594,6 +602,8 @@ function SVD_interactive(farm_id;farmdir="MiniFarms", threshold =-0.0002, plot_o
         string_IDs = files;
         if disp_encoding
             return DATA, string_IDs, encoding, error_types
+        elseif psth_mode
+            return DATA, string_IDs, F, m, r_all
         else
             return DATA, string_IDs
         end
@@ -1667,9 +1677,9 @@ function SVD_cluster_approx(cluster, rank, opto_type, trial_type, F,m,r_all; opt
     # Pull the right trial type
     if trial_type     == "hit-pro"
         cdex = 0;
-  figure()
-    scatter(U[:,1],U[:,2])
-    plot(u[1],u[2], "ro")
+#  figure()
+#    scatter(U[:,1],U[:,2])
+#    plot(u[1],u[2], "ro")
 
     elseif trial_type == "miss-pro"
         cdex = 1;
@@ -1694,3 +1704,108 @@ function SVD_cluster_approx(cluster, rank, opto_type, trial_type, F,m,r_all; opt
 end
 
 
+"""
+    plots farms in 2-D SVD space, when a farm is clicked on, plots average PSTH and SVD approximation to PSTH
+
+# PARAMETERS
+
+- farm_id               Name of farm to analyze, ie "C17"
+
+# OPTIONAL PARAMETERS
+
+- farmdir               Directory of farm runs to analyze
+
+- threshold             Cutoff for good farm runs
+
+- plot_bad_farms        If TRUE, will likely cause an error
+
+- compute_good_only     If TRUE, only plot good farms
+
+- opto_conditions       Number of opto conditions in SVD response matrix
+
+- rank                  Rank of SVD approximation to plot
+
+- opto_type             = 1 (control), 2 (Delay), or 3 (Choice)
+
+- use_reduced_SVD       If TRUE, uses truncated SVD matrix
+
+"""
+function SVD_PSTH_interactive(farm_id; farmdir="MiniOptimized", threshold=-0.0002, plot_bad_farms=false, compute_good_only=true, opto_conditions=3, rank=2, opto_type=1,use_reduced_SVD=false)
+    close(100); close(101)
+    remove_all_BPs()
+
+    # Get SVD coordinates, and filenames, as well as full SVD factorization
+    DATA, files, F, m, r_all = SVD_interactive(farm_id; farmdir = farmdir, threshold=threshold, plot_bad_farms=plot_bad_farms, compute_good_only=compute_good_only, opto_conditions=opto_conditions,use_reduced_SVD=use_reduced_SVD, backend_mode=true, ndims=2, disp_encoding=false, psth_mode=true);
+
+    # Set up callback function.should get filename, then call plot_PSTH_SVD_comparison
+    function mycallback(xy, r, h, ax)
+        index = find(DATA[:,1] .== xy[1])
+        @printf("You selected farm # %d", index[1])  
+        print("\n")
+        filename = files[index[1]]
+        print(filename)
+        print("\n")
+        print("\n")
+        plot_PSTH_SVD_comparison(101, index[1],F,m,r_all ;rank=rank,opto_type=opto_type,opto_conditions=opto_conditions)
+    end   
+
+    # Plot SVD coordinates with callback function
+    pygui(true)
+    BP = install_nearest_point_callback(figure(100), mycallback)
+    plot(DATA[:,1], DATA[:,2], "bo")
+    title("SVD U columns 1 and 2")
+    ylabel("SVD Dim 2")
+    xlabel("SVD Dim 1")      
+end
+
+
+"""
+    Plots a 4x2 set of dynamics for one farm.   First column is the SVD approximation of the PSTH dynamics. 
+                                                Second column in the average PSTH dynamics.
+
+# PARAMETERS
+
+- fignum     Which figure to plot in
+
+- fildex    Which farm in F, and r_all
+
+- F         SVD factorization of r_all (from SVD_interactve())
+
+- m         mean of r_all (from SVD_interactve())
+
+- r_all     response matrix (from SVD_interactve())
+
+# OPTIONAL PARAMETERS
+
+- rank      Rank of SVD approximation
+
+- opto_type = 1,2,3,== control, delay, choice inactivation
+
+- opto_conditions   number of opto conditions in SVD response matrix
+
+"""
+function plot_PSTH_SVD_comparison(fignum, filedex,F,m,r_all ;rank=2,opto_type=1,opto_conditions=3)
+    # Clear figure
+    figure(fignum); clf()
+
+    # set cluster to be one-hot coding of just the filename
+    cluster             = Array{Bool}(size(r_all,1),1);
+    cluster[:]          = false;
+    cluster[filedex]    = true;
+
+    # Then loop over trial_types
+    types = ["hit-pro"; "miss-pro"; "hit-anti"; "miss-anti"];
+    for i=1:4
+        trial_type = types[i];
+        #calls SVD_cluster_approx(average_dynamics=false) to get SVD approx
+        nodes = SVD_cluster_approx(cluster, rank, opto_type, trial_type, F,m,r_all; opto_conditions=opto_conditions, avg_dynamics=false);
+        subplot(4,2,1+(i-1)*2); title(trial_type*" SVD APPROX"); ylim(0,1)
+        plot(nodes[1,:],"b-");  plot(nodes[2,:],"r-");  plot(nodes[3,:],"r--"); plot(nodes[4,:],"b--");
+    
+        #calls SVD_cluster_approx(average_dynamics=true) to get PSTH
+        nodes = SVD_cluster_approx(cluster, rank, opto_type, trial_type, F,m,r_all; opto_conditions=3, avg_dynamics=true);
+        subplot(4,2,2*i); title(trial_type*" PSTH"); ylim(0,1)
+        plot(nodes[1,:],"b-");  plot(nodes[2,:],"r-");  plot(nodes[3,:],"r--"); plot(nodes[4,:],"b--");
+ 
+    end
+end
