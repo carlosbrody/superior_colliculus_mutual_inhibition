@@ -1706,6 +1706,8 @@ end
 
 """
     plots farms in 2-D SVD space, when a farm is clicked on, plots average PSTH and SVD approximation to PSTH
+    Plot Color scheme: Blue = pro, Red = anti. Solid = right nodes, dashed = left nodes. 
+    plot(nodes[1,:],"b-");  plot(nodes[2,:],"r-");  plot(nodes[3,:],"r--"); plot(nodes[4,:],"b--");
 
 # PARAMETERS
 
@@ -1723,7 +1725,7 @@ end
 
 - opto_conditions       Number of opto conditions in SVD response matrix
 
-- rank                  Rank of SVD approximation to plot
+- rank                  Rank of SVD approximation to plot, if rank > rank of SVD matrix, then max possible rank is used. 
 
 - opto_type             = 1 (control), 2 (Delay), or 3 (Choice)
 
@@ -1735,7 +1737,10 @@ function SVD_PSTH_interactive(farm_id; farmdir="MiniOptimized", threshold=-0.000
     remove_all_BPs()
 
     # Get SVD coordinates, and filenames, as well as full SVD factorization
-    DATA, files, F, m, r_all = SVD_interactive(farm_id; farmdir = farmdir, threshold=threshold, plot_bad_farms=plot_bad_farms, compute_good_only=compute_good_only, opto_conditions=opto_conditions,use_reduced_SVD=use_reduced_SVD, backend_mode=true, ndims=2, disp_encoding=false, psth_mode=true);
+    DATA, files, F, m, r_all = SVD_interactive(farm_id; farmdir = farmdir, threshold=threshold, plot_bad_farms=plot_bad_farms, compute_good_only=compute_good_only, opto_conditions=opto_conditions,use_reduced_SVD=use_reduced_SVD, backend_mode=true, ndims=2, disp_encoding=false, psth_mode=true);  
+    if size(DATA,1) < rank
+        rank = size(DATA,1);
+    end
 
     # Set up callback function.should get filename, then call plot_PSTH_SVD_comparison
     function mycallback(xy, r, h, ax)
