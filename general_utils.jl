@@ -94,18 +94,30 @@ function replacer(P, mypars)   # run through an expression tree, replacing known
     ks = collect(keys(mypars))
 
     if typeof(P)<:Symbol
+        # if its a Symbol, see if it is in our dictionary, in which case replace it with its value
         idx = find(ks .== P)
         if length(idx)>0
             P = mypars[ks[idx[1]]]
         end
         return P
     end
-    for i=1:length(P.args)
-        if typeof(P.args[i])<:Symbol || (typeof(P.args[i])<:Expr) # && P.args[i].head != :tuple)
-            P.args[i] = replacer(P.args[i], mypars)
+
+    # otherwise, see if there are subarguments that we should work on
+    if any(fieldnames(P).==:args)
+        for i=1:length(P.args)
+            # Not sure why, but need this first check for a tuple Expr to deal with fun.() syntax
+            if typeof(P.args[i])<:Expr && P.args[i].head == :tuple
+                for j=1:length(P.args[i].args)
+                    P.args[i].args[j] = replacer(P.args[i].args[j], mypars)
+                end                                
+            elseif typeof(P.args[i])<:Symbol || typeof(P.args[i])<:Expr # && P.args[i].head != :tuple)
+                # if you have a Symbol or Expr, go recursively into it
+                P.args[i] = replacer(P.args[i], mypars)
+            end
         end
     end
-    # @printf("P = \n"); print(P)
+    # @printf("\nP = \n"); dump(P)
+    # @printf("\nreplacing with \n"); dump(eval(P))
     return eval(P)
 end
 
