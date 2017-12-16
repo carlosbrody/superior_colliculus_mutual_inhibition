@@ -45,7 +45,7 @@ using HDF5
 """
     load_farm_params(; farm_id="C17", farmdir="MiniFarms", verbose=true, verbose_every=50)
 
-Load final parameters for each farm run in <MiniFarms/farm_id>. Also loads the training and test cost for each farm. Saves a file <farm_id>_results.jld 
+Load final parameters for each farm run in <MiniFarms/farm_id>. Also loads the training and test cost for each farm. Saves a file <farm_id>_results.jld.
 
 # OPTIONAL PARAMETERS:
 
@@ -95,7 +95,9 @@ end
 """
     run_farm(filename; testruns=200, overrideDict=Dict(),all_conditions=false)
 
-Runs the farm at <filename>, <testruns> times. Then computes the average trajectory for each condition: hits/errors X pro/anti. 
+Runs the farm at <filename>, <testruns> times. Then computes the average trajectory for each condition: hits/errors X pro/anti.
+This function will only run the model farm for ONE duration of rule_and_delay_periods, target_periods, and post_target_periods. 
+By default it will use the first duration in each of those model_params variables. 
 
 # PARAMETERS:
 
@@ -129,6 +131,9 @@ function run_farm(filename; testruns=200, overrideDict=Dict(),all_conditions=fal
         these_pars = merge(mypars, extra_pars);
         these_pars = merge(these_pars, Dict(
         :opto_times=>reshape(extra_pars[:opto_periods][period,:], 1, 2),
+        :rule_and_delay_period=>these_pars[:rule_and_delay_periods][1], 
+        :target_period=>these_pars[:target_periods][1], 
+        :post_target_period=>these_pars[:post_target_periods][1], 
         ))
 
         proVs, antiVs, proF, antiF = run_ntrials(testruns, testruns; merge(make_dict(args, pars3, these_pars), overrideDict)...);
@@ -239,9 +244,9 @@ function build_reduced_response_matrix(farm_id; farmdir="MiniFarms", opto_condit
     # splice out the rule parts of each trial
     # need truncation time points
     mypars, extra_pars, args, pars3 = load(results["files"][1], "mypars", "extra_pars", "args", "pars3")
-    rule_and_delay_period   = mypars[:rule_and_delay_period];
-    target_period           = mypars[:target_period];
-    post_target_period      = mypars[:post_target_period];
+    rule_and_delay_period   = mypars[:rule_and_delay_periods][1];
+    target_period           = mypars[:target_periods][1];
+    post_target_period      = mypars[:post_target_periods][1];
     @printf("Original rule_and_delay_period : %g\n",rule_and_delay_period)
     @printf("Original target_period         : %g\n",target_period)
     @printf("Original post_target_period    : %g\n",post_target_period)

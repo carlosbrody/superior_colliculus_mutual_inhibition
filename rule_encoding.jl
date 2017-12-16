@@ -61,7 +61,11 @@ function build_encoding_dataset(farm_id; farmdir="MiniOptimized",testruns=1000, 
         these_pars = merge(mypars, extra_pars);
         these_pars = merge(these_pars, Dict(
         :opto_times=>reshape(extra_pars[:opto_periods][j,:], 1, 2),
+        :rule_and_delay_period=>these_pars[:rule_and_delay_periods][1], 
+        :target_period=>these_pars[:target_periods][1], 
+        :post_target_period=>these_pars[:post_target_periods][1], 
         ))
+
         proVs, antiVs, proF, antiF = run_ntrials(testruns, testruns; merge(make_dict(args, pars3, these_pars), overrideDict)...); 
 
         # get index of correct and incorrect trials
