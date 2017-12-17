@@ -29,8 +29,10 @@ The things to plot are determined by the three optional parameters `plottables`,
 - t     a vector representing the time axis
 
 - U     a 4-by-length(t) matrix representing activities of Pro_L, Anti_L, Anti_R, Pro_R units
+        May also be a 4-by-length(t)-by-ntrials matrix, in which case all trials are plotted on top of each other
 
 - V     as with U but for the unit outputs, after going through the sigmoid. We expect 0<=V<=1.
+        May also be a 4-by-length(t)-by-ntrials matrix, in which case all trials are plotted on top of each other
 
 # OPTIONAL PARAMETERS:
 
@@ -94,17 +96,19 @@ function plot_PA(t, U, V; fignum=1, clearfig=true, rule_and_delay_period=1, targ
     ylims = [[-0.02, 1.02], nothing, [-1.02, 1.02]], xlims = nothing, plot_Us = nothing,
     ax_set=nothing, other_unused_params...)
     
+    if size(V,3)==0; return; end;  # if there are zero trials, do nothing
+    
     if plot_Us != nothing || typeof(ax_set)<:Dict
     # Backwards compatibility mode!
         if plot_Us==true || plot_Us==nothing
-            plottables = ["V", "U", "V[1,:]-V[4,:]"]
+            plottables = ["V", "U", "decis"]
             ylabels    = ["V", "U", "Pro_R - Pro_L"]
             ylims      = [[-0.02, 1.02], nothing, [-1.02, 1.02]]
             if typeof(ax_set)<:Dict
                 ax_set = [ax_set["Vax"], ax_set["Uax"], ax_set["Dax"]]
             end
         else
-            plottables = ["V", "V[1,:]-V[4,:]"]
+            plottables = ["V", "decis"]
             ylabels    = ["V", "Pro_R - Pro_L"]
             ylims      = [[-0.02, 1.02], [-1.02, 1.02]]
             if typeof(ax_set)<:Dict
@@ -132,15 +136,27 @@ function plot_PA(t, U, V; fignum=1, clearfig=true, rule_and_delay_period=1, targ
     if length(ax_set) != nplots
         error("Must have as many entries in ax_set as things that will be plotted")
     end
-
-    vardict = Dict("V"=>V, "U"=>U, "t"=>t)
     
     for i=1:nplots
         safe_axes(ax_set[i])
-        plotvals = replacer(plottables[i], vardict)
-        if size(plotvals,1) != length(t); plotvals = plotvals'; end
-        h = plot(t, plotvals, linestyle=linestyle)
-        if length(h)==1
+        all_trial_plotvals = []
+        for k=1:size(V,3)  # loop over trials
+            vardict = Dict("V"=>V[:,:,k], "U"=>U[:,:,k], "t"=>t,
+                "decis"=>V[1,:,k]-V[4,:,k], 
+                "rule"=>0.5*(V[1,:,k]+V[4,:,k]-V[2,:,k]-V[3,:,k]),
+                "diag"=>0.5*(V[1,:,k]+V[3,:,k] - V[2,:,k]-V[4,:,k]))   # variables for plottables evaluation
+            plotvals = replacer(plottables[i], vardict)
+            # Make sure time is horizontal
+            if length(size(plotvals))==1; plotvals=reshape(plotvals, 1, length(plotvals)); end
+            if k==1  # if this is trial 1, assign the appropriate size for all_trial_plotvals
+                all_trial_plotvals = zeros(size(plotvals,1), size(plotvals,2), size(V,3))
+            end
+            all_trial_plotvals[:,:,k] = plotvals   # and store the output of the current trial
+        end
+        # Use vstack_and_NaN_pad to plot all in a single go
+        h = plot(vstack_and_NaN_pad(t, ntrials=size(V,3)), 
+            vstack_and_NaN_pad(all_trial_plotvals), linestyle=linestyle)
+        if size(all_trial_plotvals,1)==1
             setp(h, color=singleton_color[:])
         else
             for j=1:length(h); setp(h[j], color=color_list[j,:]); end
@@ -149,7 +165,8 @@ function plot_PA(t, U, V; fignum=1, clearfig=true, rule_and_delay_period=1, targ
 
         if ylims[i]==nothing
             oldlims = [ylim()[1]+0.1, ylim()[2]-0.1]
-            ylim(minimum([plotvals[:];oldlims[1]])-0.1, maximum([plotvals[:];oldlims[2]])+0.1)
+            ylim(minimum([all_trial_plotvals[:];oldlims[1]])-0.1, 
+            maximum([all_trial_plotvals[:];oldlims[2]])+0.1)
         else
             ylim(ylims[i][1], ylims[i][2])
         end
@@ -166,6 +183,7 @@ function plot_PA(t, U, V; fignum=1, clearfig=true, rule_and_delay_period=1, targ
         if i<nplots; remove_xtick_labels(ax_set[i]); else xlabel("t"); end
     end
 end
+
 
 
 
@@ -529,56 +547,86 @@ function run_ntrials(nPro, nAnti; plot_list=[], start_pro=[-0.5,-0.5,-0.5,-0.5],
     end
     proVall  = zeros(4, nsteps, nPro);
     antiVall = zeros(4, nsteps, nAnti);
+    proUall  = zeros(4, nsteps, nPro);
+    antiUall = zeros(4, nsteps, nAnti);
     # --- PRO ---
     if length(plot_list)>0; figure(profig); if (pro_ax_set==nothing) && clearfig; clf(); end; end
     model_params = make_dict(["input"], [pro_input], model_params)
+    sel_vector = Array{Bool}(nPro)
+    hit_vector = Array{Bool}(nPro)
+    plt_vector = Array{Bool}(nPro)
     for i=1:nPro
-        Uend, Vend, pro_fullU, temp = forwardModel(start_pro, do_plot=false, opto_units=opto_units; model_params...)
-        if FDversion() < 0.6; proVall[:,:,i] = temp; else proVall[:,:,i] = get_value(temp); end
-        # print("typeof(proVs) = "); print(typeof(proVs)); print("\n")
+        Uend, Vend, tempU, tempV = forwardModel(start_pro, do_plot=false, opto_units=opto_units; model_params...)
+        if FDversion() < 0.6; proVall[:,:,i] = tempV; else proVall[:,:,i] = get_value(tempV); end
+        if FDversion() < 0.6; proUall[:,:,i] = tempU; else proUall[:,:,i] = get_value(tempU); end
+
         proVs[:,i] = Vend
-        sDict = Dict("t"=>t, "V"=>proVall[:,:,i], "U"=>pro_fullU, "Vend"=>Vend,
+        sDict = Dict("t"=>t, "V"=>proVall[:,:,i], "U"=>proUall[:,:,i], "Vend"=>Vend,
             "rule" =>0.5*(proVall[1,:,i]+proVall[4,:,i]-proVall[2,:,i]-proVall[3,:,i]),
             "decis"=>proVall[1,:,i] - proVall[4,:,i],
+            "diag"=>0.5*(proVall[1,:,i]+proVall[3,:,i] - proVall[2,:,i]-proVall[4,:,i]),
             "ispro"=>true, "isanti"=>false, 
             "ishit"=>Vend[1]>=Vend[4], "iserr"=>Vend[1]<Vend[4])
-        if any(plot_list.==i) && (hit_linestyle!="" || err_linestyle !="") && replacer(selectize, sDict)
-            if hit_linestyle==err_linestyle || (hit_linestyle!="" && Vend[1] >= Vend[4])
-                plot_PA(t, get_value(pro_fullU), get_value(proVall[:,:,i]); clearfig=false,
-                    fignum=profig, ax_set=pro_ax_set, linestyle=hit_linestyle, model_params...)
-                # @printf("Pro hit! linestyle=%s, Vend=", hit_linestyle); print(Vend); print("\n")
-            elseif err_linestyle!="" && Vend[1] < Vend[4]
-                plot_PA(t, get_value(pro_fullU), get_value(proVall[:,:,i]); clearfig=false,
-                    fignum=profig, ax_set=pro_ax_set, linestyle=err_linestyle, model_params...)
-                # @printf("Pro miss! linestyle=%s, Vend=", err_linestyle); print(Vend); print("\n")
-            end
+        sel_vector[i] = replacer(selectize, sDict)
+        hit_vector[i] = sDict["ishit"]
+        plt_vector[i] = any(plot_list.==i)
+    end
+    if hit_linestyle==err_linestyle && hit_linestyle!=""
+        uI = find(plt_vector .& sel_vector)
+        plot_PA(t, get_value(proUall[:,:,uI]), get_value(proVall[:,:,uI]); clearfig=false,
+            fignum=profig, ax_set=pro_ax_set, linestyle=hit_linestyle, model_params...)
+    else
+        if hit_linestyle != ""
+            uI = find(plt_vector .& sel_vector .& hit_vector)
+            plot_PA(t, get_value(proUall[:,:,uI]), get_value(proVall[:,:,uI]); clearfig=false,
+                fignum=profig, ax_set=pro_ax_set, linestyle=hit_linestyle, model_params...)
+        end
+        if err_linestyle != ""
+            uI = find(plt_vector .& sel_vector .& .!hit_vector)
+            plot_PA(t, get_value(proUall[:,:,uI]), get_value(proVall[:,:,uI]); clearfig=false,
+            fignum=profig, ax_set=pro_ax_set, linestyle=err_linestyle, model_params...)
         end
     end
 
     # --- ANTI ---
     if length(plot_list)>0; figure(antifig); if (anti_ax_set==nothing) && clearfig; clf(); end; end
     model_params = make_dict(["input"], [anti_input], model_params)
+    sel_vector = Array{Bool}(nAnti)
+    hit_vector = Array{Bool}(nAnti)
+    plt_vector = Array{Bool}(nAnti)
+    
     for i=1:nAnti
-        startU = [-0.5, -0.5, -0.5, -0.5]
-        Uend, Vend, anti_fullU, temp = forwardModel(start_anti, do_plot=false, opto_units=opto_units; model_params...)
-        if FDversion() < 0.6; antiVall[:,:,i] = temp; else antiVall[:,:,i] = get_value(temp); end
+        Uend, Vend, tempU, tempV = forwardModel(start_anti, do_plot=false, opto_units=opto_units; model_params...)
+        if FDversion() < 0.6; antiVall[:,:,i] = tempV; else antiVall[:,:,i] = get_value(tempV); end
+        if FDversion() < 0.6; antiUall[:,:,i] = tempU; else antiUall[:,:,i] = get_value(tempV); end
         antiVs[:,i] = Vend
-        sDict = Dict("t"=>t, "V"=>antiVall[:,:,i], "U"=>anti_fullU, "Vend"=>Vend,
-            "ispro"=>false, "isanti"=>true, 
+        sDict = Dict("t"=>t, "V"=>antiVall[:,:,i], "U"=>antiUall[:,:,i], "Vend"=>Vend,
             "rule" =>0.5*(antiVall[1,:,i]+antiVall[4,:,i]-antiVall[2,:,i]-antiVall[3,:,i]),
             "decis"=>antiVall[1,:,i] - antiVall[4,:,i],
+            "diag"=>0.5*(antiVall[1,:,i]+antiVall[3,:,i] - antiVall[2,:,i]-antiVall[4,:,i]),
+            "ispro"=>false, "isanti"=>true, 
             "ishit"=>Vend[1]<Vend[4], "iserr"=>Vend[1]>=Vend[4])
-        if any(plot_list.==i) && (hit_linestyle!="" || err_linestyle !="") && replacer(selectize, sDict)
-            if hit_linestyle==err_linestyle || (hit_linestyle!="" && Vend[4] > Vend[1])
-                plot_PA(t, get_value(anti_fullU), get_value(antiVall[:,:,i]); clearfig=false,
-                    fignum=antifig, ax_set=anti_ax_set, linestyle=hit_linestyle, model_params...)
-            elseif err_linestyle!=""  &&  Vend[4] <= Vend[1]
-                plot_PA(t, get_value(anti_fullU), get_value(antiVall[:,:,i]); clearfig=false,
-                fignum=antifig, ax_set=anti_ax_set, linestyle=err_linestyle, model_params...)
-            end
+        sel_vector[i] = replacer(selectize, sDict)
+        hit_vector[i] = sDict["ishit"]; 
+        plt_vector[i] = any(plot_list.==i)
+    end        
+    if hit_linestyle==err_linestyle && hit_linestyle!=""
+        uI = find(plt_vector .& sel_vector)
+        plot_PA(t, get_value(antiUall[:,:,uI]), get_value(antiVall[:,:,uI]); clearfig=false,
+            fignum=antifig, ax_set=anti_ax_set, linestyle=hit_linestyle, model_params...)
+    else
+        if hit_linestyle != ""
+            uI = find(plt_vector .& sel_vector .& hit_vector)
+            plot_PA(t, get_value(antiUall[:,:,uI]), get_value(antiVall[:,:,uI]); clearfig=false,
+                fignum=antifig, ax_set=anti_ax_set, linestyle=hit_linestyle, model_params...)
+        end
+        if err_linestyle != ""
+            uI = find(plt_vector .& sel_vector .& .!hit_vector)
+            plot_PA(t, get_value(antiUall[:,:,uI]), get_value(antiVall[:,:,uI]); clearfig=false,
+            fignum=antifig, ax_set=anti_ax_set, linestyle=err_linestyle, model_params...)
         end
     end
-        
+    
     if haskey(model_params, :opto_fraction)
         opto_fraction = model_params[:opto_fraction]
     else
