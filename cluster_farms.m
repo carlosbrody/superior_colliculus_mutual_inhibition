@@ -25,7 +25,7 @@ ndim=ind(1);
 score=s(:,1:ndim);
 
 %%% use BIC to determine optimal number of clusters
-nclusters=2:5;
+nclusters=2:7;
 for i=1:length(nclusters)
     
     options = statset('MaxIter',10000,'Display','off');
