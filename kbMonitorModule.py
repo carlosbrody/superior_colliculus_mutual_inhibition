@@ -3,6 +3,17 @@ kbMonitorModule.py -- This module contains a single class, kb_monitor.
 
 To get documentation, ask for help on kbMonitorModule.kb_monitor.
 
+To use in Julia, do
+    using PyCall
+    if PyVector(pyimport("sys")["path"])[1] != ""
+        # Then the following line is PyCall-ese for "add the current directory to the Python path"
+        unshift!(PyVector(pyimport("sys")["path"]), "")
+    end
+
+    @pyimport kbMonitorModule
+    
+functions will then be available as kbMonitorModule.funcname()
+
 """
 
 import matplotlib.widgets as Wid
@@ -36,6 +47,40 @@ And you can set the value with
 
     return tbox
 
+
+
+def check_buttons(rax, labels, actives, user_callback=None):
+    """
+    rab = check_buttons(ax, labels, actives, user_callback=None)
+
+Puts up check buttons (any number one selected at a time) for the strings
+passed in the vector of strings "labels", in the matplotlib axes given by "ax".  
+actives must be a list of Booleans, same length as labels,
+indicating which buttons should start as ON.
+On click, if the function user_callback is set, it will be called, with a string 
+as its single parameter-- that string will be the label of the clicked button. 
+
+You can also access which buttons are currently on through
+    
+    rab.get_status()
+        
+Or, in Julia, with the PyCall syntax
+
+    rab[:get_status]()
+    
+which returns a tuple of Booleans, with true for those that are ON,
+false for those that aren't.  A list of string labels can also be obtained 
+through
+
+    rab[:labels]
+    
+    """
+    checks = Wid.CheckButtons(rax, labels, actives)
+    if user_callback != None:
+        checks.on_clicked(user_callback)
+
+    return checks
+    
 
 def radio_buttons(rax, labels, user_callback=None):
     """
