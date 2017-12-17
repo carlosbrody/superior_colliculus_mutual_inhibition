@@ -269,9 +269,9 @@ SD = interactive_scatters(Data, string_IDs, fignum=20, user_callback=scatter_hig
 function interactive_scatters(Data, stringIDs; set_indices=nothing, 
     plot_set2=false, axisDims = [2 1 ; 3 1], user_callback=nothing,
     n_invisible_dots = 3, invisible_colors = ["c"; "b"; "m"],
-    fignum = nothing, axisHandles = nothing, plot_colors = ["r"; "g"; "k"], markersize=10, marker=".")
+    fignum = nothing, axisHandles = nothing, plot_colors = ["r"; "g"; "k"; "y" ; "m"], 
+    markersize=10, marker=".")
 
-    
     @doc """
     scatter_event_callback(xy, r, linehandle, axhandle, SD::scatter_data)
 
@@ -1031,7 +1031,7 @@ plot_farm_trials = 10    #  The number of trials to be plotted per farm run
         plottables = ["V", "V[1,:]-V[4,:]"], ylabels=["V", "ProR-ProL"], 
         ylims = [[-0.02, 1.02], [-1.02, 1.02]], plot_list = [1:20;],    
         hit_linestyle="-", err_linestyle="--", xlims=nothing,
-        overrideDict=Dict())
+        overrideDict=Dict(), further_params...)
 
     Plots multiple trials from a single run of a farm.
 
@@ -1085,6 +1085,11 @@ In the later case, a setup_file must be defined, to set the other parameters
 - err_linestyle  A string indicating the linestyle for error trials. E.g., "-" or "--".
                If this is passed as the empty string, "", then errors are not plotted.
 
+- further_params    Any further keyword value params are passed on to run_ntrials.
+            Note that unilke entries in overrideDict, which take the highest precedence, 
+            keyword-value pairs here take the lowest-precedence: any kw-val pair that also
+            appears in the farm's .jld file, or in overrideDict, will be ignored in favor
+            of those higher precedence instances.
 
 # RETURNS
 
@@ -1104,7 +1109,7 @@ function plot_farm(filename; testruns=400, setup_file=nothing, fignum=3,
     plottables = ["V", "V[1,:]-V[4,:]"], ylabels=["V", "ProR-ProL"], 
     ylims = [[-0.02, 1.02], [-1.02, 1.02]], plot_list = [1:20;],    
     hit_linestyle="-", err_linestyle="--", xlims=nothing,
-    overrideDict=Dict())
+    overrideDict=Dict(), further_params...)
 
     mypars=extra_pars=args=pars3=[]  # define to be available outside if block
     if typeof(filename)==String
@@ -1133,7 +1138,8 @@ function plot_farm(filename; testruns=400, setup_file=nothing, fignum=3,
         these_pars = merge(these_pars, Dict(
             :opto_times=>reshape(extra_pars[:opto_periods][period,:], 1, 2),
         ))
-
+        these_pars = merge(Dict(further_params), these_pars)
+        
         # The plot_list should be the one we give it below, not whatever was in the stored parameters
         delete!(these_pars, :plot_list)
         
@@ -1157,7 +1163,6 @@ function plot_farm(filename; testruns=400, setup_file=nothing, fignum=3,
             plottables = plottables, ylabels=ylabels, ylims=ylims, xlims=xlims,
             hit_linestyle=hit_linestyle, err_linestyle=err_linestyle, 
             merge(make_dict(args, pars3, these_pars), overrideDict)...);
-
         hBP = length(find(proVs[1,:]  .> proVs[4,:])) /size(proVs, 2)
         hBA = length(find(antiVs[4,:] .> antiVs[1,:]))/size(antiVs,2)
         # @printf("period %d:  hBP=%.2f%%, hBA=%.2f%%\n\n", period, 100*hBP, 100*hBA)
@@ -1228,9 +1233,42 @@ function make_min_farm(;fromdirs=["../Farms024", "../Farms025", "../Farms026"], 
 
         dirname, filename = splitdir(res["files"][i]); dirname=splitdir(dirname)[2]
 
-        save("MiniFarms/"*filename[1:9]*dirname*"_"*filename[10:end], sdict)
+        save(todir * "/" * filename[1:9]*dirname*"_"*filename[10:end], sdict)
         if rem(i, 20)==0
             @printf("Did %d/%d\n", i, length(res["tcost"]))
+        end
+    end
+end
+
+
+
+
+# DON'T MODIFY THIS FILE -- the source is in file Results Analysis.ipynb. Look there for further documentation and examples of running the code.
+
+
+"""
+    make_maxi_farm(farmid, fromdirs, todir)
+
+Takes the runs in a passed set of farm directories and copies each file dir/fname*farmid* into
+newdir/fname*farmid*_dir  so that all files live in one directory but don't have names that
+step on each other. The files to be copied HAVE to start with "farm_", all others are ignored
+
+"""
+function make_maxi_farm(farm_id, fromdirs, todir)
+    
+    if ~isdir(todir); mkdir(todir); end;
+    if typeof(fromdirs)==String; fromdirs=[fromdirs]; end
+        
+    for d in fromdirs
+        fromname = split(d, "/")
+        while fromname[1]==".." || fromname[1]==""; fromname=fromname[2:end]; end
+        while fromname[end]==""; fromname=fromname[1:end-1]; end
+        fromname = join(fromname)
+        n = length("farm_"*farm_id*"_")
+        for f in filter(x -> startswith(x, "farm_" * farm_id * "_"), readdir(d))   
+            toname = todir*"/farm_"*farm_id*"_"*fromname*"_"*f[n+1:end]
+            @printf("cp(%s, %s)\n", d*"/"*f, toname)
+            cp(d*"/"*f, toname, remove_destination=true)
         end
     end
 end
