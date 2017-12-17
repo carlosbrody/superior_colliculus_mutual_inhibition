@@ -2,6 +2,77 @@
 
 
 
+
+"""
+    tbin(tvector, t)
+
+Returns indmin(abs.(tvector-t)) -- just a shorthand way
+for finding, in a vector of time bins tvector, the bin
+that corresponds the closest to time t.
+"""
+function tbin(tvector, t)
+    return indmin(abs.(tvector-t))
+end
+
+
+"""
+    newV = vstack_and_NaN_pad(V; ntrials=1)
+
+if V is a vector, then makes a column vector that is ntrials copies
+of V, stacked on top of each other; the copies are separated by one
+element, containing NaN.
+
+if V is m-by-n-by-k, then does not stack copies. Instead it takes
+each V[:,:,i], takes its transpose, and then stacks all of those
+vertically, again with a layer of NaN between each stack.
+
+The net result of this is that if you have a time vector t
+and some data V that is nunits x length(t) x ntrials long,
+you can do
+
+    `plot(vstack_and_NaN_pad(t, size(V,3)), vstack_and_NaN_pad(V))`
+
+and all the trials will get plotted all at once, with each unit being a 
+unique color. nunits line handles will get returned by `plot()`.
+"""
+function vstack_and_NaN_pad(oV; ntrials=1)
+    if length(size(oV))==3
+        ntrials = size(oV,3)
+        lent    = size(oV,2)
+        V = Array{Float64}(lent*ntrials + ntrials-1, size(oV,1))
+        for i=1:ntrials
+            offset = (i-1)*(lent+1)
+            V[(1:lent)+offset,:] = oV[:,:,i]'
+
+            if i<ntrials
+                V[lent+offset+1,:] = NaN
+            end        
+        end
+    else 
+        # @printf("size(oV)=\n"); print(size(oV)); print("\n")
+        lent    = length(oV)
+        # @printf("lent=%d ntrials=%d lent*ntrials + ntrials-1=%d\n", lent, ntrials, lent*ntrials + ntrials-1)
+        V = Array{Float64}(lent*ntrials + ntrials-1)
+        for i=1:ntrials
+            offset = (i-1)*(lent+1)
+            V[(1:lent)+offset] = oV[:]'
+
+            if i<ntrials
+                V[lent+offset+1] = NaN
+            end        
+        end        
+    end
+    return V
+end
+
+
+# DON'T MODIFY THIS FILE -- the source is in file General Utilities.ipynb. Look there for further documentation and examples of running the code.
+
+
+
+
+
+
 """
     append_to_file(filename, str)
 
