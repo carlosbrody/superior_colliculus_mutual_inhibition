@@ -46,7 +46,7 @@ using HDF5
 """
     load_farm_params(; farm_id="C17", farmdir="MiniFarms", verbose=true, verbose_every=50)
 
-Load final parameters for each farm run in <MiniFarms/farm_id>. Also loads the training and test cost for each farm. Saves a file <farmdir[1]><farm_id>_results.jld.
+Load final parameters for each farm run in <MiniFarms/farm_id>. Also loads the training and test cost for each farm. Saves a file <farmdir[1]>_<farm_id>_results.jld.
 
 # OPTIONAL PARAMETERS:
 
@@ -87,7 +87,7 @@ function load_farm_params(;farm_id="C17", farmdir="MiniOptimized", verbose=true,
     results["cost"]   = costs
     results["params"] = pars
 
-    myfilename = farmdir[1]*farm_id*"_results.jld";
+    myfilename = farmdir[1]*"_"*farm_id*"_results.jld";
     save(myfilename, results)
     return results
 end
@@ -188,7 +188,7 @@ If the farm has multiple durations of task events, it will only use the first on
 """
 function build_response_matrix(farm_id; farmdir="MiniFarms", all_conditions = false)
 
-    results = load(farmdir*farm_id*"_results.jld");
+    results = load(farmdir*"_"*farm_id*"_results.jld");
     response_matrix = [];
     numConditions = 1;
     for i = 1:length(results["cost"])
@@ -205,9 +205,9 @@ function build_response_matrix(farm_id; farmdir="MiniFarms", all_conditions = fa
     end
 
     if all_conditions & (numConditions > 1)
-        myfilename = farmdir*farm_id*"_SVD_response_matrix"*string(numConditions)*".jld";
+        myfilename = farmdir*"_"*farm_id*"_SVD_response_matrix"*string(numConditions)*".jld";
     else
-        myfilename = farmdir*farm_id*"_SVD_response_matrix.jld";
+        myfilename = farmdir*"_"*farm_id*"_SVD_response_matrix.jld";
     end
     save(myfilename, Dict("response"=>response_matrix, "results"=>results, "numConditions"=>numConditions ))
 
@@ -239,9 +239,9 @@ function build_reduced_response_matrix(farm_id; farmdir="MiniFarms", opto_condit
 
     # load the already compute response matrix
     if opto_conditions > 1
-    all_response, results = load(farmdir*farm_id*"_SVD_response_matrix"*string(opto_conditions)*".jld", "response","results")
+    all_response, results = load(farmdir*"_"*farm_id*"_SVD_response_matrix"*string(opto_conditions)*".jld", "response","results")
     else
-    all_response, results = load(farmdir*farm_id*"_SVD_response_matrix.jld", "response","results")
+    all_response, results = load(farmdir*"_"*farm_id*"_SVD_response_matrix.jld", "response","results")
     end
 
     # splice out the rule parts of each trial
@@ -271,9 +271,9 @@ function build_reduced_response_matrix(farm_id; farmdir="MiniFarms", opto_condit
 
     # save the reduced response matrix
      if opto_conditions > 1
-        myfilename = farmdir*farm_id*"_SVD_response_matrix"*string(opto_conditions)*"_reduced.jld";
+        myfilename = farmdir*"_"*farm_id*"_SVD_response_matrix"*string(opto_conditions)*"_reduced.jld";
     else
-        myfilename = farmdir*farm_id*"_SVD_response_matrix_reduced.jld";
+        myfilename = farmdir*"_"*farm_id*"_SVD_response_matrix_reduced.jld";
     end   
     save(myfilename, Dict("response"=>response_matrix, "results"=>results, "numConditions"=>opto_conditions ))
 
@@ -315,9 +315,9 @@ function SVD_analysis(farm_id; farmdir="MiniFarms", opto_conditions = 3, compute
         reduced = "";       
     end
     if opto_conditions > 1
-    response, results = load(farmdir*farm_id*"_SVD_response_matrix"*string(opto_conditions)*reduced*".jld", "response","results")
+    response, results = load(farmdir*"_"*farm_id*"_SVD_response_matrix"*string(opto_conditions)*reduced*".jld", "response","results")
     else
-    response, results = load(farmdir*farm_id*"_SVD_response_matrix"*reduced*".jld", "response","results")
+    response, results = load(farmdir*"_"*farm_id*"_SVD_response_matrix"*reduced*".jld", "response","results")
     end
 
     # need to filter out NaN rows 
@@ -543,14 +543,14 @@ function SVD_interactive(farm_id;farmdir="MiniFarms", threshold =-0.0002, plot_o
         reduced = "";       
     end
     if opto_conditions > 1
-    response, results = load(farmdir*farm_id*"_SVD_response_matrix"*string(opto_conditions)*reduced*".jld", "response","results")
+    response, results = load(farmdir*"_"*farm_id*"_SVD_response_matrix"*string(opto_conditions)*reduced*".jld", "response","results")
     else
-    response, results = load(farmdir*farm_id*"_SVD_response_matrix"*reduced*".jld", "response","results")
+    response, results = load(farmdir*"_"*farm_id*"_SVD_response_matrix"*reduced*".jld", "response","results")
     end
 
     if disp_encoding
     include("rule_encoding.jl")
-    encoding, error_types = load(farmdir*farm_id*"_encoding.jld", "encoding","error_types")
+    encoding, error_types = load(farmdir*"_"*farm_id*"_encoding.jld", "encoding","error_types")
     end
 
     # set up filter by nan
@@ -690,9 +690,9 @@ function SVD_interactive2(farm_id;farmdir="MiniFarms", threshold =-0.0002, plot_
         reduced = "";       
     end
     if opto_conditions > 1
-    response, results = load(farmdir*farm_id*"_SVD_response_matrix"*string(opto_conditions)*reduced*".jld", "response","results")
+    response, results = load(farmdir*"_"*farm_id*"_SVD_response_matrix"*string(opto_conditions)*reduced*".jld", "response","results")
     else
-    response, results = load(farmdir*farm_id*"_SVD_response_matrix"*reduced*".jld", "response","results")
+    response, results = load(farmdir*"_"*farm_id*"_SVD_response_matrix"*reduced*".jld", "response","results")
     end
 
     # set up filter by nan
@@ -1074,7 +1074,7 @@ end
                                    testruns=1600)
     
 For each farm run, compute the hessian of the test noise. This function assumes the hessian has 
-already been computed and is in each file, and also assumes that file farmdir*farm_id*"_results.jld"
+already been computed and is in each file, and also assumes that file farmdir*"_"*farm_id*"_results.jld"
 exists, as produced by `load_farm_params()`. 
 
 # OPTIONAL PARAMETERS:
@@ -1087,18 +1087,18 @@ exists, as produced by `load_farm_params()`.
     
 # RETURNS
 
-Matrix of N runs X #params X #params hessians. Also sabes that matrix to file farmdir*farm_id*"_hessians.jld"
+Matrix of N runs X #params X #params hessians. Also sabes that matrix to file farmdir*"_"*farm_id*"_hessians.jld"
 
 """
 function build_hessian_dataset(farm_id; farmdir="MiniOptimized", force_compute_hessian=false,
                                testruns=1600)
 
-    if !isfile(farmdir*farm_id*"_results.jld")
+    if !isfile(farmdir*"_"*farm_id*"_results.jld")
         error(@sprintf("Don't have a results file %s to work with! Have you run load_farm_params() yet?", 
-              farmdir*farm_id*"_results.jld"))
+              farmdir*"_"*farm_id*"_results.jld"))
     end
 
-    results = load(farmdir*farm_id*"_results.jld");
+    results = load(farmdir*"_"*farm_id*"_results.jld");
     nargs = size(results["params"],2)
     hessians = Array(Float64,length(results["cost"]),nargs,nargs);
 
@@ -1125,7 +1125,7 @@ function build_hessian_dataset(farm_id; farmdir="MiniOptimized", force_compute_h
         @printf("%g %s %g\n",i, filename, results["tcost"][i])
     end
 
-    myfilename = farmdir*farm_id*"_hessians.jld";
+    myfilename = farmdir*"_"*farm_id*"_hessians.jld";
     save(myfilename, Dict("hessians"=>hessians))
 
     return hessians
@@ -1178,11 +1178,11 @@ function plot_PCA(farm_id; farmdir="MiniOptimized", opto_conditions = 3, compute
         reduced = "";       
     end
     if opto_conditions > 1
-    response, results = load(farmdir*farm_id*"_SVD_response_matrix"*string(opto_conditions)*reduced*".jld", "response","results")
+    response, results = load(farmdir*"_"*farm_id*"_SVD_response_matrix"*string(opto_conditions)*reduced*".jld", "response","results")
     else
-    response, results = load(farmdir*farm_id*"_SVD_response_matrix"*reduced*".jld", "response","results")
+    response, results = load(farmdir*"_"*farm_id*"_SVD_response_matrix"*reduced*".jld", "response","results")
     end
-    hessians = load(farmdir*farm_id*"_hessians.jld")
+    hessians = load(farmdir*"_"*farm_id*"_hessians.jld")
     hessians = hessians["hessians"];
 
     # need to filter out NaN rows 
@@ -1377,15 +1377,15 @@ function plot_PCA_Redux(;farm_id="C17", farmdir="MiniOptimized", f2="MiniOptimiz
         reduced = "";       
     end
     if opto_conditions > 1
-    response, results = load(farmdir*farm_id*"_SVD_response_matrix"*string(opto_conditions)*reduced*".jld", "response","results")
-    response2, results2 = load(f2*farm_id*"_SVD_response_matrix"*string(opto_conditions)*reduced*".jld","response","results");
+    response, results = load(farmdir*"_"*farm_id*"_SVD_response_matrix"*string(opto_conditions)*reduced*".jld", "response","results")
+    response2, results2 = load(f2*"_"*farm_id*"_SVD_response_matrix"*string(opto_conditions)*reduced*".jld","response","results");
     else
-    response, results = load(farmdir*farm_id*"_SVD_response_matrix"*reduced*".jld", "response","results")
-    response2, results2 = load(f2*farm_id*"_SVD_response_matrix"*reduced*".jld","response","results");
+    response, results = load(farmdir*"_"*farm_id*"_SVD_response_matrix"*reduced*".jld", "response","results")
+    response2, results2 = load(f2*"_"*farm_id*"_SVD_response_matrix"*reduced*".jld","response","results");
     end
-    hessians = load(farmdir*farm_id*"_hessians.jld")
+    hessians = load(farmdir*"_"*farm_id*"_hessians.jld")
     hessians = hessians["hessians"];
-    hessians2 = load(f2*farm_id*"_hessians.jld")
+    hessians2 = load(f2*"_"*farm_id*"_hessians.jld")
     hessians2 = hessians2["hessians"];
 
     # need to filter out NaN rows 
@@ -1511,22 +1511,36 @@ function plot_PCA_Redux(;farm_id="C17", farmdir="MiniOptimized", f2="MiniOptimiz
 end
 
 
-
+# The includes like this don't really work inside a function, they get
+# evaluated in Main context, not the inside of the function's context,
+# so we have to put it out here:
+include("rule_encoding.jl")
 
 """
+    update_farm(farm_id, farmdir; build_hessian=true, build_encoding=true)
+
     Builds all necessary matrices and datasets for SVD and rule encoding analysis
 
 # PARAMETERS
--farm_id        id of farm, eq "C17"
 
--farmdir        example "MiniOptimized"
+- farm_id        id of farm, eq "C17"
+
+- farmdir        example "MiniOptimized"
+
+# OPTIONAL PARAMETERS
+
+- build_hessian    If true, calls `build_hessian_dataset()`
+
+- build_encoding   If true, calls, `build_encoding_dataset()` 
 
 # EXAMPLE
 
-- update_farm("C17","MiniOptimized")
+```jldoctest
+update_farm("C17","MiniOptimized")
+```jldoctest
 
 """
-function update_farm(farm_id, farmdir)
+function update_farm(farm_id, farmdir; build_hessian=true, build_encoding=true)
     @printf("Building Results matrix\n")
     results = load_farm_params(;farm_id=farm_id, farmdir=farmdir, verbose_every=1)
 
@@ -1538,12 +1552,15 @@ function update_farm(farm_id, farmdir)
     response= build_response_matrix(farm_id; farmdir=farmdir, all_conditions=true)
     response= build_reduced_response_matrix(farm_id; farmdir=farmdir, opto_conditions=3)
 
-    @printf("Building Hessian matrix\n")
-    hessian = build_hessian_dataset(farm_id; farmdir=farmdir)
+    if build_hessian
+        @printf("Building Hessian matrix\n")
+        hessian = build_hessian_dataset(farm_id; farmdir=farmdir)
+    end
 
-    @printf("Building Encoding matrix\n")
-    include("rule_encoding.jl")
-    encoding, error_types = build_encoding_dataset(farm_id; farmdir=farmdir);
+    if build_encoding
+        @printf("Building Encoding matrix\n")
+        encoding, error_types = build_encoding_dataset(farm_id; farmdir=farmdir);
+    end
 end
 
 """
@@ -1587,9 +1604,9 @@ function plot_SVD_cluster_approx(; farm_id="C17", farmdir="MiniOptimized", opto_
         reduced = "";       
     end
     if opto_conditions > 1
-    response, results = load(farmdir*farm_id*"_SVD_response_matrix"*string(opto_conditions)*reduced*".jld", "response","results")
+    response, results = load(farmdir*"_"*farm_id*"_SVD_response_matrix"*string(opto_conditions)*reduced*".jld", "response","results")
     else
-    response, results = load(farmdir*farm_id*"_SVD_response_matrix"*reduced*".jld", "response","results")
+    response, results = load(farmdir*"_"*farm_id*"_SVD_response_matrix"*reduced*".jld", "response","results")
     end
    
     # NEED TO FILTER OUT BAD FARMS
@@ -1606,7 +1623,7 @@ function plot_SVD_cluster_approx(; farm_id="C17", farmdir="MiniOptimized", opto_
     # CRUDE CLUSTERING
     clusters = randn(165,3) .< .33;
     try
-        clusters = load(farmdir*farm_id*"_cluster_ids.jld","clusters")
+        clusters = load(farmdir*"_"*farm_id*"_cluster_ids.jld","clusters")
     catch
         utemp = copy(F[:U])
         clusters = randn(165,3) .< .33;
