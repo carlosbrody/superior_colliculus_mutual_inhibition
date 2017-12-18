@@ -46,7 +46,7 @@ using HDF5
 """
     load_farm_params(; farm_id="C17", farmdir="MiniFarms", verbose=true, verbose_every=50)
 
-Load final parameters for each farm run in <MiniFarms/farm_id>. Also loads the training and test cost for each farm. Saves a file <farm_id>_results.jld.
+Load final parameters for each farm run in <MiniFarms/farm_id>. Also loads the training and test cost for each farm. Saves a file <farmdir[1]><farm_id>_results.jld.
 
 # OPTIONAL PARAMETERS:
 
@@ -1070,32 +1070,58 @@ function plot_psth(r_all, neural_dex; opto_conditions=1)
 end
 
 """
-    build_hessian_dataset(farm_id)
+    build_hessian_dataset(farm_id; farmdir="MiniOptimized", force_compute_hessian=false,
+                                   testruns=1600)
     
-For each farm run, compute the hessian of the test noise. This function assumes the hessian has already been computed. The commented code could be used to modify to compute the hessians at run time
+For each farm run, compute the hessian of the test noise. This function assumes the hessian has 
+already been computed and is in each file, and also assumes that file farmdir*farm_id*"_results.jld"
+exists, as produced by `load_farm_params()`. 
 
 # OPTIONAL PARAMETERS:
 
 - farmdir   Direction where farm runs are located
+
+- force_compute_hessian    If true, will compute the Hessians instead of trying to load them from the files.
+
+- testruns                 Only relevant if force_compute_hessian=true.  Number of Pro and Anti trials to use.
     
 # RETURNS
 
-Matrix of N runs X #params X #params hessians
+Matrix of N runs X #params X #params hessians. Also sabes that matrix to file farmdir*farm_id*"_hessians.jld"
 
 """
-function build_hessian_dataset(farm_id; farmdir="MiniOptimized")
+function build_hessian_dataset(farm_id; farmdir="MiniOptimized", force_compute_hessian=false,
+                               testruns=1600)
 
-    
+    if !isfile(farmdir*farm_id*"_results.jld")
+        error(@sprintf("Don't have a results file %s to work with! Have you run load_farm_params() yet?", 
+              farmdir*farm_id*"_results.jld"))
+    end
+
     results = load(farmdir*farm_id*"_results.jld");
-    hessians = Array(Float64,length(results["cost"]),12,12);
+    nargs = size(results["params"],2)
+    hessians = Array(Float64,length(results["cost"]),nargs,nargs);
 
     for i = 1:length(results["cost"])
 
         filename = results["files"][i];    
-        ftraj3 = load(filename, "ftraj3")
-        farm_hessian = ftraj3[2,end];
-        hessians[i,:,:] = farm_hessian;
-
+        if !force_compute_hessian
+            fj = jldopen(filename)
+            if exists(fj, "ftraj3")
+                ftraj3 = load(filename, "ftraj3")
+                farm_hessian = ftraj3[2,end];
+            else
+                warn(@sprintf("For file %s, ftraj3 not found-- can't load Hessian from it. Run me with force_compute_hessian=true to compute the Hessian.  Meanwhile, returning zeros\n", filename))
+                farm_hessian = zeros(nargs, nargs)
+            end
+            close(fj)
+            hessians[i,:,:] = farm_hessian;
+        else
+            mypars, extra_pars, args, pars3 = load(filename, "mypars", "extra_pars", "args", "pars3")
+            func1 = (;params...)-> JJ(testruns, testruns; verbose=false, seedrand=extra_pars[:seedrand], 
+                                      merge(merge(mypars, extra_pars), Dict(params))...)[1]       
+            farm_value, farm_grad, farm_hessian = keyword_vgh(func1, args, pars3);
+        end
         @printf("%g %s %g\n",i, filename, results["tcost"][i])
     end
 
