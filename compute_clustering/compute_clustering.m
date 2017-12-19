@@ -64,6 +64,7 @@ for i=1:length(nclusters)
             goodgm(z)=GM.BIC;
             z=z+1;
         catch
+            fprintf(1, 'something went wrong with fitgmdist\n');
         end
         
         bic(i)=mean(goodgm);
