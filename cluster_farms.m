@@ -1,12 +1,14 @@
 clear
 
-load data_for_matlab_temp
+load compute_clustering/data_for_matlab_temp
+nclusters = double(nclusters)';  % Came in as int, turn it into regular Matlab doubles vector
 
 %%% select responses with cost lower than -0.0002
-cost=[results(1).cost{:}];
-ind=find(cost<-0.0002);
+cost=[results(1).(cost_choice){:}];
+ind=find(cost<threshold);
 
 response=response(ind,:);
+files = results(1).files(ind);
 
 
 
@@ -25,7 +27,10 @@ ndim=ind(1);
 score=s(:,1:ndim);
 
 %%% use BIC to determine optimal number of clusters
-nclusters=2:7;
+if ~exist('nclusters', 'var')
+    nclusters=2:7;
+end
+
 for i=1:length(nclusters)
     
     options = statset('MaxIter',10000,'Display','off');
@@ -60,6 +65,7 @@ idx=kmeans(response,ngroups);
 %%% ngroups = number of groups with minimum BIC value
 %%% idx = indices resulting from k-means clustering
 
-save data_for_julia_temp ndim bic ngroups idx
+
+save compute_clustering/data_for_julia_temp ndim bic ngroups idx files
 
 
