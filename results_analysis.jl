@@ -171,10 +171,11 @@ type scatter_data
 end
 
 """
-SD = interactive_scatters(Data, stringIDs; set_indices=nothing,
+SD = interactive_scatters(Data, stringIDs; set_indices=nothing, 
     plot_set2=false, axisDims = [2 1 ; 3 1], user_callback=nothing,
     n_invisible_dots = 3, invisible_colors = ["c"; "b"; "m"],
-    fignum = nothing, axisHandles = nothing, plot_colors = ["r"; "g"; "k"], markersize=10, marker=".")
+    fignum = nothing, axisHandles = nothing, plot_colors = ["r"; "g"; "k"; "y" ; "m"], 
+    markersize=10, marker=".")
 
 A multidimensional set of data points is plotted in a set of scatterplots, each of which 
 shows the scatterplot of one dimension against another. Each data point is identified
@@ -1201,18 +1202,40 @@ end
 
 
 """
-    make_mini_farm()
+make_mini_farm(farmid ; fromdirs=["../Farms024", "../Farms025", "../Farms026"], 
+    todir="MiniFarms")    
 
-Takes the C17 runs in ../Farms024, ../Farms025, and ../Farms026, which are not on git,
-and puts a small-size sumamry of them in "MiniFarms/". That MiniFarms directory is
-a reasonabale size for git (only 63MBytes compred to GBytes)
+Takes all the  runs in directories fromdirs, (which might not be on git),
+and puts a small-size sumamry of them in todir. That todir directory will
+a reasonabale size for git (only MBytes compred to GBytes)
 
-The MiniFarms directory can be used for the C17_browser in lieu of the original farms.
+The minifarm directory can be used for browsers in lieu of the original farms, but 
+note that files in it do not include Hessian information.
+
+# PARAMETERS:
+
+- farmid     A pattern that needs to be matched in a filename for it to be included. E.g., "C17"
+
+# OPTIONAL PARAMETERS:
+
+- fromdirs  Either a String, indicating a directory, or a vector of Strings, indicating multiple 
+            directories to be treated together.        
+
+- todir     A String indicating the directory where the Mini files should go to. If the
+            directory did not previously exist, creates it. If the directory was not previously
+            empty, does not clear it.
+
+# EXAMPLE:
+
+```jldoctest
+make_mini_farm("C17", fromdirs=["../Farms024], todir="MiniNew")
+```jldoctest
 
 """
-function make_min_farm(;fromdirs=["../Farms024", "../Farms025", "../Farms026"], todir="MiniFarms")
+function make_mini_farm(farmid; fromdirs=["../Farms024", "../Farms025", "../Farms026"], 
+        todir="MiniFarms")
     
-    res = farmload("C17", verbose=true, farmdir=fromdirs)
+    res = farmload(farmid, verbose=true, farmdir=fromdirs)
 
     if ~isdir(todir); mkdir(todir); end;
 
