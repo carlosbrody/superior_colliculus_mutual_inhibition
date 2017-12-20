@@ -1621,12 +1621,12 @@ function plot_SVD_cluster_approx(; farm_id="C17", farmdir="MiniOptimized", opto_
     F = svdfact(r_all);
     
     # CRUDE CLUSTERING
-    clusters = randn(165,3) .< .33;
+    clusters = randn(size(r_all,1),3) .< .33;
     try
         clusters = load(farmdir*"_"*farm_id*"_cluster_ids.jld","clusters")
     catch
         utemp = copy(F[:U])
-        clusters = randn(165,3) .< .33;
+        clusters = randn(size(r_all,1),3) .< .33;
         clusters[:,1] = (utemp[:,2] .< 0) .& (utemp[:,1] .< 0);
         clusters[:,2] = (utemp[:,2] .< 0) .& (utemp[:,1] .> 0);
         clusters[:,3] = (utemp[:,2] .> 0) ;

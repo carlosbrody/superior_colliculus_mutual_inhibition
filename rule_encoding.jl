@@ -1,6 +1,8 @@
 README="""
     LIST OF ALL FUNCTIONS IN THIS FILE
 
+All functions should work regardless of how many and which parameters were optimized in the model
+
 # BACKEND FUNCTIONS
     build_encoding_dataset(farm_id)
 
