@@ -1560,6 +1560,8 @@ include("rule_encoding.jl")
 
 - build_encoding   If true, calls, `build_encoding_dataset()` 
 
+- update_only       If true, only adds new farms. If false, recomputes for all farm runs
+
 # EXAMPLE
 
 ```jldoctest
