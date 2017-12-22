@@ -186,15 +186,31 @@ If the farm has multiple durations of task events, it will only use the first on
 - Response matrix, where each row is the average dynamics of each node for each trial-type X opto_condition
 
 """
-function build_response_matrix(farm_id; farmdir="MiniFarms", all_conditions = false)
+function build_response_matrix(farm_id; farmdir="MiniFarms", all_conditions = false,update_only=false, old_results=Dict())
 
     results = load(farmdir*"_"*farm_id*"_results.jld");
     response_matrix = [];
     numConditions = 1;
+    if update_only
+        if all_conditions
+            numConditions = 3;
+            myfilename = farmdir*"_"*farm_id*"_SVD_response_matrix"*string(numConditions)*".jld";
+        else
+            myfilename = farmdir*"_"*farm_id*"_SVD_response_matrix.jld";
+        end
+        old_response_matrix = load(myfilename, "response");
+    end
+
     for i = 1:length(results["cost"])
         filename = results["files"][i];
-        farm_response, numC = run_farm(filename;all_conditions=all_conditions);
-        numConditions = numC;
+
+        if update_only & (size(find(filename .== old_results["files"]),1) > 0)
+            old_index = find(filename .== old_results["files"]);
+            farm_response = old_response_matrix[old_index, :];
+        else
+            farm_response, numC = run_farm(filename;all_conditions=all_conditions);
+            numConditions = numC;
+        end
 
         if isempty(response_matrix)
             response_matrix = farm_response;
@@ -1090,8 +1106,7 @@ exists, as produced by `load_farm_params()`.
 Matrix of N runs X #params X #params hessians. Also sabes that matrix to file farmdir*"_"*farm_id*"_hessians.jld"
 
 """
-function build_hessian_dataset(farm_id; farmdir="MiniOptimized", force_compute_hessian=false,
-                               testruns=1600)
+function build_hessian_dataset(farm_id; farmdir="MiniOptimized", force_compute_hessian=false,testruns=1600, update_only=false, old_results=Dict())
 
     if !isfile(farmdir*"_"*farm_id*"_results.jld")
         error(@sprintf("Don't have a results file %s to work with! Have you run load_farm_params() yet?", 
@@ -1102,9 +1117,19 @@ function build_hessian_dataset(farm_id; farmdir="MiniOptimized", force_compute_h
     nargs = size(results["params"],2)
     hessians = Array(Float64,length(results["cost"]),nargs,nargs);
 
-    for i = 1:length(results["cost"])
+    if update_only
+        myfilename = farmdir*"_"*farm_id*"_hessians.jld";
+        old_hessians = load(myfilename, "hessians")
+    end
 
+    for i = 1:length(results["cost"])
         filename = results["files"][i];    
+        
+      if update_only & (size(find(filename .== old_results["files"]),1) > 0)
+            old_index = find(filename .== old_results["files"]);
+            farm_hessian = old_hessians[old_index, :,:];
+            hessians[i,:,:] = farm_hessian;
+      else
         if !force_compute_hessian
             fj = jldopen(filename)
             if exists(fj, "ftraj3")
@@ -1121,6 +1146,8 @@ function build_hessian_dataset(farm_id; farmdir="MiniOptimized", force_compute_h
             func1 = (;params...)-> JJ(testruns, testruns; verbose=false, seedrand=extra_pars[:seedrand], 
                                       merge(merge(mypars, extra_pars), Dict(params))...)[1]       
             farm_value, farm_grad, farm_hessian = keyword_vgh(func1, args, pars3);
+            hessians[i,:,:] = farm_hessian;
+        end
         end
         @printf("%g %s %g\n",i, filename, results["tcost"][i])
     end
@@ -1540,26 +1567,33 @@ update_farm("C17","MiniOptimized")
 ```jldoctest
 
 """
-function update_farm(farm_id, farmdir; build_hessian=true, build_encoding=true)
+function update_farm(farm_id, farmdir; build_hessian=true, build_encoding=true, update_only=true)
+
+    # Get old results
+    if update_only
+        old_results = load(farmdir*"_"*farm_id*"_results.jld");
+    else
+        old_results = Dict();
+    end
     @printf("Building Results matrix\n")
     results = load_farm_params(;farm_id=farm_id, farmdir=farmdir, verbose_every=1)
 
     @printf("Building Response matrix\n")
-    response= build_response_matrix(farm_id; farmdir=farmdir)
+    response= build_response_matrix(farm_id; farmdir=farmdir, update_only=update_only, old_results=old_results)
     response= build_reduced_response_matrix(farm_id; farmdir=farmdir, opto_conditions=1)
 
     @printf("Building Response matrix all conditions\n")
-    response= build_response_matrix(farm_id; farmdir=farmdir, all_conditions=true)
+    response= build_response_matrix(farm_id; farmdir=farmdir, all_conditions=true, update_only=update_only, old_results=old_results)
     response= build_reduced_response_matrix(farm_id; farmdir=farmdir, opto_conditions=3)
 
     if build_hessian
         @printf("Building Hessian matrix\n")
-        hessian = build_hessian_dataset(farm_id; farmdir=farmdir)
+        hessian = build_hessian_dataset(farm_id; farmdir=farmdir, update_only=update_only, old_results=old_results)
     end
 
     if build_encoding
         @printf("Building Encoding matrix\n")
-        encoding, error_types = build_encoding_dataset(farm_id; farmdir=farmdir);
+        encoding, error_types = build_encoding_dataset(farm_id; farmdir=farmdir, update_only=update_only, old_results=old_results);
     end
 end
 

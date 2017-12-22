@@ -39,8 +39,8 @@ builds a database of rule encoding indexes for each farm run in with farmdir/far
 
 
 """
-function build_encoding_dataset(farm_id; farmdir="MiniOptimized",testruns=1000, overrideDict=Dict())
-    results     = load(farmdir*farm_id*"_results.jld");
+function build_encoding_dataset(farm_id; farmdir="MiniOptimized",testruns=1000, overrideDict=Dict(), update_only=false, old_results=Dict())
+    results     = load(farmdir*"_"*farm_id*"_results.jld");
     mypars,extra_pars = load(results["files"][1],"mypars","extra_pars")
     sample_point = Int(floor(mypars[:rule_and_delay_periods][1]/mypars[:dt]))
 
@@ -48,16 +48,26 @@ function build_encoding_dataset(farm_id; farmdir="MiniOptimized",testruns=1000, 
     # 1. pro-anti       positive value ==pro encoding, negative value == anti encoding 
     # 2. right-left     positive value ==right choice, negative value == left choice
     # 3. diagonal       (proR+antiL) - (proL+antiR)
-
     encoding    = Array(Float64,length(results["cost"]),size(extra_pars[:opto_periods],1),2,2,3);
     
     # for N farms X opto Conditions X pro/anti x hit/miss x three indexes, what percentage of trials had each encoding at end of delay?
     error_types = Array(Float64,length(results["cost"]),size(extra_pars[:opto_periods],1),2,2,3);
+    
+    if update_only
+        myfilename = farmdir*"_"*farm_id*"_encoding.jld";
+        old_encoding, old_error_types = load(myfilename, "encoding","error_types")
+    end
+
     for i = 1:length(results["cost"])
         filename = results["files"][i];
         @printf("%d/%d, %s:  \n", i, length(results["cost"]), filename)
         mypars, extra_pars, args, pars3 = load(filename, "mypars", "extra_pars", "args", "pars3")
 
+        if update_only & (size(find(filename .== old_results["files"]),1) > 0)
+            old_index = find(filename .== old_results["files"]);
+            encoding[i,:,:,:,:] = old_encoding[old_index, :,:,:,:];
+            error_types[i,:,:,:,:] = old_error_types[old_index, :,:,:,:];
+        else
         for j=1:size(extra_pars[:opto_periods],1);
         # get set of runs
         these_pars = merge(mypars, extra_pars);
@@ -128,11 +138,12 @@ function build_encoding_dataset(farm_id; farmdir="MiniOptimized",testruns=1000, 
         error_types[i,j,2,2,3] = sum(antim .>= 0)/length(antim);  
 
         end
+        end
         display_encoding(encoding,error_types,i)
         @printf("\n")
     end
 
-    myfilename = farmdir*farm_id*"_encoding.jld";
+    myfilename = farmdir*"_"*farm_id*"_encoding.jld";
     save(myfilename, Dict("encoding"=>encoding, "error_types"=>error_types))
 
     return encoding,error_types
