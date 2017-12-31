@@ -181,6 +181,10 @@ If the farm has multiple durations of task events, it will only use the first on
     
 - all_conditions    If TRUE, compute response matrix for all opto conditions. If FALSE, just control trials
 
+- update_only       If TRUE, then doesn't recompute farm runs that were already computed. Instead uses old response matrix. If TRUE, uses old_results for the list of already computed farm runs. 
+
+- old_results       A dictionary from load_farm_params(), containing a list of files that were previously used to compute response_matrix. If update_only is false, this dictionary should be empty. 
+
 # RETURNS
 
 - Response matrix, where each row is the average dynamics of each node for each trial-type X opto_condition
