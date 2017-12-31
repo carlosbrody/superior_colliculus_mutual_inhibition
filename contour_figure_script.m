@@ -1,11 +1,24 @@
 close all;
 clear all;
+MAKE_DENSE = 2;
+
 [x,y,z] = peaks(1000);
 
 % has positive bumps too
 %figure;
 %surf(x,y,z);
-z2 = -abs(z);
+if MAKE_DENSE == 1
+    z2 = -abs(z);
+elseif MAKE_DENSE == 2
+    z2 = z;
+    z2(z2<0) = 0;
+    z2 = -z2;
+elseif MAKE_DENSE ==3
+    z2 = -z;
+    z2(z2<0) = 0;
+    z2 = -z2;
+end
+
 
 % wells too deep
 %figure;
