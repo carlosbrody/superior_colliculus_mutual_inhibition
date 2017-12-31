@@ -342,6 +342,8 @@ function LDA_browser(farmid, farmdir, threshold=-0.0002, cost_choice="cost",
     """
 
     @printf("%s", docstring)
+
+    return SV_space, PARAM_space
 end
 
 
