@@ -173,6 +173,13 @@ with only 50 runs/condition, then if the test was passed, further optimizing wit
                 off of a file produced by Marino's code. If that file doesn't exist, this
                 will be the number of clusters used.
 
+# RETURNS:
+
+- SV_space     The output from `interactive_scatters()` for the SV space
+
+- PARAM_space  The output from `interactive_scatters()` for the parameter space
+
+
 # FURTHER INFO
 
 See the documentation for `setup_control_figure()` for information
