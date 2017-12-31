@@ -20,7 +20,11 @@ set rootdir = superior_colliculus_mutual_inhibition
 if ( $argv[1] == "proanti024" ) then
     set zone = "us-east1-d"
 else
-    set zone = "us-east1-c"
+    if ( $argv[1] == "proanti009" ) then
+	set zone = "us-east1-b"
+    else
+	set zone = "us-east1-c"
+    endif
 endif
 
 set patt   = $argv[2]
