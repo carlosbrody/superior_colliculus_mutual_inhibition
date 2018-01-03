@@ -270,7 +270,7 @@ SD = interactive_scatters(Data, string_IDs, fignum=20, user_callback=scatter_hig
 function interactive_scatters(Data, stringIDs; set_indices=nothing, 
     plot_set2=false, axisDims = [2 1 ; 3 1], user_callback=nothing,
     n_invisible_dots = 3, invisible_colors = ["c"; "b"; "m"],
-    fignum = nothing, axisHandles = nothing, plot_colors = ["r"; "g"; "k"; "y" ; "m"], 
+    fignum = nothing, axisHandles = nothing, plot_colors = ["r"; "g"; "k"; "y" ; "m"; "r" ; "g" ; "k"], 
     markersize=10, marker=".")
 
     @doc """
@@ -330,7 +330,8 @@ function interactive_scatters(Data, stringIDs; set_indices=nothing,
     end
     
     if length(plot_colors) < length(set_indices)
-        error("Need at least as many plot_colors as there are different groups of set_indices")
+        error(sprintf("Need at least as many plot_colors (%d) as there are different groups of set_indices (%d)", 
+            length(plot_colors), length(set_indices)))
     end
     
     # Store indices in the SD structure that will be returned
@@ -474,6 +475,13 @@ end
     Data structure for parameter and cost histograms
 
 `histo_params()` returns one of these objects; used to manage GUI handling.
+
+names::Array{String}                 # name for each parameter histogram
+values::Array{Float64}               # matrix of values, nentries-by-length(names)
+axisHandles::Array{PyCall.PyObject}  # handle to axis for each parameter, same length as names
+LineHandles::Array{PyCall.PyObject}  # handle to the plots on each axis
+files::Array{String}                 # nentries long string of files where data came from
+
 """
 type histo_data
     names::Array{String}
