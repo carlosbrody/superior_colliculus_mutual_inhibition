@@ -179,6 +179,8 @@ with only 50 runs/condition, then if the test was passed, further optimizing wit
 
 - PARAM_space  The output from `interactive_scatters()` for the parameter space
 
+- HD           The output from `histo_params()`
+
 
 # FURTHER INFO
 
@@ -350,7 +352,33 @@ function LDA_browser(farmid, farmdir, threshold=-0.0002, cost_choice="cost",
 
     @printf("%s", docstring)
 
-    return SV_space, PARAM_space
+    return SV_space, PARAM_space, HD
+end
+
+
+# DON'T MODIFY THIS FILE -- the source is in file Results Analysis.ipynb. Look there for further documentation and examples of running the code.
+
+
+"""
+SV_space, PARAM_space, HD = create_LDA_saveables(SV_space1, PARAM_space1, HD1)
+
+Modifies the outputs of `LDA_browser()` so that graphics handles and function pointers
+have been removed, so they can be saved in a .jld file
+"""
+function create_LDA_saveables(SV_space, PARAM_space, HD)    
+
+    SV_space.callback    = nothing
+    SV_space.axisHandles = []
+    SV_space.dotHandles  = []
+
+    PARAM_space.callback    = nothing
+    PARAM_space.axisHandles = []
+    PARAM_space.dotHandles  = []
+
+    HD.LineHandles       = []
+    HD.axisHandles       = []
+    
+    return SV_space, PARAM_space, HD
 end
 
 
