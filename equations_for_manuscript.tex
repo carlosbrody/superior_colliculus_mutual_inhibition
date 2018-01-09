@@ -1,0 +1,49 @@
+\documentclass[a4paper, 11pt]{article}
+\usepackage[margin=.75in]{geometry}
+\usepackage{amsmath}
+\usepackage{graphicx}
+%\includegraphics[width=\textwidth]{} 
+
+\begin{document}
+
+
+
+
+\textbf{Quantification of single neuron selectivity}
+
+$d' = \frac{\mu_A-\mu_B}{\frac{1}{2}\sqrt{\sigma_A^2 + \sigma_B^2}}$
+
+\textbf{Population-level decoding analysis}
+
+$f(x) = w^Tx + b$
+
+$NED = \sqrt{\Sigma d^2}$
+
+$Perf_N = 1-H\left(\frac{k_{eff}NED}{2} \right)$
+
+$Perf_N = 1-H\left(\frac{k_{eff}NED\sqrt{M}}{2\sqrt{N}} \right)$
+
+\textbf{Model setup}
+
+$V_i(t) = \left(0.5*\tanh\left(\left(U_i(t) - \theta\right)/\beta\right) + 0.5\right)*\eta(t)$
+
+$\tau dU_i/dt = -U_i + W*V_i + \textit{input} + \sigma dW$
+
+$input = E_{constant} + E_{Pro-bias} + E_{rule} + E_{choice-period} + E_{light} + E_{constant}$
+
+\textbf{Model Cost Function}
+$C=C_1 + C_2$
+
+$V_{Pro-R} > V_{Pro-L}$
+
+HitP = $0.5*\left(1+\tanh\left(\left(V_{Pro-R}-V_{Pro-L}\right)/\theta_1\right)\right)$
+
+HitA = $0.5*\left(1+\tanh\left(\left(V_{Pro-L}-V_{Pro-R}\right)/\theta_1\right)\right)$
+
+$C_1 = \sum\limits_i\left(\overline{\text{HitP}}_i - \textit{TargetHitP}_i    \right)^2$
+
+$C_2 = -\beta_c\left(\tanh\left(\left( V_{Pro-R} - V_{Pro-L} \right)/\theta_2\right)\right)^2$
+
+$C_2 = -\beta_c\left(\tanh\left(\left( V_{Pro-L} - V_{Pro-R} \right)/\theta_2\right)\right)^2$
+
+\end{document}	
