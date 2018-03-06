@@ -23,3 +23,8 @@ using JLD
 using MultivariateStats
 using Clustering
 
+if isfile("/usr/bin/lspci") && contains(readchomp(`lspci`), "NVIDIA")
+    Pkg.add("CUDAnative")
+    Pkg.add("CuArrays")
+    using CUDAnative
+end
