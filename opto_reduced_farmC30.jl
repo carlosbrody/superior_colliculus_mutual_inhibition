@@ -37,7 +37,7 @@ extra_pars[:pro_better_than_anti]      = true   # if true, in each condition pro
 
 append_to_file(report_file, @sprintf("\n\n\nStarting with random seed %d\n\n\n", extra_pars[:seedrand]))
 
-just_testing = true; if just_testing   # 
+just_testing = false; if just_testing   # 
     extra_pars[:maxiter]                   = 4
     extra_pars[:testruns]                  = 100
     extra_pars[:few_trials]                = 10
@@ -70,7 +70,7 @@ while true
     func_quiet =  (;params...) -> JJ(extra_pars[:nPro], extra_pars[:nAnti]; verbose=false, 
         merge(merge(mypars, extra_pars), Dict(params))...)[1]
     
-    try
+    # try
         parsA, trajA, costA, cpm_trajA, ftrajA = bbox_Hessian_keyword_minimization(seed, 
             args, bbox, func_quiet, 
             start_eta = 0.01, tol=1e-12, verbose_file=report_file, verbose_timestamp=true,
@@ -145,14 +145,14 @@ while true
                 append_to_file(report_file, @sprintf("Error was :\n%s\n\nTrying new random seed.\n\n", y1))
             end
         end
-    catch y
+#    catch y
         # Interrupts should not get caught:
-        if isa(y, InterruptException); throw(InterruptException()); end
+#        if isa(y, InterruptException); throw(InterruptException()); end
 
         # Other errors get caught and a warning is issued but then we run again
-        append_to_file(report_file, @sprintf("\n\nWhoopsety, unkown error during QUICK search!\n\n"))
-        append_to_file(report_file, @sprintf("Error was :\n%s\n\nTrying new random seed.\n\n", y))
-    end
+#        append_to_file(report_file, @sprintf("\n\nWhoopsety, unkown error during QUICK search!\n\n"))
+#        append_to_file(report_file, @sprintf("Error was :\n%s\n\nTrying new random seed.\n\n", y))
+#    end
     
     extra_pars[:seedrand] = extra_pars[:seedrand]+1
     append_to_file(report_file, @sprintf("\n\n\Changing to random seed %d\n\n\n", extra_pars[:seedrand]))

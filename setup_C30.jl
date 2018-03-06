@@ -25,6 +25,7 @@ mypars = Dict(
 :nsteps                 =>          301,
 :dt                     =>          0.024,
 :tau                    =>          0.09,
+:symmetrized_W          =>          false,
 :vW_PA                  =>          0,   # This and the following ones will be trained parameters
 :vW_AP                  =>          0,   
 :hW_P                   =>          0,
