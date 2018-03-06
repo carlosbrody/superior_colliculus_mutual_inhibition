@@ -379,7 +379,7 @@ proVs, antiVs, pro_fullV, anti_fullV, opto_fraction, pro_input, anti_input =
         run_ntrials(nPro, nAnti; plot_list=[], selectize =  "true",
         start_pro=[-0.5,-0.5,-0.5,-0.5], start_anti=[-0.5,-0.5,-0.5,-0.5],
         profig=1, antifig=2, clearfig=true, ax_set = nothing, hit_linestyle="-", err_linestyle="-",
-        opto_units = 1:4, nderivs=0, difforder=0, model_params...)
+        opto_units = 1:4, nderivs=0, difforder=0, symmetrized_W=true, model_params...)
 
 Runs a set of proAnti model trials.  See model_params above for definition of all the parameters. In addition,
 
@@ -390,6 +390,14 @@ Runs a set of proAnti model trials.  See model_params above for definition of al
 - nAnti   number of Anti trials to run
 
 # OPTIONAL PARAMETERS
+
+- symmetrized_W     If true, model_params must include parameters :vW, :hW, :sW, and :dW, from 
+                    which the 4-by-4 matrix is built. Connections between Pro units are assumed to be the same as 
+                    between Anti units. The parameters thus represent vertical, horizontal, self, and diagional 
+                    weights (4 params).
+                        If false, then the params  are symmetrixed only Right-Left-wise. So they should be
+                    :hW_P, :hW_A, :dW_PA  (diagonal weight from Anti to Pro), :dW_AP, :vW_PA, :vW_AP, :sW_P, 
+                    :sW_A (8 params).
 
 - plot_list    A list of trials to plot on the figures. If empty nothing is plotted
 
@@ -490,7 +498,7 @@ proVs, antiVs, pro_fullV, anti_fullV, opto_strength, pro_input, anti_input =
 """
 function run_ntrials(nPro, nAnti; plot_list=[], start_pro=[-0.5,-0.5,-0.5,-0.5], start_anti=[-0.5,-0.5,-0.5,-0.5],
     profig=1, antifig=2, clearfig=true, ax_set = nothing, hit_linestyle="-", err_linestyle="-",
-    opto_units = 1:4, nderivs=0, difforder=0, selectize=true, model_params...)
+    opto_units = 1:4, nderivs=0, difforder=0, selectize=true, symmetrized_W=true, model_params...)
 
     if FDversion() >= 0.6
         # All the variables that we MIGHT choose to differentiate w.r.t. go into this bag -- further down
@@ -529,12 +537,26 @@ function run_ntrials(nPro, nAnti; plot_list=[], start_pro=[-0.5,-0.5,-0.5,-0.5],
     pro_input,  t, nsteps = make_input("Pro" ; nderivs=nderivs, difforder=difforder, model_params...)
     anti_input, t, nsteps = make_input("Anti"; nderivs=nderivs, difforder=difforder, model_params...)
     
-    sW = model_params[:sW]
-    hW = model_params[:hW]
-    vW = model_params[:vW]
-    dW = model_params[:dW]
-    model_params = make_dict(["nsteps", "W"], [nsteps, [sW vW dW hW; vW sW hW dW; dW hW sW vW; hW dW vW sW]], 
-        model_params)
+    model_params = make_dict(["nsteps"], [nsteps], model_params)
+    if symmetrized_W
+        sW = model_params[:sW]
+        hW = model_params[:hW]
+        vW = model_params[:vW]
+        dW = model_params[:dW]
+        model_params = make_dict(["W"], [[sW vW dW hW; vW sW hW dW; dW hW sW vW; hW dW vW sW]], model_params)
+        print(size(model_params[:W])); print("\n");
+    else
+        sW_P  = model_params[:sW_P]
+        sW_A  = model_params[:sW_A]
+        hW_P  = model_params[:hW_P]
+        hW_A  = model_params[:hW_A]
+        vW_PA = model_params[:vW_PA]
+        vW_AP = model_params[:vW_AP]
+        dW_PA = model_params[:dW_PA]
+        dW_AP = model_params[:dW_AP]
+        model_params = make_dict(["W"], [[sW_P vW_PA dW_PA hW_P ; vW_AP sW_A hW_A dW_AP ; 
+                                          dW_AP hW_A sW_A vW_AP ; hW_P dW_PA vW_PA sW_P]], model_params)
+    end
     model_params = make_dict(["nderivs", "difforder"], [nderivs, difforder], model_params)
     model_params[:opto_times] = parse_opto_times(model_params[:opto_times], model_params)
     
