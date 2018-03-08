@@ -53,6 +53,10 @@ if [ -f  /usr/bin/lspci ] ;  then
 	cd ..
 	sudo ln -s /home/carlosbrody/julia/julia /usr/bin/julia
     fi
+else
+    wget https://julialang-s3.julialang.org/bin/linux/x64/0.6/julia-0.6.1-linux-x86_64.tar.gz
+    tar xvfz julia-0.6.1-linux-x86_64.tar.gz 
+    sudo ln -s /home/carlosbrody/julia-0d7248e2ff/bin/julia /usr/bin/julia
 fi
 
 
