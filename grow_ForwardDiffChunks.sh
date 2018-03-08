@@ -10,14 +10,14 @@ set J6_file = ~/.julia/v0.6/ForwardDiff/src/prelude.jl
 
 if ( -e $J5_file ) then
     set tempfile = /tmp/grow_chunk_temp.jl
-    cat $J5_file | sed 's/const CHUNK_THRESHOLD = 10/const CHUNK_THRESHOLD = 15/' > $tempfile
+    cat $J5_file | sed 's/const CHUNK_THRESHOLD = 10/const CHUNK_THRESHOLD = 20/' > $tempfile
     mv $tempfile $J5_file
 endif
 
 
 if ( -e $J6_file ) then
     set tempfile = /tmp/grow_chunk_temp.jl
-    cat $J6_file | sed 's/const DEFAULT_CHUNK_THRESHOLD = 10/const DEFAULT_CHUNK_THRESHOLD = 15/' > $tempfile
+    cat $J6_file | sed 's/const DEFAULT_CHUNK_THRESHOLD = 10/const DEFAULT_CHUNK_THRESHOLD = 20/' > $tempfile
     mv $tempfile $J6_file
 endif
 
