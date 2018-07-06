@@ -7,8 +7,8 @@ code by alex piet 07/05/2018
     plot_PA_3node           yes                     no                      only minor changes
     parse_opto_times_3node  yes                     no                      no changes
     make_input_3node        yes                     no                      reconfigured how inputs map onto nodes 
-    run_ntrials_3node       in progress             no                      
-    JJ_3node                no                      no                      
+    run_ntrials_3node       yes                     no                      renamed vertical weights, made 3x3 weight matrix, symmetrized_W no longer does anything
+    JJ_3node                yes                     no                      no changes
     load_run_3node          yes                     no                      only minor changes
 
     MAJOR CHANGES
@@ -544,26 +544,16 @@ function run_ntrials_3node(nPro, nAnti; plot_list=[], start_pro=[-0.5,-0.5,-0.5]
     anti_input, t, nsteps = make_input_3node("Anti"; nderivs=nderivs, difforder=difforder, model_params...)
     
     model_params = make_dict(["nsteps"], [nsteps], model_params)
-    ##### need to update
-    if symmetrized_W
-        sW = model_params[:sW]
-        hW = model_params[:hW]
-        vW = model_params[:vW]
-        dW = model_params[:dW]
-        model_params = make_dict(["W"], [[sW vW dW hW; vW sW hW dW; dW hW sW vW; hW dW vW sW]], model_params)
-        print(size(model_params[:W])); print("\n");
-    else
-        sW_P  = model_params[:sW_P]
-        sW_A  = model_params[:sW_A]
-        hW_P  = model_params[:hW_P]
-        hW_A  = model_params[:hW_A]
-        vW_PA = model_params[:vW_PA]
-        vW_AP = model_params[:vW_AP]
-        dW_PA = model_params[:dW_PA]
-        dW_AP = model_params[:dW_AP]
-        model_params = make_dict(["W"], [[sW_P vW_PA dW_PA hW_P ; vW_AP sW_A hW_A dW_AP ; 
-                                          dW_AP hW_A sW_A vW_AP ; hW_P dW_PA vW_PA sW_P]], model_params)
-    end
+
+#### at the end of this section, we need to make a new dictionary with key "W" that is a 3x3 matrix
+#### The equations of motion use W like : dudt = W*V[:,i]
+    sW_P = model_params[:sW_P]
+    sW_A = model_params[:sW_A]
+    hW_P = model_params[:hW_P]
+    vW_2P= model_params[:vW_2P]
+    vW_2A= model_params[:vW_2A]
+    model_params = make_dict(["W"], [[sW_P vW_2P hW_P; vW_2A sW_A vW_2A ;hW_P vW_2P sW_P]], model_params);
+
     model_params = make_dict(["nderivs", "difforder"], [nderivs, difforder], model_params)
     model_params[:opto_times] = parse_opto_times_3node(model_params[:opto_times], model_params)
     
@@ -912,18 +902,18 @@ function JJ_3node(nPro, nAnti; pro_target=0.9, anti_target=0.7,
                     proValls[nopto,  n] = proVall
                     antiValls[nopto, n] = antiVall
                     
-                    hitsP  = 0.5*(1 + tanh.((proVs[1,:]-proVs[4,:,])/theta1))
-                    diffsP = tanh.((proVs[1,:,]-proVs[4,:])/theta2).^2
-                    hitsA  = 0.5*(1 + tanh.((antiVs[4,:]-antiVs[1,:,])/theta1))
-                    diffsA = tanh.((antiVs[4,:,]-antiVs[1,:])/theta2).^2
+                    hitsP  = 0.5*(1 + tanh.((proVs[1,:]-proVs[3,:,])/theta1))
+                    diffsP = tanh.((proVs[1,:,]-proVs[3,:])/theta2).^2
+                    hitsA  = 0.5*(1 + tanh.((antiVs[3,:]-antiVs[1,:,])/theta1))
+                    diffsA = tanh.((antiVs[3,:,]-antiVs[1,:])/theta2).^2
 
                     # set up storage  -- we do get_value() to make sure to from ForwardDiff.Dual into Float64 if necessary
                     hP[nopto, n] = mean(get_value(hitsP));
                     hA[nopto, n] = mean(get_value(hitsA));
                     dP[nopto, n] = mean(get_value(diffsP));
                     dA[nopto, n] = mean(get_value(diffsA));
-                    hBP[nopto, n] = get_value(sum(proVs[1,:] .>= proVs[4,:,])/nPro);
-                    hBA[nopto, n] = get_value(sum(antiVs[4,:] .>  antiVs[1,:,])/nAnti);                    
+                    hBP[nopto, n] = get_value(sum(proVs[1,:] .>= proVs[3,:,])/nPro);
+                    hBA[nopto, n] = get_value(sum(antiVs[3,:] .>  antiVs[1,:,])/nAnti);                    
                     
                     if nPro>0 && nAnti>0
                         # cost1s and cost2s can accept ForwardDiff.Dual, so no get_value() for them
