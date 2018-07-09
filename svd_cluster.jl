@@ -208,7 +208,7 @@ function build_response_matrix(farm_id; farmdir="MiniFarms", all_conditions = fa
     for i = 1:length(results["cost"])
         filename = results["files"][i];
 
-        if update_only & (size(find(filename .== old_results["files"]),1) > 0)
+        if update_only && (size(find(filename .== old_results["files"]),1) > 0)
             old_index = find(filename .== old_results["files"]);
             farm_response = old_response_matrix[old_index, :];
         else
@@ -1548,7 +1548,7 @@ end
 include("rule_encoding.jl")
 
 """
-    update_farm(farm_id, farmdir; build_hessian=true, build_encoding=true)
+    update_farm(farm_id, farmdir; build_hessian=true, build_encoding=true, update_only=false)
 
     Builds all necessary matrices and datasets for SVD and rule encoding analysis
 
