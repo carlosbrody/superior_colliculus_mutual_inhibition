@@ -653,11 +653,11 @@ function SVD_interactive(farm_id;farmdir="MiniFarms", threshold =-0.0002, plot_o
         pygui(true)
         BP = install_nearest_point_callback(figure(100), mycallback)
         if plot_bad_farms
-            plot(u[:,1],u[:,3],"bo")
+            plot(u[:,1],u[:,2],"bo")
         end
         plot(u1good, u2good, "ro")
-        title("SVD U columns 1 and 3")
-        ylabel("SVD Dim 3")
+        title("SVD U columns 1 and 2")
+        ylabel("SVD Dim 2")
         xlabel("SVD Dim 1")      
     end
 
@@ -1107,10 +1107,10 @@ exists, as produced by `load_farm_params()`.
     
 # RETURNS
 
-Matrix of N runs X #params X #params hessians. Also sabes that matrix to file farmdir*"_"*farm_id*"_hessians.jld"
+Matrix of N runs X #params X #params hessians. Also saves that matrix to file farmdir*"_"*farm_id*"_hessians.jld"
 
 """
-function build_hessian_dataset(farm_id; farmdir="MiniOptimized", force_compute_hessian=false,testruns=1600, update_only=false, old_results=Dict())
+function build_hessian_dataset(farm_id; farmdir="MiniOptimized", force_compute_hessian=false,testruns=1600, update_only=false, old_results=Dict(), get_full_filename=false)
 
     if !isfile(farmdir*"_"*farm_id*"_results.jld")
         error(@sprintf("Don't have a results file %s to work with! Have you run load_farm_params() yet?", 
@@ -1128,8 +1128,12 @@ function build_hessian_dataset(farm_id; farmdir="MiniOptimized", force_compute_h
 
     for i = 1:length(results["cost"])
         filename = results["files"][i];    
-        
-      if update_only & (size(find(filename .== old_results["files"]),1) > 0)
+        if get_full_filename
+            minifilename = filename
+            filename="Farms_C30/farm_C30_"*minifilename[28:end];
+        end       
+ 
+      if update_only && (size(find(filename .== old_results["files"]),1) > 0)
             old_index = find(filename .== old_results["files"]);
             farm_hessian = old_hessians[old_index, :,:];
             hessians[i,:,:] = farm_hessian;
