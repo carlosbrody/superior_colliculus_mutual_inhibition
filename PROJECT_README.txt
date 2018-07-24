@@ -1,6 +1,6 @@
-This file is Alex's attempt (07/2018) at having some top level organization
+THIS FILE IS ALEX'S ATTEMPT (07/2018) AT HAVING SOME TOP LEVEL ORGANIZATION
 
-Important files for fitting:
+IMPORTANT FILES FOR FITTING:
     pro_anti.jl
     rate_networks.jl    
     optimization_utils.jl
@@ -8,14 +8,14 @@ Important files for fitting:
     constrained_parabolic_minimization.jl
     gradient_utils.jl
 
-Important files for analysis:
+IMPORTANT FILES FOR ANALYSIS:
     results_analysis.jl analysis code for farms, includes some snippets from svd_cluster
     svd_cluster.jl      analysis based on neural dynamics of the proanti model
     rule_encoding.jl    analysis based on neural encoding of task rule
     cluster_farms.jl    clusters farms based on model parameters, calls some matlab code
     cluster_farms.m     code that actually clusters farms
 
-Data files:
+DATA FILES:
     for each <Farm>:
         <Farm> #Directory with each individual farm run
         <Farm>_results.jld
@@ -26,10 +26,12 @@ Data files:
         <Farm>_SVD_response_matrix_reduced.jld
         <Farm>_SVD_response_matrix3_reduced.jld
 
-To start a new farm optimization:
-    include("opto_reduced_farmC30.jl")
+TO START A NEW FARM OPTIMIZATION:
+    include("opto_reduced_farmC30.jl")          Will start a single fitting process
+    include("spock_opto_reduced_farmC30.jl")    Starts a single process but takes in random seed number
+    sbatch --array=0-9 ./start_farm_spockC30.sh Starts 10 fitting processes with different random seeds, for use on spock computing server
  
-        
+ 
 
 
 
