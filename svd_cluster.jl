@@ -1905,13 +1905,22 @@ function plot_PSTH_SVD_comparison(fignum, filedex,F,m,r_all ;rank=2,opto_type=1,
     end
 end
 
-#     loads results matrix but filters by cost
-function load_farm_cost_filter(farmid, farmdir; threshold=-0.0002)
+"""
+    load_farm_cost_filter(farmid, farmdir; threshold, cost_choice)
+
+    loads the results matrix for this farm, but filters based on cost
+
+    OPTIONAL PARMETERS
+    threshold       the cutoff for good farms
+    cost_choice     base cutoff on tcost (training cost), or cost (test cost)
+    
+"""
+function load_farm_cost_filter(farmid, farmdir; threshold=-0.0002, cost_choice="cost")
     # load results matrix
     results = load(farmdir*"_"*farmid*"_results.jld");
 
     # filter results matrix
-    badcost = results["tcost"] .>= threshold;
+    badcost = results[cost_choice] .>= threshold;
     r1 = Dict();
     r1["cost"]  = results["cost"][.!vec(badcost)];
     r1["tcost"] = results["tcost"][.!vec(badcost)];
