@@ -19,6 +19,7 @@ plot_PCA()                  plots farms in parameter PCA space, with error ellip
 plot_PCA_Redux()            compares two farms in parameter PCA space, with error ellipses
 plot_SVD_cluster_approx()   Generates the average dynamics for a cluster of farms
 SVD_psth_interactive()      Plots average PSTH, and SVD approximated PSTH
+load_farm_cost_filter()     loads results matrix but filters by cost
 
 # HELPER FUNCTIONS          (Used in some other analyses, but could be useful building blocks)
 run_farm()                  Returns the average dynamics for this farmrun in each trial type
@@ -91,6 +92,8 @@ function load_farm_params(;farm_id="C17", farmdir="MiniOptimized", verbose=true,
     save(myfilename, results)
     return results
 end
+
+
 
 
 """
@@ -1276,7 +1279,7 @@ function plot_PCA(farm_id; farmdir="MiniOptimized", opto_conditions = 3, compute
         plot_ellipse(paramx[:,i],pcaHess[i,:,:],deltaCost,fignum)
     end
     xlabel("PCA Dim 1")
-    ylabel("PCA Dim 1")
+    ylabel("PCA Dim 2")
 
 end
 
@@ -1901,3 +1904,21 @@ function plot_PSTH_SVD_comparison(fignum, filedex,F,m,r_all ;rank=2,opto_type=1,
  
     end
 end
+
+#     loads results matrix but filters by cost
+function load_farm_cost_filter(farmid, farmdir; threshold=-0.0002)
+    # load results matrix
+    results = load(farmdir*"_"*farmid*"_results.jld");
+
+    # filter results matrix
+    badcost = results["tcost"] .>= threshold;
+    r1 = Dict();
+    r1["cost"]  = results["cost"][.!vec(badcost)];
+    r1["tcost"] = results["tcost"][.!vec(badcost)];
+    r1["files"] = results["files"][.!vec(badcost)];
+    r1["dirs"]  = results["dirs"][.!vec(badcost)];
+    r1["params"]= results["params"][.!vec(badcost),:]
+
+    # return filtered matrix
+    return r1
+end 
