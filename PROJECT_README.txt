@@ -13,7 +13,7 @@ IMPORTANT FILES FOR ANALYSIS:
     svd_cluster.jl      analysis based on neural dynamics of the proanti model
     rule_encoding.jl    analysis based on neural encoding of task rule
     cluster_farms.jl    clusters farms based on model parameters, calls some matlab code
-    cluster_farms.m     code that actually clusters farms
+    parameter_analysis.jl   analysis for examining parameters
 
 DATA FILES:
     for each <Farm>:
@@ -21,6 +21,7 @@ DATA FILES:
         <Farm>_results.jld
         <Farm>_encoding.jld
         <Farm>_hessians.jld
+        <Farm>_clusters.jld
         <Farm>_SVD_response_matrix.jld
         <Farm>_SVD_response_matrix3.jld
         <Farm>_SVD_response_matrix_reduced.jld
@@ -32,7 +33,12 @@ TO START A NEW FARM OPTIMIZATION:
     sbatch --array=0-9 ./start_farm_spockC30.sh Starts 10 fitting processes with different random seeds, for use on spock computing server
  
  
-
+ANALYSIS STEPS:
+    make_mini_farm()        in results_analysis.jl
+    update_farm()           in svd_cluster.jl
+    cluster_farms()         in cluster_farms.jl
+    histo_params()          in results_analysis.jl
+    scatter_by_arg()        in parameter_analysis.jl 
 
 
 
