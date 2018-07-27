@@ -128,3 +128,13 @@ function filter_results_by_cluster(results, cluster_ids, target_cluster)
 
 end
 
+"""
+    Wrapper function that uses the "histo_param()" function to plot histograms for each cluster
+"""
+function histo_params_by_cluster(results, args, cluster_ids, target_cluster; threshold=-0.0002, cost_choice="cost", further_params...)
+
+    r1 = filter_results_by_cluster(results,cluster_ids, target_cluster);
+    histo_params(args, r1["params"], r1["tcost"], r1["cost"], r1["files"]; Dict(further_params)...);
+
+
+end
