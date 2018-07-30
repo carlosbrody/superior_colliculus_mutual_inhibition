@@ -31,11 +31,14 @@ TO START A NEW FARM OPTIMIZATION:
     include("opto_reduced_farmC30.jl")          Will start a single fitting process
     include("spock_opto_reduced_farmC30.jl")    Starts a single process but takes in random seed number
     sbatch --array=0-9 ./start_farm_spockC30.sh Starts 10 fitting processes with different random seeds, for use on spock computing server
- 
- 
+  
 ANALYSIS STEPS:
-    make_mini_farm()        in results_analysis.jl
-    update_farm()           in svd_cluster.jl
+    1.copy files from spock to local dir
+
+    2.make_mini_farm()        in results_analysis.jl
+    > make_mini_farm("C30"; farmdirs ="Farms_C30", todir="MiniC30")
+
+    3. update_farm()           in svd_cluster.jl
     cluster_farms()         in cluster_farms.jl
     histo_params()          in results_analysis.jl
     scatter_by_arg()        in parameter_analysis.jl 
