@@ -28,8 +28,10 @@ histo_params_by_cluster(results, args, cluster_ids, target_cluster)
 # SVD of dynamics
 SVD_interactive("C30"; farmdir="MiniC30", threshold=-0.00025, disp_encoding=false, color_clusters = true);
 
-
-
+# check psychometric plots
+# #takesforever
+plot_psychometric(results, color_clusters=true, cluster_ids=cluster_ids, plot_only=Inf, hit_type="standard")
+plot_psychometric(results, color_clusters=true, cluster_ids=cluster_ids, plot_only=Inf, hit_type="binarized")
 
 
 
