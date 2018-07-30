@@ -550,7 +550,7 @@ If disp_encoding is also true:
 
 
 """
-function SVD_interactive(farm_id;farmdir="MiniFarms", threshold =-0.0002, plot_option=1, plot_bad_farms=false, compute_good_only=true, opto_conditions = 3,disp_encoding = true, use_reduced_SVD=false, backend_mode=false, ndims=2, psth_mode=false)
+function SVD_interactive(farm_id;farmdir="MiniFarms", threshold =-0.0002, plot_option=1, plot_bad_farms=false, compute_good_only=true, opto_conditions = 3,disp_encoding = true, use_reduced_SVD=false, backend_mode=false, ndims=2, psth_mode=false, color_clusters=false, cost_choice="cost")
 
     if backend_mode & !compute_good_only
         error("Backend mode doesn't play nice with including the bad farms right now...")
@@ -575,22 +575,30 @@ function SVD_interactive(farm_id;farmdir="MiniFarms", threshold =-0.0002, plot_o
     include("rule_encoding.jl")
     encoding, error_types = load(farmdir*"_"*farm_id*"_encoding.jld", "encoding","error_types")
     end
+        
+    if color_clusters
+        if !compute_good_only
+            error("Cluster coloring doesn't work with bad farms, set compute_good_only=true")
+        end
+        cluster_info    = load(farmdir*"_"*farm_id*"_clusters.jld");
+        cluster_ids     = cluster_info["idx"];
+    end
 
     # set up filter by nan
-    nanrows = any(isnan(response),2);
+    nanrows = any(isnan.(response),2);
 
     # filter for good farms
-    tcost = results["tcost"];
+    cost = results[cost_choice];
     if !compute_good_only
-        tcost = tcost[!vec(nanrows),:];
-        disp_cost = copy(tcost);
+        cost = cost[!vec(nanrows),:];
+        disp_cost = copy(cost);
     end
-    badcost = tcost .>= threshold;
+    badcost = cost .>= threshold;
     
     # if we are computing SVD only on the good farms, update nanrows and disp_cost
     if compute_good_only
         nanrows = nanrows | badcost;
-        disp_cost = tcost[!vec(nanrows),:];
+        disp_cost = cost[!vec(nanrows),:];
     end    
 
     # Filter response matrix
@@ -601,6 +609,20 @@ function SVD_interactive(farm_id;farmdir="MiniFarms", threshold =-0.0002, plot_o
     u = copy(F[:U]); 
     u1 = u[:,1];
     u2 = u[:,2];
+    
+    # filter cluster id list
+    if color_clusters
+        # cluster list has been cost filtered, but not NAN filtered, so we have to filter the response matrix again to get the indices
+        response_cost_filtered = response[!vec(badcost),:];
+        cost_filtered_nans = any(isnan.(response_cost_filtered),2);
+
+        cluster_ids_copy = copy(cluster_ids);
+        cluster_ids_copy = cluster_ids_copy[!vec(cost_filtered_nans),:];
+
+        if length(u1) != length(cluster_ids_copy)
+            error("size mis-match between cluster ids and svd index")
+        end 
+    end
 
     # Make list of just good farms
     if compute_good_only
@@ -608,7 +630,7 @@ function SVD_interactive(farm_id;farmdir="MiniFarms", threshold =-0.0002, plot_o
         u1good = u1;
         u2good = u2;
     else
-        # remove bad tcost farms
+        # remove bad cost farms
         u1good = u1[!vec(badcost),:];
         u2good = u2[!vec(badcost),:];
     end
@@ -658,10 +680,24 @@ function SVD_interactive(farm_id;farmdir="MiniFarms", threshold =-0.0002, plot_o
         if plot_bad_farms
             plot(u[:,1],u[:,2],"bo")
         end
-        plot(u1good, u2good, "ro")
+
         title("SVD U columns 1 and 2")
         ylabel("SVD Dim 2")
         xlabel("SVD Dim 1")      
+
+        # plot each cluster in a different color
+        if !color_clusters
+            plot(u1good, u2good, "ro")
+        else
+            all_colors = "bgrcmyk"
+            ids = sort(unique(cluster_ids_copy))
+            for i=1:length(ids)
+                if !isnan(ids[i])
+                    dex = vec(cluster_ids_copy .== ids[i]);
+                    plot(u1good[dex], u2good[dex], "o", color=string(all_colors[i]))
+                end
+            end
+        end
     end
 
 end
