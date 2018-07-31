@@ -69,8 +69,8 @@ search_conditions = Dict(   # :param    default_start   search_box  bound_box
 :target_period_excitation => [mypars[:target_period_excitation], [-1,     1],  [-30  30]],
 :target_period_anti_excitation   => [mypars[:target_period_anti_excitation],   [-1,     1],  [-30, 30]],
 :const_pro_bias           => [mypars[:const_pro_bias],           [-1,     1],  [-30, 30]],
-:pro_rule_strength        => [mypars[:pro_rule_strength],        [0,   0.5,],  [0,   30]],
-:anti_rule_strength       => [mypars[:anti_rule_strength],       [0,   0.5,],  [0,   30]],
+:pro_rule_strength        => [mypars[:pro_rule_strength],        [0,   0.5,],  [0,   30]]#,
+#:anti_rule_strength       => [mypars[:anti_rule_strength],       [0,   0.5,],  [0,   30]],
 )
 
 #:opto_strength            => [mypars[:opto_strength],            [0,      1],  [0,    1]],

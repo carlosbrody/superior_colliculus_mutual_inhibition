@@ -84,13 +84,13 @@ end
                                                    verbose=false, 
                                                    make_dict(args, parsA, merge(merge(mypars, extra_pars)))...)
         
-        append_to_file(report_file, @sprintf("mean diff = %g\n", mean(abs.(extra_pars[:opto_targets] - [hBPA hBAA]))))
-        append_to_file(report_file, @sprintf("all(hBPA .> hBAA) = %s\n", all(hBPA .> hBAA)))
-        print_vector_g(report_file, hBPA); print_vector_g(report_file, hBAA)
-        append_to_file(report_file, @sprintf("\nhBAA[2] <= hBAA[1] - extra_pars[:anti_perf_delta] = %s\n", 
-                                             hBAA[2] <= hBAA[1] - extra_pars[:anti_perf_delta]))
-        append_to_file(report_file, @sprintf("hBAA[2] <= hBAA[3] - extra_pars[:anti_perf_delta] = %s\n", 
-                                             hBAA[2] <= hBAA[3] - extra_pars[:anti_perf_delta]))
+#        append_to_file(report_file, @sprintf("mean diff = %g\n", mean(abs.(extra_pars[:opto_targets] - [hBPA hBAA]))))
+#        append_to_file(report_file, @sprintf("all(hBPA .> hBAA) = %s\n", all(hBPA .> hBAA)))
+#        print_vector_g(report_file, hBPA); print_vector_g(report_file, hBAA)
+#        append_to_file(report_file, @sprintf("\nhBAA[2] <= hBAA[1] - extra_pars[:anti_perf_delta] = %s\n", 
+#                                             hBAA[2] <= hBAA[1] - extra_pars[:anti_perf_delta]))
+#        append_to_file(report_file, @sprintf("hBAA[2] <= hBAA[3] - extra_pars[:anti_perf_delta] = %s\n", 
+#                                             hBAA[2] <= hBAA[3] - extra_pars[:anti_perf_delta]))
 
 
         # always completes further training
