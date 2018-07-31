@@ -1243,7 +1243,11 @@ Nothing. Plots a figure.
 
 
 """
-function plot_PCA(farm_id; farmdir="MiniOptimized", opto_conditions = 3, compute_good_only=true, threshold=-0.0002, deltaCost = 0.0008333, use_reduced_SVD=false)
+function plot_PCA(farm_id; farmdir="MiniOptimized", opto_conditions = 3, compute_good_only=true, threshold=-0.0002, deltaCost = 0.0008333, use_reduced_SVD=false, color_clusters=false, cluster_ids=[], cost_choice="cost")
+
+    if color_clusters & !compute_good_only
+        error("coloring clusters is only supported is compute_good_only=true")
+    end
 
     # Load responses, results, and hessian from all models
     if use_reduced_SVD
@@ -1261,7 +1265,7 @@ function plot_PCA(farm_id; farmdir="MiniOptimized", opto_conditions = 3, compute
 
     # need to filter out NaN rows 
     # Some farms in some conditions have no errors, so we have NaNs
-    nanrows = any(isnan(response),2);
+    nanrows = any(isnan.(response),2);
     
     # Filter out farms with bad hessians
     badhess = Array(Bool,size(hessians,1),1);
@@ -1273,8 +1277,8 @@ function plot_PCA(farm_id; farmdir="MiniOptimized", opto_conditions = 3, compute
  
     # Filter out farms with bad cost
     if compute_good_only
-        tcost = copy(results["tcost"]);
-        badcost = tcost .>= threshold;
+        cost = copy(results[cost_choice]);
+        badcost = cost .>= threshold;
         nanrows = badcost | nanrows;
     end
     
@@ -1282,6 +1286,32 @@ function plot_PCA(farm_id; farmdir="MiniOptimized", opto_conditions = 3, compute
     p = copy(results["params"]);
     # filter parameters
     p = p[!vec(nanrows),:];
+
+    if color_clusters
+        # have to filter cost first, then get filter list on hessians and nans
+        r2 = copy(response);
+        r2 = r2[!vec(badcost),:];
+
+        # now filter response by nan
+        nanrows2 = any(isnan.(r2),2);
+        cluster_ids_copy = copy(cluster_ids);
+        cluster_ids_copy = cluster_ids_copy[!vec(nanrows2),:];
+
+        # now filter by bad hessians
+        hessians2 = copy(hessians);
+        hessians2 = hessians2[!vec(badcost),:,:];
+        hessians2 = hessians2[!vec(nanrows2),:,:];
+        badhess2 = Array(Bool, size(hessians2,1),1);
+        for i=1:size(hessians2,1)
+            evals, evecs = eig(hessians2[i,:,:]);
+            badhess2[i] = any(evals .<=0);
+        end
+        cluster_ids_copy = cluster_ids_copy[!vec(badhess2),:];
+    end
+
+    if color_clusters && length(cluster_ids_copy) != size(p,1)
+        error("cluster labels and parameter matrix differ in size, check thresholding criteria are the same")
+    end
 
     # gotta mean subtract and z-score
     p = p - repmat(mean(p,1), size(p,1),1);
@@ -1302,17 +1332,32 @@ function plot_PCA(farm_id; farmdir="MiniOptimized", opto_conditions = 3, compute
     # plot pca projections
     figure()
     fignum = gcf()[:number];
-    scatter(paramx[1,:], paramx[2,:]);
-
+    if !color_clusters
+        scatter(paramx[1,:], paramx[2,:]);
+    else
+        all_colors = "bgrcmyk";
+        ids = sort(unique(cluster_ids_copy));
+        for i=1:length(ids)
+            if !isnan(ids[i])
+                cdex = vec(cluster_ids_copy .== ids[i]);
+                scatter(paramx[1,cdex], paramx[2,cdex], color=string(all_colors[i]))
+            end
+        end
+    end
+    
     # filter hessians
     hessians = hessians[!vec(nanrows),:,:];    
     scalevecs = vecs[:,end-1:end]';
     pcaHess = Array(Float64, size(hessians,1),2,2);
 
     for i=1:size(hessians,1)
-        hessians[i,:,:,] = hessians[i,:,:].*sfsf;
-        pcaHess[i,:,:] = scalevecs*hessians[i,:,:]*scalevecs';
-        plot_ellipse(paramx[:,i],pcaHess[i,:,:],deltaCost,fignum)
+        all_colors = "bgrcmyk";
+        if !isnan(cluster_ids_copy[i])
+            hessians[i,:,:,] = hessians[i,:,:].*sfsf;
+            pcaHess[i,:,:] = scalevecs*hessians[i,:,:]*scalevecs';
+            this_color = string(all_colors[Int64(cluster_ids_copy[i])])
+            plot_ellipse(paramx[:,i],pcaHess[i,:,:],deltaCost,fignum;color = this_color)
+        end
     end
     xlabel("PCA Dim 1")
     ylabel("PCA Dim 2")
