@@ -1,9 +1,9 @@
-include("setup_C31_control.jl")
+include("setup_C31_control_anti.jl")
 
 
 README = """
 
-Farm C31: 3 node network, similar to Farm C30. CONTROL ONLY
+Farm C31: 3 node network, similar to Farm C30. CONTROL ONLY, ANTI ONLY
 
 """
 
@@ -20,9 +20,9 @@ else
 end
 
 
-farmdir = "../Farms_C31_control"
+farmdir = "../Farms_C31_control_anti"
 if !isdir(farmdir); mkdir(farmdir); end
-fbasename = farmdir * "/" * "farm_C31_control_" * chomp(readstring(`hostname`)) * "_"
+fbasename = farmdir * "/" * "farm_C31_control_anti_" * chomp(readstring(`hostname`)) * "_"
 
 reports_dir = "../Reports" 
 if !isdir(reports_dir); mkdir(reports_dir); end
@@ -66,7 +66,7 @@ end
     args = Array{String}(args)
     seed = Array{Float64}(seed)
 
-    extra_pars[:nPro]     = extra_pars[:few_trials]
+    extra_pars[:nPro]     = 0;#extra_pars[:few_trials]
     extra_pars[:nAnti]    = extra_pars[:few_trials]
 
     # Make sure to keep the noise frozen over the search, meaning JJ_3node() needs the seedrand parameter
@@ -98,7 +98,7 @@ end
             append_to_file(report_file, @sprintf("\n\n**** training further **** %s ---\n\n", 
                                                  Dates.format(now(), "e, dd u yyyy HH:MM:SS")))
 
-            extra_pars[:nPro]     = extra_pars[:many_trials]
+            extra_pars[:nPro]     = 0;#extra_pars[:many_trials]
             extra_pars[:nAnti]    = extra_pars[:many_trials]
 
             func_chatty =  (;params...) -> JJ_3node(extra_pars[:nPro], extra_pars[:nAnti]; verbose=true,

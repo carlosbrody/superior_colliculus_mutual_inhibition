@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-#SBATCH -J 'farmC31control'
-#SBATCH -o log-farmC31-control-%j.out
+#SBATCH -J 'fC31pro'
+#SBATCH -o log-farmC31-control-pro-%j.out
 #SBATCH -p Brody
 #SBATCH --time 96:00:00
 #SBATCH -c 1
@@ -18,9 +18,9 @@ echo "Slurm Job ID: $SLURM_JOB_ID"
 echo "Slurm Array Task ID: $SLURM_ARRAY_TASK_ID"
 
 # Call the julia script which will start the farm
-julia farmC31_3node_control.jl $SLURM_JOB_ID $SLURM_ARRAY_TASK_ID
+julia farmC31_3node_control_pro.jl $SLURM_JOB_ID $SLURM_ARRAY_TASK_ID
 
 # Move the log file
-mv log-farmC31-control-${SLURM_JOB_ID}.out ../Reports/log-farmC31-control-${SLURM_JOB_ID}.out
+mv log-farmC31-control-pro-${SLURM_JOB_ID}.out ../Reports/log-farmC31-control-pro-${SLURM_JOB_ID}.out
 
 
