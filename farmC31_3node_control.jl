@@ -51,7 +51,7 @@ just_testing = false; if just_testing   #
 end
 
 
-while true
+#while true
     
     append_to_file(report_file, @sprintf("\n\n--- new run -- %s ---\n\n", Dates.format(now(), "e, dd u yyyy HH:MM:SS")))
 
@@ -153,7 +153,7 @@ while true
     
     extra_pars[:seedrand] = extra_pars[:seedrand]+1
     append_to_file(report_file, @sprintf("\n\n\Changing to random seed %d\n\n\n", extra_pars[:seedrand]))
-end
+#end
     
 
 
