@@ -70,13 +70,15 @@ function test_solution(filename; testruns=1000)
 end
 
 
+function plot_unilateral_psychometric(farm_id, farmdir; color_clusters=false, threshold=-0.00025, num2plot=10)
+    # load unilateral hit data
+    # load cluster info
+    
+    # iterate over farms
+    # for each farm, plot hit data
 
 
-
-
-
-
-
+end
 
 
 
