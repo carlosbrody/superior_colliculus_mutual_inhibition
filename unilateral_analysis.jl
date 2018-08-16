@@ -70,16 +70,67 @@ function test_solution(filename; testruns=1000)
 end
 
 
-function plot_unilateral_psychometric(farm_id, farmdir; color_clusters=false, threshold=-0.00025, num2plot=10)
+function plot_unilateral_psychometric(farm_id, farmdir; color_clusters=true, threshold=-0.00025, num2plot=10, inact_type="full")
     # load unilateral hit data
-    # load cluster info
-    
-    # iterate over farms
-    # for each farm, plot hit data
+    unilateral = load(farmdir*"_"*farm_id*"_unilateral.jld","uni_results")
+    numfarms = size(unilateral["uni"],1)
+    uni = unilateral["uni"].*100;
+    # farms x ipsi/contra x pro/anti x control/delay/target/full
 
+    # load cluster info
+    if color_clusters
+        cluster_info = load(farmdir*"_"*farm_id*"_clusters.jld")
+        cluster_ids = cluster_info["idx"];
+        all_colors = "bgrcmyk";   
+        numclusters = sum(.!isnan.(sort(unique(cluster_ids))));
+    else
+        cluster_ids = ones(1,numfarms);
+        numclusters = 1;
+    end
+
+    # parse inactivation type
+    if inact_type == "full"
+        idex = 4;
+    elseif inact_type == "delay"
+        idex = 2;
+    elseif inact_type =="choice"
+        idex = 3;
+    else
+        error("inact_type must be one of 'full','delay', or 'choice'") 
+    end
+
+    # iterate over farms    
+    figure();
+    for i=1:numfarms
+        if !isnan(cluster_ids[i])
+        co = (cluster_ids[i]-1)/(numclusters*2);
+        # for each farm, plot hit data
+        plot(1+co, uni[i,2,1,1],"o",color=string(all_colors[Int64(cluster_ids[i])])) # pro control, ipsi/contra irrelevant
+        plot(2+co, uni[i,2,2,1],"x",color=string(all_colors[Int64(cluster_ids[i])])) # anti control, ipsi/contra irrelevant
+
+        plot(4+co, uni[i,1,1,idex],"o",color=string(all_colors[Int64(cluster_ids[i])])) # pro full, ipsi
+        plot(5+co, uni[i,1,2,idex],"x",color=string(all_colors[Int64(cluster_ids[i])])) # anti full, ipsi
+
+        plot(7+co, uni[i,2,1,idex],"o",color=string(all_colors[Int64(cluster_ids[i])])) # pro full, contra
+        plot(8+co, uni[i,2,2,idex],"x",color=string(all_colors[Int64(cluster_ids[i])])) # anti full, contra
+        end
+    end
+
+    # plot cluster averages
+    for i=1:numclusters
+        co = (i-1)/(numclusters*2);
+        plot(1+co, mean(uni[vec(cluster_ids .== i),2,1,1]),"ko")
+        plot(2+co, mean(uni[vec(cluster_ids .== i),2,2,1]),"ko")
+        plot(4+co, mean(uni[vec(cluster_ids .== i),1,1,idex]),"ko")
+        plot(5+co, mean(uni[vec(cluster_ids .== i),1,2,idex]),"ko")
+        plot(7+co, mean(uni[vec(cluster_ids .== i),2,1,idex]),"ko")
+        plot(8+co, mean(uni[vec(cluster_ids .== i),2,2,idex]),"ko")
+    end
+
+    xticks([1.25,2.25,4.25,5.25,7.25,8.25],["Pro Control", "Anti Control", "Pro Ipsi", "Anti Ipsi", "Pro Contra", "Anti Contra"])
+    ylabel("Accuracy %")
 
 end
-
 
 
 
