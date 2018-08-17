@@ -65,7 +65,7 @@ function test_solution(filename; testruns=1000)
         # ipsi/contra x pro/anti x control/delay/target/full
         uni_hits = zeros(2,2, 4);
 
-        # override control condition with full trial inactivation
+        # add another opto_periods condition with full trial inactivation
         extra_pars[:opto_periods] = [extra_pars[:opto_periods]; "trial_start" "trial_end"]
     
         for period=1:size(extra_pars[:opto_periods],1) 
