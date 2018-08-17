@@ -148,6 +148,16 @@ end
 """
     function for plotting the psychometric behavior of all the runs on a farm, can handle coloring each cluster
 
+INPUTS
+    results, results matrix for this farm
+
+OPTIONAL INPUTS
+    hit_type, either "standard" or "binary" determines which method for calculating hit percentage. 
+    color_clusters = false, if true, separates clusters by color
+    cluster_ids,    a vector of cluster labels for each farm in results
+    minidir=true,   Set=true if the filenames in results are pointed at a minifarm, which does not contain all hit info. 
+    plot_only,      only plot this many farms. Plotting is slow due to file loading, so this is useful for debugging 
+
 """
 function plot_psychometric(results; hit_type="standard", color_clusters=false, cluster_ids=[],minidir=true, plot_only = 10)
     println("this function is slow because I have to load many files...")
@@ -161,9 +171,11 @@ function plot_psychometric(results; hit_type="standard", color_clusters=false, c
     if hit_type == "standard"
         pro_label = "hP"
         anti_label ="hA"
-    else
+    elseif hit_type == "binary"
         pro_label = "hBP"
         anti_label ="hBA"
+    else
+        error("hit_type must be either 'standard' or 'binary'")
     end
 
     figure()
