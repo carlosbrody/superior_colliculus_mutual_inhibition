@@ -6,6 +6,22 @@ include("parameter_analysis.jl")
 
 """
     Iterates through a farm directory and tests all model solutions
+
+INPUTS  
+    farm_id, Name of farm, ie "C30"
+
+    farmdir, Directory of farm, ie "MiniC30"
+
+OPTIONAL INPUTS
+    testruns, number of trials to simulate for each condition of unilateral inactivation
+
+    threshold, the test cost threshold to use to determine which farms to simulate
+
+OUTPUTS
+    Saves a file <farmdir>_<farm_id>_unilateral.jld that includes the unilateral hit% for each condition
+    
+    returns nothing
+
 """
 function test_farm_unilateral(farm_id, farmdir; testruns=1000, threshold=-0.00025)
 
@@ -31,11 +47,20 @@ end
 
 """
     Tests a set of model parameters with both ipsilateral and contralateral unilateral inactivations
+
+INPUTS
+    filename for the model to test
+
+OPTIONAL INPUTS
+    testruns, the number of trials to simulate
+
+OUTPUTS
+    returns a matrix 2x2x4, which is the hit% for ipsi/contra inactivations x pro/anti trials x control/delay/target/full trial inactivations 
+
 """
 function test_solution(filename; testruns=1000)
         # load parameters for this solution
         mypars, extra_pars, args, pars3 = load(filename, "mypars", "extra_pars", "args", "pars3")
-
 
         # ipsi/contra x pro/anti x control/delay/target/full
         uni_hits = zeros(2,2, 4);
@@ -69,8 +94,19 @@ function test_solution(filename; testruns=1000)
         return uni_hits
 end
 
+"""
+    Plots the results of unilateral inactivation
 
-function plot_unilateral_psychometric(farm_id, farmdir; color_clusters=true, threshold=-0.00025, num2plot=10, inact_type="full")
+INPUTS
+    farm_id, name of farm
+    farmdir, location of farm files
+    
+OPTIONAL INPUTS
+    color_clusters, if true, plots each cluster separately as a different color
+    inact_type, either "full", "delay", or "choice" determines which trial type to plot
+
+"""
+function plot_unilateral_psychometric(farm_id, farmdir; color_clusters=true, inact_type="full")
     # load unilateral hit data
     unilateral = load(farmdir*"_"*farm_id*"_unilateral.jld","uni_results")
     numfarms = size(unilateral["uni"],1)
