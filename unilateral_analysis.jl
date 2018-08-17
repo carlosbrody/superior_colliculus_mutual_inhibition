@@ -242,9 +242,62 @@ function plot_unilateral_farm(filename; inact_type="full",fignum=1,force_opto=[]
     end
 end 
 
+function unilateral_by_strength(filename;testruns=100, plot_stuff=true)
 
+        mypars, extra_pars, args, pars3 = load(filename, "mypars", "extra_pars", "args", "pars3")
+        og_opto=pars3[8];
+        # ipsi/contra x pro/anti x control/delay/target/full
+        uni_hits = zeros(11,2,2);
 
+        # add another opto_periods condition with full trial inactivation
+        extra_pars[:opto_periods] = [extra_pars[:opto_periods]; "trial_start" "trial_end"]
+        extra_pars[:opto_periods][1,:] = ["trial_start" "trial_end"];  
+        extra_pars[:opto_periods][2,:] = ["trial_start" "trial_end"];
+        extra_pars[:opto_periods][3,:] = ["trial_start" "trial_end"];  
+ 
+        optos = 0:0.1:1;
+        for strength=1:11
+            # set up inputs, including iterating contra/ipsi and opto-condition
+            these_pars = merge(mypars, extra_pars);
+            these_pars = merge(these_pars, Dict(:opto_units=>[1,2]));
+            these_pars = merge(these_pars, Dict(
+            :opto_times=>reshape(extra_pars[:opto_periods][1,:], 1, 2),
+            :rule_and_delay_period=>these_pars[:rule_and_delay_periods][1], 
+            :target_period=>these_pars[:target_periods][1], 
+            :post_target_period=>these_pars[:post_target_periods][1], 
+            ));
+            
+            # force opto
+            pars3[find(args .=="opto_strength")] = optos[strength];
+ 
+            # Ipsilateral 
+            proVs, antiVs = run_ntrials(testruns, testruns; make_dict(args, pars3, these_pars)...); 
+            uni_hits[strength,1,1] = sum(proVs[1,:]  .>  proVs[4,:])/testruns;        
+            uni_hits[strength,1,2] = sum(antiVs[4,:] .> antiVs[1,:])/testruns;        
+    
+            # Contralateral 
+            these_pars = merge(these_pars, Dict(:opto_units=>[3,4]));
+            proVs, antiVs = run_ntrials(testruns, testruns; make_dict(args, pars3, these_pars)...); 
+            uni_hits[strength,2,1] = sum(proVs[1,:]  .>  proVs[4,:])/testruns;        
+            uni_hits[strength,2,2] = sum(antiVs[4,:] .> antiVs[1,:])/testruns;        
+        end
 
+        if plot_stuff
+        fig, ax=subplots()
+        plot(optos, 90.*ones(11,1),"k-",alpha=0.25, label="Pro target")
+        plot(optos, 70.*ones(11,1),"k--",alpha=0.25,label="Anti target")
+        plot(optos, uni_hits[:,1,1].*100,"b-",label="Pro Go Ipsi")
+        plot(optos, uni_hits[:,2,2].*100,"g--",label="Anti Go Ipsi")
+        plot(optos, uni_hits[:,2,1].*100,"m-",label="Pro Go Contra")
+        plot(optos, uni_hits[:,1,2].*100,"r--",label="Anti Go Contra")
+        plot(vec([og_opto og_opto]), vec([0 100]), "k--",alpha=0.25)
+        ax[:legend](loc="lower right")
+        ylabel("Accuracy %")
+        xlabel("Opto Strength (0=full)")
+        title(filename)
+        end        
 
+        return uni_hits
+end
 
 
