@@ -169,6 +169,78 @@ function plot_unilateral_psychometric(farm_id, farmdir; color_clusters=true, ina
 end
 
 
+function plot_unilateral_farm(filename; inact_type="full",fignum=1,force_opto=[],testruns=10,alluni=[])
+    if (inact_type != "full" ) 
+        error("partial inactivations not implemented, use \"full\"")
+    end
+
+    # load file parameters
+    mypars, extra_pars, args, pars3 = load(filename, "mypars", "extra_pars", "args", "pars3");
+    extra_pars[:opto_periods][2,:] = ["trial_start" "trial_end"];
+    extra_pars[:opto_periods][3,:] = ["trial_start" "trial_end"];
+
+    #override opto parameter
+    if !isempty(force_opto)
+        pars3[find(args .=="opto_strength")] = force_opto[1];
+    end
+
+    # set up plotting
+    pygui(true)
+    figure(fignum); clf();
+    pstrings = ["CONTROL", "IPSI", "CONTRA"]
+
+    for period=1:size(extra_pars[:opto_periods],1) 
+        # set up inputs, including iterating contra/ipsi and opto-condition
+        these_pars = merge(mypars, extra_pars);
+        if period == 2
+            these_pars = merge(these_pars, Dict(:opto_units=>[1,2]));
+        elseif period==3
+            these_pars = merge(these_pars, Dict(:opto_units=>[3,4]));
+        end
+        these_pars = merge(these_pars, Dict(
+        :opto_times=>reshape(extra_pars[:opto_periods][period,:], 1, 2),
+        :rule_and_delay_period=>these_pars[:rule_and_delay_periods][1], 
+        :target_period=>these_pars[:target_periods][1], 
+        :post_target_period=>these_pars[:post_target_periods][1], 
+        ));
+
+        # plotting set up
+        delete!(these_pars, :plot_list)
+        pvax = subplot(4,3,period);   axisHeightChange(0.9, lock="t")
+        pdax = subplot(4,3,period+3); axisHeightChange(0.9, lock="c"); 
+        avax = subplot(4,3,period+6); axisHeightChange(0.9, lock="c")
+        adax = subplot(4,3,period+9); axisHeightChange(0.9, lock="b")
+        proVs, antiVs = run_ntrials(testruns, testruns; plot_list=[1:20;], plot_Us=false, 
+            ax_set = Dict("pro_Vax"=>pvax, "pro_Dax"=>pdax, "anti_Vax"=>avax, "anti_Dax"=>adax),
+        make_dict(args, pars3, these_pars)...);
+
+        hBP = length(find(proVs[1,:]  .> proVs[4,:])) /size(proVs, 2)
+        hBA = length(find(antiVs[4,:] .> antiVs[1,:]))/size(antiVs,2)
+        safe_axes(pvax); title(@sprintf("%s  PRO hits = %.2f%%", pstrings[period], 100*hBP))
+        safe_axes(avax); title(@sprintf("ANTI hits = %.2f%%", 100*hBA))
+        safe_axes(pdax); remove_xtick_labels(); xlabel("")
+        if period > 1
+            remove_ytick_labels([pvax, pdax, avax, adax])
+        end
+        
+        figure(fignum)[:canvas][:draw]()
+        pause(0.001)
+
+    end
+    println("Opto Strength: "*string(pars3[8]))
+        
+    if !isempty(alluni)
+        dex = find(alluni["files"] .== filename);
+    println("Control Pro:  "*string(alluni["uni"][dex,1,1,1]))
+    println("Control Anti: "*string(alluni["uni"][dex,1,2,1]))
+
+    println("Ipsi Pro:     "*string(alluni["uni"][dex,1,1,4]))
+    println("Ipsi Anti:    "*string(alluni["uni"][dex,1,2,4]))
+
+    println("Contra Pro:   "*string(alluni["uni"][dex,2,1,4]))
+    println("Contra Anti:  "*string(alluni["uni"][dex,2,2,4]))
+    end
+end 
 
 
 
