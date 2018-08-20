@@ -169,10 +169,135 @@ function plot_unilateral_psychometric(farm_id, farmdir; color_clusters=true, ina
 end
 
 
+function plot_unilateral_farm(filename; inact_type="full",fignum=1,force_opto=[],testruns=10,alluni=[])
+    if (inact_type != "full" ) 
+        error("partial inactivations not implemented, use \"full\"")
+    end
 
+    # load file parameters
+    mypars, extra_pars, args, pars3 = load(filename, "mypars", "extra_pars", "args", "pars3");
+    extra_pars[:opto_periods][2,:] = ["trial_start" "trial_end"];
+    extra_pars[:opto_periods][3,:] = ["trial_start" "trial_end"];
 
+    #override opto parameter
+    if !isempty(force_opto)
+        pars3[find(args .=="opto_strength")] = force_opto[1];
+    end
 
+    # set up plotting
+    pygui(true)
+    figure(fignum); clf();
+    pstrings = ["CONTROL", "IPSI", "CONTRA"]
 
+    for period=1:size(extra_pars[:opto_periods],1) 
+        # set up inputs, including iterating contra/ipsi and opto-condition
+        these_pars = merge(mypars, extra_pars);
+        if period == 2
+            these_pars = merge(these_pars, Dict(:opto_units=>[1,2]));
+        elseif period==3
+            these_pars = merge(these_pars, Dict(:opto_units=>[3,4]));
+        end
+        these_pars = merge(these_pars, Dict(
+        :opto_times=>reshape(extra_pars[:opto_periods][period,:], 1, 2),
+        :rule_and_delay_period=>these_pars[:rule_and_delay_periods][1], 
+        :target_period=>these_pars[:target_periods][1], 
+        :post_target_period=>these_pars[:post_target_periods][1], 
+        ));
 
+        # plotting set up
+        delete!(these_pars, :plot_list)
+        pvax = subplot(4,3,period);   axisHeightChange(0.9, lock="t")
+        pdax = subplot(4,3,period+3); axisHeightChange(0.9, lock="c"); 
+        avax = subplot(4,3,period+6); axisHeightChange(0.9, lock="c")
+        adax = subplot(4,3,period+9); axisHeightChange(0.9, lock="b")
+        proVs, antiVs = run_ntrials(testruns, testruns; plot_list=[1:20;], plot_Us=false, 
+            ax_set = Dict("pro_Vax"=>pvax, "pro_Dax"=>pdax, "anti_Vax"=>avax, "anti_Dax"=>adax),
+        make_dict(args, pars3, these_pars)...);
+
+        hBP = length(find(proVs[1,:]  .> proVs[4,:])) /size(proVs, 2)
+        hBA = length(find(antiVs[4,:] .> antiVs[1,:]))/size(antiVs,2)
+        safe_axes(pvax); title(@sprintf("%s  PRO hits = %.2f%%", pstrings[period], 100*hBP))
+        safe_axes(avax); title(@sprintf("ANTI hits = %.2f%%", 100*hBA))
+        safe_axes(pdax); remove_xtick_labels(); xlabel("")
+        if period > 1
+            remove_ytick_labels([pvax, pdax, avax, adax])
+        end
+        
+        figure(fignum)[:canvas][:draw]()
+        pause(0.001)
+
+    end
+    println("Opto Strength: "*string(pars3[8]))
+        
+    if !isempty(alluni)
+        dex = find(alluni["files"] .== filename);
+    println("Control Pro:  "*string(alluni["uni"][dex,1,1,1]))
+    println("Control Anti: "*string(alluni["uni"][dex,1,2,1]))
+
+    println("Ipsi Pro:     "*string(alluni["uni"][dex,1,1,4]))
+    println("Ipsi Anti:    "*string(alluni["uni"][dex,1,2,4]))
+
+    println("Contra Pro:   "*string(alluni["uni"][dex,2,1,4]))
+    println("Contra Anti:  "*string(alluni["uni"][dex,2,2,4]))
+    end
+end 
+
+function unilateral_by_strength(filename;testruns=100, plot_stuff=true)
+
+        mypars, extra_pars, args, pars3 = load(filename, "mypars", "extra_pars", "args", "pars3")
+        og_opto=pars3[8];
+        # ipsi/contra x pro/anti x control/delay/target/full
+        uni_hits = zeros(11,2,2);
+
+        # add another opto_periods condition with full trial inactivation
+        extra_pars[:opto_periods] = [extra_pars[:opto_periods]; "trial_start" "trial_end"]
+        extra_pars[:opto_periods][1,:] = ["trial_start" "trial_end"];  
+        extra_pars[:opto_periods][2,:] = ["trial_start" "trial_end"];
+        extra_pars[:opto_periods][3,:] = ["trial_start" "trial_end"];  
+ 
+        optos = 0:0.1:1;
+        for strength=1:11
+            # set up inputs, including iterating contra/ipsi and opto-condition
+            these_pars = merge(mypars, extra_pars);
+            these_pars = merge(these_pars, Dict(:opto_units=>[1,2]));
+            these_pars = merge(these_pars, Dict(
+            :opto_times=>reshape(extra_pars[:opto_periods][1,:], 1, 2),
+            :rule_and_delay_period=>these_pars[:rule_and_delay_periods][1], 
+            :target_period=>these_pars[:target_periods][1], 
+            :post_target_period=>these_pars[:post_target_periods][1], 
+            ));
+            
+            # force opto
+            pars3[find(args .=="opto_strength")] = optos[strength];
+ 
+            # Ipsilateral 
+            proVs, antiVs = run_ntrials(testruns, testruns; make_dict(args, pars3, these_pars)...); 
+            uni_hits[strength,1,1] = sum(proVs[1,:]  .>  proVs[4,:])/testruns;        
+            uni_hits[strength,1,2] = sum(antiVs[4,:] .> antiVs[1,:])/testruns;        
+    
+            # Contralateral 
+            these_pars = merge(these_pars, Dict(:opto_units=>[3,4]));
+            proVs, antiVs = run_ntrials(testruns, testruns; make_dict(args, pars3, these_pars)...); 
+            uni_hits[strength,2,1] = sum(proVs[1,:]  .>  proVs[4,:])/testruns;        
+            uni_hits[strength,2,2] = sum(antiVs[4,:] .> antiVs[1,:])/testruns;        
+        end
+
+        if plot_stuff
+        fig, ax=subplots()
+        plot(optos, 90.*ones(11,1),"k-",alpha=0.25, label="Pro target")
+        plot(optos, 70.*ones(11,1),"k--",alpha=0.25,label="Anti target")
+        plot(optos, uni_hits[:,1,1].*100,"b-",label="Pro Go Ipsi")
+        plot(optos, uni_hits[:,2,2].*100,"g--",label="Anti Go Ipsi")
+        plot(optos, uni_hits[:,2,1].*100,"m-",label="Pro Go Contra")
+        plot(optos, uni_hits[:,1,2].*100,"r--",label="Anti Go Contra")
+        plot(vec([og_opto og_opto]), vec([0 100]), "k--",alpha=0.25)
+        ax[:legend](loc="lower right")
+        ylabel("Accuracy %")
+        xlabel("Opto Strength (0=full)")
+        title(filename)
+        end        
+
+        return uni_hits
+end
 
 
