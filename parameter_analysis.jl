@@ -3,7 +3,7 @@
 #
 #   List top-level of functions
 #   scatter_by_arg()
-#   histo_params_by_cluster()    
+#   histo_params_by_cluster()
 #   plot_psychometric()
 #
 #
@@ -24,11 +24,11 @@
 
     SETUP and EXAMPLE(if you need it)
     include("svd_cluster.jl")
-    f1      = load("MiniC30/farm_C30_Farms_C30_spock_brody01-01_0001.jld")
+    f1      = load("MiniC30/farm_C30_Farms_C30_spock-brody01-01_0001.jld")
     args    = f1["args"];
     results = load_farm_cost_filter("C30", "MiniC30")
     scatter_by_arg(results, args, "hW_A","hW_P");
-    
+
     #to include cluster labels
     cluster_info    = load("MiniC30_C30_clusters.jld")
     cluster_ids     = cluster_info["idx"]
@@ -80,31 +80,31 @@ function scatter_by_arg_backend(results, args, arg1, arg2; fignum=1, color="k", 
     if length(index2) > 1
         error("More than 1 match for parameter 2 in argument list")
     end
-    
+
     # open figure
     figure(fignum)
 
     # get the parameters we want
     x = results["params"][:,index1];
     y = results["params"][:,index2];
-    
+
     # find extrema of parameters for plotting dashed axis lines of appropriate size
     maxx = maximum(x);
     maxy = maximum(y);
     minx = minimum(x);
     miny = minimum(y);
     maxx = 3; maxy = 3;
-    minx = -3; miny = -3;    
+    minx = -3; miny = -3;
 
     # plot axis lines
     if plot_lines
-        plot(vec([0 0]), vec([miny maxy]), "k--");   
+        plot(vec([0 0]), vec([miny maxy]), "k--");
         plot(vec([minx maxx]), vec([0 0]), "k--");
     end
 
     # scatter the parameters
     plot(x,y, "o",color=color);
-    
+
     ylabel(arg2)
     xlabel(arg1)
 
@@ -116,7 +116,7 @@ end
 
 """
 function filter_results_by_cluster(results, cluster_ids, target_cluster)
-    
+
     # make index of good clusters
     gooddex = cluster_ids .== target_cluster
 
@@ -152,11 +152,11 @@ INPUTS
     results, results matrix for this farm
 
 OPTIONAL INPUTS
-    hit_type, either "standard" or "binary" determines which method for calculating hit percentage. 
+    hit_type, either "standard" or "binary" determines which method for calculating hit percentage.
     color_clusters = false, if true, separates clusters by color
     cluster_ids,    a vector of cluster labels for each farm in results
-    minidir=true,   Set=true if the filenames in results are pointed at a minifarm, which does not contain all hit info. 
-    plot_only,      only plot this many farms. Plotting is slow due to file loading, so this is useful for debugging 
+    minidir=true,   Set=true if the filenames in results are pointed at a minifarm, which does not contain all hit info.
+    plot_only,      only plot this many farms. Plotting is slow due to file loading, so this is useful for debugging
 
 """
 function plot_psychometric(results; hit_type="standard", color_clusters=false, cluster_ids=[],minidir=true, plot_only = 10)
@@ -224,9 +224,3 @@ function plot_psychometric(results; hit_type="standard", color_clusters=false, c
     title(results["dirs"][1]*"--"*hit_type)
     xticks([1.25, 2.25, 3.25], ["Control", "Delay", "Choice"])
 end
-
-
-
-
-
-
