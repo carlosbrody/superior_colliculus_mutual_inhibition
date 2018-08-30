@@ -23,7 +23,7 @@ farmdir = "../Farms_C32"
 if !isdir(farmdir); mkdir(farmdir); end
 fbasename = farmdir * "/" * "farm_C32_" * chomp(readstring(`hostname`)) * "_"
 
-reports_dir = "../Reports" 
+reports_dir = "../Reports"
 if !isdir(reports_dir); mkdir(reports_dir); end
 report_file = reports_dir * "/" * @sprintf("report_%s_%d", chomp(readstring(`hostname`)), my_run_number)
 if isfile(report_file); rm(report_file); end
@@ -40,11 +40,11 @@ extra_pars[:pro_better_than_anti]      = true   # if true, in each condition pro
 append_to_file(report_file, @sprintf("\n\n\nStarting with random seed %d\n\n\n", extra_pars[:seedrand]))
 
 just_testing = false; if just_testing   # 
-    extra_pars[:maxiter]                   = 4
-    extra_pars[:testruns]                  = 100
-    extra_pars[:few_trials]                = 10
-    extra_pars[:many_trials]               = 100
-    extra_pars[:binarized_delta_threshold] = 0.5     # average frac correct must be within this of target
+    extra_pars[:maxiter]                   = 1
+    extra_pars[:testruns]                  = 1
+    extra_pars[:few_trials]                = 1
+    extra_pars[:many_trials]               = 1
+    extra_pars[:binarized_delta_threshold] = 1     # average frac correct must be within this of target
     extra_pars[:anti_perf_delta]           = 0       # delay anti must be at least this worse off than control or choice anti
     extra_pars[:pro_better_than_anti]      = false   # if true, in each condition pro hits must be > anti hits
 end
@@ -76,13 +76,21 @@ while true
         parsA, trajA, costA, cpm_trajA, ftrajA = bbox_Hessian_keyword_minimization(seed, 
             args, bbox, func_quiet, 
             start_eta = 0.01, tol=1e-12, verbose_file=report_file, verbose_timestamp=true,
-            verbose=true, verbose_every=1, maxiter=extra_pars[:maxiter])
+            verbose=true, verbose_every=10, maxiter=extra_pars[:maxiter])
             
         # evaluate the result with many trials, for accuracy
         costA, cost1sA, cost2sA, hPA, hAA, dPA, dAA, hBPA, hBAA = JJ(extra_pars[:testruns], extra_pars[:testruns]; 
                                                    verbose=false, 
                                                    make_dict(args, parsA, merge(merge(mypars, extra_pars)))...)
-        
+
+    ## fix all variables, is mean the best, or should I expand the test so each duration works?
+        if size(hBPA,2) > 1
+            print_vector_g(report_file, hBPA); 
+            print_vector_g(report_file, hBAA);           
+            hBPA = mean(hBPA,2);
+            hBAA = mean(hBAA,2);
+        end     
+
         append_to_file(report_file, @sprintf("mean diff = %g\n", mean(abs.(extra_pars[:opto_targets] - [hBPA hBAA]))))
         append_to_file(report_file, @sprintf("all(hBPA .> hBAA) = %s\n", all(hBPA .> hBAA)))
         print_vector_g(report_file, hBPA); print_vector_g(report_file, hBAA)
@@ -113,7 +121,7 @@ while true
                 pars3, traj3, cost3, cpm_traj3, ftraj3 = bbox_Hessian_keyword_minimization(parsA, 
                                                                  args, bbox, func_chatty,  verbose_timestamp=true,
                                                                  start_eta = 0.01, tol=1e-12, verbose_file=report_file,
-                                                                 verbose=true, verbose_every=1, maxiter=extra_pars[:maxiter])
+                                                                 verbose=true, verbose_every=10, maxiter=extra_pars[:maxiter])
             
                 # evaluate the result with many trials, for accuracy
                 cost, cost1s, cost2s, hP, hA, dP, dA, hBP, hBA = JJ(extra_pars[:testruns], extra_pars[:testruns]; 
