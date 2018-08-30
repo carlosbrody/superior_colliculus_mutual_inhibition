@@ -23,23 +23,27 @@ OUTPUTS
     returns nothing
 
 """
-function test_farm_unilateral(farm_id, farmdir; testruns=1000, threshold=-0.00025)
+function test_farm_unilateral(farm_id, farmdir; testruns=1000, threshold=-0.00025, force_opto=false, opto_strength=0.5,numconditions=4)
 
     # Get list of good farms to test
     results = load_farm_cost_filter(farm_id, farmdir; threshold = threshold)
 
-    uni = zeros(length(results["cost"]),2,2,4);
+    uni = zeros(length(results["cost"]),2,2,numconditions);
     for i=1:length(results["cost"])
         filename = results["files"][i];
         @printf("%d/%d, %s:  \n", i, length(results["cost"]), filename)
 
         # Ipsi/contra x pro/anti x control/delay/target/full
-        uni_hits = test_solution(filename; testruns=testruns)
+        uni_hits = test_solution(filename; testruns=testruns, force_opto=force_opto, opto_strength=opto_strength, numconditions=numconditions)
         uni[i,:,:,:]= uni_hits;
     end
     uni_results = merge(copy(results),Dict("uni"=>uni));   
- 
+
+    if force_opto 
+    myfilename = farmdir*"_"*farm_id*"_unilateral_opto_"*string(opto_strength)*".jld";
+    else
     myfilename = farmdir*"_"*farm_id*"_unilateral.jld";
+    end
     save(myfilename, Dict("uni_results"=>uni_results))
 end
 
@@ -58,16 +62,24 @@ OUTPUTS
     returns a matrix 2x2x4, which is the hit% for ipsi/contra inactivations x pro/anti trials x control/delay/target/full trial inactivations 
 
 """
-function test_solution(filename; testruns=1000)
+function test_solution(filename; testruns=1000, force_opto=false, opto_strength=0.5,numconditions=4)
         # load parameters for this solution
         mypars, extra_pars, args, pars3 = load(filename, "mypars", "extra_pars", "args", "pars3")
 
         # ipsi/contra x pro/anti x control/delay/target/full
-        uni_hits = zeros(2,2, 4);
+        uni_hits = zeros(2,2, numconditions);
 
         # add another opto_periods condition with full trial inactivation
-        extra_pars[:opto_periods] = [extra_pars[:opto_periods]; "trial_start" "trial_end"]
-    
+        if numconditions == 4
+            extra_pars[:opto_periods] = [extra_pars[:opto_periods]; "trial_start" "trial_end"]
+        elseif numconditions == 1
+            extra_pars[:opto_periods] = ["trial_start" "trial_end"]   
+        end
+   
+        if force_opto
+            pars3[find(args .=="opto_strength")] = opto_strength;
+        end
+ 
         for period=1:size(extra_pars[:opto_periods],1) 
             # set up inputs, including iterating contra/ipsi and opto-condition
             these_pars = merge(mypars, extra_pars);
@@ -300,4 +312,61 @@ function unilateral_by_strength(filename;testruns=100, plot_stuff=true)
         return uni_hits
 end
 
+"""
+    Plots the results of unilateral inactivation
+
+INPUTS
+    farm_id, name of farm
+    farmdir, location of farm files
+    
+OPTIONAL INPUTS
+    color_clusters, if true, plots each cluster separately as a different color
+    inact_type, either "full", "delay", or "choice" determines which trial type to plot
+
+"""
+function plot_forced_unilateral_psychometric(farm_id, farmdir, force_strength; color_clusters=true)
+    # load unilateral hit data
+    unilateral = load(farmdir*"_"*farm_id*"_unilateral_opto_"*string(force_strength)*".jld","uni_results");
+    numfarms = size(unilateral["uni"],1)
+    uni = unilateral["uni"].*100;
+    # farms x ipsi/contra x pro/anti x control/delay/target/full
+
+    # load cluster info
+    if color_clusters
+        cluster_info = load(farmdir*"_"*farm_id*"_clusters.jld")
+        cluster_ids = cluster_info["idx"];
+        all_colors = "bgrcmyk";   
+        numclusters = sum(.!isnan.(sort(unique(cluster_ids))));
+    else
+        cluster_ids = ones(1,numfarms);
+        numclusters = 1;
+    end
+
+    # iterate over farms    
+    figure();
+    for i=1:numfarms
+        if !isnan(cluster_ids[i])
+        co = (cluster_ids[i]-1)/(numclusters*2);
+        # for each farm, plot hit data
+        plot(1+co, uni[i,1,1,1],"o",color=string(all_colors[Int64(cluster_ids[i])])) # pro full, ipsi
+        plot(2+co, uni[i,1,2,1],"x",color=string(all_colors[Int64(cluster_ids[i])])) # anti full, ipsi
+
+        plot(4+co, uni[i,2,1,1],"o",color=string(all_colors[Int64(cluster_ids[i])])) # pro full, contra
+        plot(5+co, uni[i,2,2,1],"x",color=string(all_colors[Int64(cluster_ids[i])])) # anti full, contra
+        end
+    end
+
+    # plot cluster averages
+    for i=1:numclusters
+        co = (i-1)/(numclusters*2);
+        plot(1+co, mean(uni[vec(cluster_ids .== i),1,1,1]),"ko")
+        plot(2+co, mean(uni[vec(cluster_ids .== i),1,2,1]),"ko")
+        plot(4+co, mean(uni[vec(cluster_ids .== i),2,1,1]),"ko")
+        plot(5+co, mean(uni[vec(cluster_ids .== i),2,2,1]),"ko")
+    end
+
+    xticks([1.25,2.25,4.25,5.25],["Pro Ipsi", "Anti Ipsi", "Pro Contra", "Anti Contra"])
+    ylabel("Accuracy %")
+
+end
 
