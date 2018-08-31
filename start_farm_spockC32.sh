@@ -18,5 +18,5 @@ echo "Slurm Job ID: $SLURM_JOB_ID"
 echo "Slurm Array Task ID: $SLURM_ARRAY_TASK_ID"
 
 # Call the julia script which will start the farm
-julia spock_opto_reduced_farmC32.jl $SLURM_JOB_ID $SLURM_ARRAY_TASK_ID
+julia spock_C32_start.jl $SLURM_JOB_ID $SLURM_ARRAY_TASK_ID
 
