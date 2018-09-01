@@ -67,28 +67,29 @@ while true
 
 
     # STAGE 1 - CONTROL ONLY
-    new_epars = deepcopy(extra_pars);
-    new_epars[:opto_periods] = String["trial_start-0.1" "trial_start-0.2"]
-    new_epars[:opto_targets] = [0.9 0.7]
-    new_mypars = deepcopy(mypars);
-    new_mypars[:rule_and_delay_periods] = [1.2]
-    new_mypars[:target_periods] =[0.6];
-    
-    func_1 =  (;params...) -> JJ(new_epars[:nPro], new_epars[:nAnti]; verbose=false,  merge(merge(new_mypars, new_epars), Dict(params))...)[1]
-    parsA, trajA, costA, cpm_trajA, ftrajA = bbox_Hessian_keyword_minimization(seed, args, bbox, func_1, start_eta = 0.01, tol=1e-12, verbose_file=report_file, verbose_timestamp=true, verbose=true, verbose_every=10, maxiter=50)
-
-    # evaluate the result with many trials, for accuracy 
-    costA, cost1sA, cost2sA, hPA, hAA, dPA, dAA, hBPA, hBAA = JJ(200, 200; verbose=false, make_dict(args, parsA, merge(merge(new_mypars, new_epars)))...)
-
-    #### Stage 1 Pass check
-    print_vector_g(report_file, hBPA); print_vector_g(report_file, hBAA)
-    if hBPA < .5 || hBAA <= .5
-        append_to_file(report_file, @sprintf("Bad control performance"))
-        continue; #exits this random seed, and starts another
-    else
-        append_to_file(report_file, @sprintf("Good control performance, continuing training"))
-    end
-
+# causes singular exception because opto_parameter is degenerate, need to remove opto_parameter
+#    new_epars = deepcopy(extra_pars);
+#    new_epars[:opto_periods] = String["trial_start-0.1" "trial_start-0.2"]
+#    new_epars[:opto_targets] = [0.9 0.7]
+#    new_mypars = deepcopy(mypars);
+#    new_mypars[:rule_and_delay_periods] = [1.2]
+#    new_mypars[:target_periods] =[0.6];
+#    
+#    func_1 =  (;params...) -> JJ(new_epars[:nPro], new_epars[:nAnti]; verbose=false,  merge(merge(new_mypars, new_epars), Dict(params))...)[1]
+#    parsA, trajA, costA, cpm_trajA, ftrajA = bbox_Hessian_keyword_minimization(seed, args, bbox, func_1, start_eta = 0.01, tol=1e-12, verbose_file=report_file, verbose_timestamp=true, verbose=true, verbose_every=10, maxiter=50)
+#
+#    # evaluate the result with many trials, for accuracy 
+#    costA, cost1sA, cost2sA, hPA, hAA, dPA, dAA, hBPA, hBAA = JJ(200, 200; verbose=false, make_dict(args, parsA, merge(merge(new_mypars, new_epars)))...)
+#
+#    #### Stage 1 Pass check
+#    print_vector_g(report_file, hBPA); print_vector_g(report_file, hBAA)
+#    if hBPA < .5 || hBAA <= .5
+#        append_to_file(report_file, @sprintf("Bad control performance"))
+#        continue; #exits this random seed, and starts another
+#    else
+#        append_to_file(report_file, @sprintf("Good control performance, continuing training"))
+#    end
+#
 
 
 
