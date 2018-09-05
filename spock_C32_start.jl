@@ -95,7 +95,7 @@ while true
 
     # STAGE 2 - 50 TRIALS
     func_quiet =  (;params...) -> JJ(extra_pars[:nPro], extra_pars[:nAnti]; verbose=false,  merge(merge(mypars, extra_pars), Dict(params))...)[1]
-    parsA, trajA, costA, cpm_trajA, ftrajA = bbox_Hessian_keyword_minimization(seed, args, bbox, func_quiet, start_eta = 0.01, tol=1e-12, verbose_file=report_file, verbose_timestamp=true, verbose=true, verbose_every=10, maxiter=extra_pars[:maxiter])
+    parsA, trajA, costA, cpm_trajA, ftrajA = bbox_Hessian_keyword_minimization(seed, args, bbox, func_quiet, start_eta = 0.01, tol=1e-12, verbose_file=report_file, verbose_timestamp=true, verbose=true, verbose_every=50, maxiter=extra_pars[:maxiter])
             
     # evaluate the result with many trials, for accuracy
     costA, cost1sA, cost2sA, hPA, hAA, dPA, dAA, hBPA, hBAA = JJ(extra_pars[:testruns], extra_pars[:testruns]; verbose=false, make_dict(args, parsA, merge(merge(mypars, extra_pars)))...)
@@ -136,7 +136,7 @@ while true
     extra_pars[:nAnti]    = extra_pars[:many_trials]
 
     func_chatty =  (;params...) -> JJ(extra_pars[:nPro], extra_pars[:nAnti]; verbose=true, verbose_file = report_file, merge(merge(mypars, extra_pars), Dict(params))...)[1]
-    pars3, traj3, cost3, cpm_traj3, ftraj3 = bbox_Hessian_keyword_minimization(parsA, args, bbox, func_chatty,  verbose_timestamp=true, start_eta = 0.01, tol=1e-12, verbose_file=report_file, verbose=true, verbose_every=10, 10)
+    pars3, traj3, cost3, cpm_traj3, ftraj3 = bbox_Hessian_keyword_minimization(parsA, args, bbox, func_chatty,  verbose_timestamp=true, start_eta = 0.01, tol=1e-12, verbose_file=report_file, verbose=true, verbose_every=5, maxiter=10)
 
     ## immediately get filename, and save some dummy info into it
     myfilename = next_file(fbasename, 4)
@@ -150,14 +150,14 @@ while true
                               "hPA"=>hPA, "hAA"=>hAA, "dPA"=>dPA, "dAA"=>dAA, "hBPA"=>hBPA, "hBAA"=>hBAA))
 
     try
-
+        append_to_file(report_file, @sprintf("\n\n**** Another training iteration **** %s ---\n\n", Dates.format(now(), "e, dd u yyyy HH:MM:SS")))
         ## Enter loop of optimizing, and then saving the result
         old_cost3 = cost3+10;
-        while cost3 + 1.0e-8 < old_cost3
+        while cost3 + 1.0e-12 < old_cost3
          
             old_cost3 = cost3;
     
-            pars3, traj3, cost3, cpm_traj3, ftraj3 = bbox_Hessian_keyword_minimization(parsA, args, bbox, func_chatty,  verbose_timestamp=true, start_eta = 0.01, tol=1e-12, verbose_file=report_file, verbose=true, verbose_every=10, 50)
+            pars3, traj3, cost3, cpm_traj3, ftraj3 = bbox_Hessian_keyword_minimization(parsA, args, bbox, func_chatty,  verbose_timestamp=true, start_eta = 0.01, tol=1e-12, verbose_file=report_file, verbose=true, verbose_every=10, maxiter=50)
     
             # Save Intermediate result
             save(myfilename, Dict("README"=>README, "nPro"=>extra_pars[:nPro], "nAnti"=>extra_pars[:nAnti], 
@@ -172,7 +172,8 @@ while true
         end
 
         # Finished Fitting!
- 
+         append_to_file(report_file, @sprintf("\n\n**** Finished Fitting, evaluating now **** %s ---\n\n", Dates.format(now(), "e, dd u yyyy HH:MM:SS")))
+
         # evaluate the result with many trials, for accuracy
         cost, cost1s, cost2s, hP, hA, dP, dA, hBP, hBA = JJ(extra_pars[:testruns], extra_pars[:testruns]; verbose=false, make_dict(args, pars3, merge(merge(mypars, extra_pars)))...)
 
