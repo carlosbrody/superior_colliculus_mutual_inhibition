@@ -150,11 +150,11 @@ while true
                               "hPA"=>hPA, "hAA"=>hAA, "dPA"=>dPA, "dAA"=>dAA, "hBPA"=>hBPA, "hBAA"=>hBAA))
 
     try
-        append_to_file(report_file, @sprintf("\n\n**** Another training iteration **** %s ---\n\n", Dates.format(now(), "e, dd u yyyy HH:MM:SS")))
-        ## Enter loop of optimizing, and then saving the result
+            ## Enter loop of optimizing, and then saving the result
         old_cost3 = cost3+10;
         while cost3 + 1.0e-12 < old_cost3
-         
+         append_to_file(report_file, @sprintf("\n\n**** Another training iteration **** %s ---\n\n", Dates.format(now(), "e, dd u yyyy HH:MM:SS")))
+    
             old_cost3 = cost3;
     
             pars3, traj3, cost3, cpm_traj3, ftraj3 = bbox_Hessian_keyword_minimization(pars3, args, bbox, func_chatty,  verbose_timestamp=true, start_eta = 0.01, tol=1e-12, verbose_file=report_file, verbose=true, verbose_every=10, maxiter=50)
