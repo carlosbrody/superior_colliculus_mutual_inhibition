@@ -1,10 +1,9 @@
 include("pro_anti.jl")
 # Script for restarting fits of C32 that stopped due to time limit
 
-
 # Figure out which file to load
-if length(ARGS)>0  &&  ~isnull(tryparse(Int64, ARGS[1])); 
-    my_run_number = parse(Int64, ARGS[1]); 
+if length(ARGS)>0  &&  ~isnull(tryparse(Int64, ARGS[2])); 
+    my_run_number = parse(Int64, ARGS[2]); 
 else                                                      
 #    my_run_number = 1; # I am process my_run_number
    error("ARGS was weird")
@@ -19,21 +18,39 @@ else
 end
 ndex = fld(my_run_number-1,8)+1;
 loadname = "../Farms_C32/farm_C32_spock-brody"*dex1*"-0"*string(dex2)*"_"*lpad(string(ndex),4,0)*".jld";
-
+savename = "../Farms_C32/farm_C32_spock-brody"*dex1*"-0"*string(dex2)*"_"*lpad(string(ndex),4,0)*".jld";
 
 # Figure out report filename
 reports_dir = "../Reports"
 if !isdir(reports_dir); mkdir(reports_dir); end
 report_file = reports_dir * "/" * "refit_"*dex1*"-0"*string(dex2)*"_"*lpad(string(ndex),4,0)
-
    
 # load file
 f = load(loadname)
 
-
 # check file
+# reasons to keep fitting
+#1. bad hessian
 vals, vecs = eig(f["ftraj3"][2,end])
-if all(vals .> 0) && isreal(vals)
+goodhess = all(vals .> 0) && isreal(vals);
+if goodhess
+   append_to_file(report_file, @sprintf("\n\n**** Hessian looks good **** %s ---\n\n", Dates.format(now(), "e, dd u yyyy HH:MM:SS")))
+else
+   append_to_file(report_file, @sprintf("\n\n**** Hessian looks BAD **** %s ---\n\n", Dates.format(now(), "e, dd u yyyy HH:MM:SS")))
+end
+
+#2. Never reach criteria
+finished = haskey(f, "hA")
+if finished
+append_to_file(report_file, @sprintf("\n\n**** Looks like I hit the criteria before **** %s ---\n\n", Dates.format(now(), "e, dd u yyyy HH:MM:SS")))
+else
+append_to_file(report_file, @sprintf("\n\n**** Looks like I did NOT hit the criteria **** %s ---\n\n", Dates.format(now(), "e, dd u yyyy HH:MM:SS")))
+end
+
+# need to refit?
+done_with_fit = finished & goodhess;
+
+if done_with_fit
     # no need to refit
     append_to_file(report_file, @sprintf("\n\n**** No need to refit **** %s ---\n\n", Dates.format(now(), "e, dd u yyyy HH:MM:SS")))
 else
@@ -64,7 +81,7 @@ else
         f["cost3"] = cost3
         f["cpm_traj3"] =  cpm_traj3
         f["ftraj3"] = ftraj3
-        save(loadname,f)
+        save(savename,f)
     end
 
     # do final eval
@@ -83,7 +100,7 @@ else
     f["dA"] = dA
     f["hBP"] = hBP
     f["hBA"] = hBA
-    save(loadname, f)
+    save(savename, f)
 end
 
 
