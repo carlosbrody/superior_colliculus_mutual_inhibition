@@ -1,7 +1,7 @@
 include("svd_cluster.jl")
 using MAT
 
-function cluster_example_trajectories(farmid, farmdir; threshold=-0.00025,testruns=10)
+function cluster_example_trajectories(farm_id, farmdir; threshold=-0.00025,testruns=10,num_steps=76)
 
 farmfilemat = farmdir*"_"*farm_id*"_examples.mat";
 farmfilejld = farmdir*"_"*farm_id*"_examples.jld";
@@ -18,7 +18,7 @@ all_colors      = "bgrcmyk";
 # Iterate over every farm,
 # run 10 example trials pro and anti x 3 opto conditions
 # save big matrix
-examples = zeros(length(results["files"]), 3, 2, 4, 76, testruns);
+examples = zeros(length(results["files"]), 3, 2, 4, num_steps, testruns);
 for i=1:length(results["files"])
     println(string(i)*"/"*string(length(results["files"])))
     # get stuff for this farm
@@ -28,7 +28,12 @@ for i=1:length(results["files"])
     # run each condition
     for j=1:3
         these_pars = merge(mypars, extra_pars);
-        these_pars = merge(these_pars, Dict(:opto_times=>reshape(extra_pars[:opto_periods][j,:], 1, 2)));
+        these_pars = merge(these_pars, Dict(
+        :opto_times=>reshape(extra_pars[:opto_periods][j,:], 1, 2),
+        :rule_and_delay_period=>these_pars[:rule_and_delay_periods][1], 
+        :target_period=>these_pars[:target_periods][1], 
+        :post_target_period=>these_pars[:post_target_periods][1]));
+
         proVs, antiVs, pfull, afull = run_ntrials(testruns, testruns; plot_list=[1:10;], plot_Us=false,
             merge(make_dict(args, pars3, these_pars), Dict())...);
 
