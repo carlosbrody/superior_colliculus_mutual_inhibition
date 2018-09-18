@@ -159,7 +159,7 @@ OPTIONAL INPUTS
     plot_only,      only plot this many farms. Plotting is slow due to file loading, so this is useful for debugging 
 
 """
-function plot_psychometric(results; hit_type="standard", color_clusters=false, cluster_ids=[],minidir=true, plot_only = 10)
+function plot_psychometric(results; hit_type="standard", color_clusters=false, cluster_ids=[],minidir=true, plot_only = 10, variable_delays=false,num_delays=4)
     println("this function is slow because I have to load many files...")
     println("set plot_only = 10 to plot a smaller number of files")
 
@@ -211,6 +211,10 @@ function plot_psychometric(results; hit_type="standard", color_clusters=false, c
             co = (cluster_ids[i]-1)/(numclusters*2)
             plot(vec([1 2 3]+co), P.*100, "o", color=string(all_colors[Int64(cluster_ids[i])]))
             plot(vec([1 2 3]+co), A.*100, "x", color=string(all_colors[Int64(cluster_ids[i])]))
+        elseif variable_delays
+            xvals = repmat(vec([1 2 3]),1,num_delays) +repmat(collect(0:(num_delays-1))'./(num_delays*2), 3,1);
+            plot(xvals, P.*100, "ko")
+            plot(xvals, A.*100, "rx")
         else
             plot(vec([1 2 3]), P.*100, "ko")
             plot(vec([1 2 3]), A.*100, "rx")
