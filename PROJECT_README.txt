@@ -14,6 +14,7 @@ IMPORTANT FILES FOR ANALYSIS:
     rule_encoding.jl    analysis based on neural encoding of task rule
     cluster_farms.jl    clusters farms based on model parameters, calls some matlab code
     parameter_analysis.jl   analysis for examining parameters
+    unilateral_analysis.jl  simulate unilateral analysis
 
 DATA FILES:
     for each <Farm>:
