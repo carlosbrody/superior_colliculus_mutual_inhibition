@@ -37,7 +37,7 @@ ANALYSIS STEPS:
     1.copy files from spock to local dir
 
     2.make_mini_farm()        in results_analysis.jl
-    > make_mini_farm("C30"; farmdirs ="Farms_C30", todir="MiniC30")
+    > make_mini_farm("C30"; fromdirs ="Farms_C30", todir="MiniC30")
 
     3. update_farm()           in svd_cluster.jl
     cluster_farms()         in cluster_farms.jl
