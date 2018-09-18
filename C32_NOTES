@@ -1,0 +1,10 @@
+three files you need to run
+
+1. spock_C32_start.jl, does the initial fits
+2. spock_C32_restart.jl, does the continued refitting, need to keep running until it stops
+3. C32_parse_finished.jl, moves good, finished farms to a second directory
+
+scripts for running these files:
+1. start_farm_spockC32.sh
+2. restart_farm_spockC32.sh 
+3. parse_C32.sh
