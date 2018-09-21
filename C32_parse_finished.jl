@@ -6,7 +6,7 @@ reports_dir = "../Reports"
 if !isdir(reports_dir); mkdir(reports_dir); end
 report_file = reports_dir * "/" * "refit_cleanup"
  
-for i=1:1000
+for i=1:5000
     moddex = mod(i,8) + 1;
     if moddex <= 4
         dex1 = "01";

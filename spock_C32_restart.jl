@@ -19,6 +19,7 @@ end
 ndex = fld(my_run_number-1,8)+1;
 loadname = "../Farms_C32/farm_C32_spock-brody"*dex1*"-0"*string(dex2)*"_"*lpad(string(ndex),4,0)*".jld";
 savename = "../Farms_C32/farm_C32_spock-brody"*dex1*"-0"*string(dex2)*"_"*lpad(string(ndex),4,0)*".jld";
+savegoodname = "../Farms_C32_done/farm_C32_spock-brody"*dex1*"-0"*string(dex2)*"_"*lpad(string(ndex),4,0)*".jld";
 
 # Figure out report filename
 reports_dir = "../Reports"
@@ -53,6 +54,11 @@ done_with_fit = finished & goodhess;
 if done_with_fit
     # no need to refit
     append_to_file(report_file, @sprintf("\n\n**** No need to refit **** %s ---\n\n", Dates.format(now(), "e, dd u yyyy HH:MM:SS")))
+
+    #check to see if farm was saved to Farms_C32_done
+    if !isfile(savegoodname)
+        save(savegoodname,f)
+    end
 else
     # need to refit
     append_to_file(report_file, @sprintf("\n\n**** Need to refit **** %s ---\n\n", Dates.format(now(), "e, dd u yyyy HH:MM:SS")))
@@ -68,13 +74,18 @@ else
     bbox        = f["bbox"]
     cost3       = f["cost3"];
     old_cost3   = cost3+10;
-    while cost3 + 1.0e-12 < old_cost3
+    hess_good   = false
+    while (cost3 + 1.0e-12 < old_cost3) | !hess_good
 
-         append_to_file(report_file, @sprintf("\n\n**** New training iteration **** %s ---\n\n", Dates.format(now(), "e, dd u yyyy HH:MM:SS")))    
+        append_to_file(report_file, @sprintf("\n\n**** New training iteration **** %s ---\n\n", Dates.format(now(), "e, dd u yyyy HH:MM:SS")))    
         old_cost3 = cost3;
     
         pars3, traj3, cost3, cpm_traj3, ftraj3 = bbox_Hessian_keyword_minimization(pars3, args, bbox, func_chatty,  verbose_timestamp=true, start_eta = 0.01, tol=1e-12, verbose_file=report_file, verbose=true, verbose_every=10, maxiter=50)
-    
+        
+        # check hessian
+        vals, vecs = eig(f["ftraj3"][2,end])
+        hess_good = all(vals .> 0) && isreal(vals);
+
         # Save Intermediate result
         f["pars3"] = pars3
         f["traj3"] = traj3
@@ -101,6 +112,7 @@ else
     f["hBP"] = hBP
     f["hBA"] = hBA
     save(savename, f)
+    save(savegoodname,f)
 end
 
 
