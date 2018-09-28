@@ -13,6 +13,7 @@ IMPORTANT FILES FOR ANALYSIS:
     svd_cluster.jl      analysis based on neural dynamics of the proanti model
     rule_encoding.jl    analysis based on neural encoding of task rule
     cluster_farms.jl    clusters farms based on model parameters, calls some matlab code
+    cluster_example.jl  Make a dataset of examples trajectories for each solution
     parameter_analysis.jl   analysis for examining parameters
     unilateral_analysis.jl  simulate unilateral analysis
 

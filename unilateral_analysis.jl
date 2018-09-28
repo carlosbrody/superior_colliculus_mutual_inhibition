@@ -1,4 +1,15 @@
 # A set of functions for testing unilateral inactivations
+#
+# List of functions
+# test_farm_unilateral
+# test_solution
+# plot_unilateral_psychometric
+# plot_unilateral_farm
+# unilateral_by_strength
+# plot_forced_unilateral_psychometric
+# load_farm_unilateral_filter
+#
+
 include("pro_anti.jl")
 include("results_analysis.jl")
 include("svd_cluster.jl")
@@ -6,6 +17,7 @@ include("parameter_analysis.jl")
 
 """
     Iterates through a farm directory and tests all model solutions
+    ipsi/contra in MODEL SPACE, not RAT SPACE
 
 INPUTS  
     farm_id, Name of farm, ie "C30"
@@ -16,9 +28,16 @@ OPTIONAL INPUTS
     testruns, number of trials to simulate for each condition of unilateral inactivation
 
     threshold, the test cost threshold to use to determine which farms to simulate
+    
+    force_opto, if true, overrides the model-parameter opto_strength with the optional argument opto_strength
+    
+    opto_strength, new opto_strength parameter to override model fit parameter
+    
+    numconditions, number of opto conditions, control/rule/target/full. Right now only accepts = 1, or = 4
 
 OUTPUTS
-    Saves a file <farmdir>_<farm_id>_unilateral.jld that includes the unilateral hit% for each condition
+    Saves a file <farmdir>_<farm_id>_unilateral.jld that includes the unilateral hit% for each condition, Ipsi/contra x pro/anti x control/delay/target/full
+        Ipsi/contra is in model space, not rat space. 
     
     returns nothing
 
@@ -52,12 +71,20 @@ end
 """
     Tests a set of model parameters with both ipsilateral and contralateral unilateral inactivations
 
+    ipsi/contra in MODEL SPACE, not RAT SPACE
+
 INPUTS
     filename for the model to test
 
 OPTIONAL INPUTS
     testruns, the number of trials to simulate
 
+    force_opto, if true, overrides the model-parameter opto_strength with the optional argument opto_strength
+    
+    opto_strength, new opto_strength parameter to override model fit parameter
+    
+    numconditions, number of opto conditions, control/rule/target/full. Right now only accepts = 1, or = 4
+ 
 OUTPUTS
     returns a matrix 2x2x4, which is the hit% for ipsi/contra inactivations x pro/anti trials x control/delay/target/full trial inactivations 
 
@@ -108,14 +135,19 @@ end
 
 """
     Plots the results of unilateral inactivation
+    ipsi/contra in RAT SPACE, not MODEL SPACE
 
 INPUTS
     farm_id, name of farm
+
     farmdir, location of farm files
     
 OPTIONAL INPUTS
-    color_clusters, if true, plots each cluster separately as a different color
+    color_clusters, if PCA, plots each cluster separately as a different color, using PCA defined clusters. if "uni" then uses the unilateral based cluster definitions. 
+
     inact_type, either "full", "delay", or "choice" determines which trial type to plot
+
+    uni_filters, the performance thresholds to use for determining inclusion in the unilateral based clusters. 
 
 """
 function plot_unilateral_psychometric(farm_id, farmdir; color_clusters="PCA", inact_type="full", uni_filters=[])
@@ -191,7 +223,25 @@ function plot_unilateral_psychometric(farm_id, farmdir; color_clusters="PCA", in
 
 end
 
+"""
 
+    ipsi/contra in MODEL SPACE, not RAT SPACE
+
+INPUTS
+    filename, name of solution to plot
+
+OPTIONAL INPUTS
+    inact_type, which type of inactivation, right now only accepts "full"
+
+    fignum, the figure to plot in, defaults to 1
+    
+    force_opto, the opto strength parameter to use. if empty, uses the model fit solution
+    
+    testruns,   number of example trajectories to plot
+    
+    alluni, if you pass in the accuracy matrix for all unilateral farms, then it will display some summary statistics
+
+"""
 function plot_unilateral_farm(filename; inact_type="full",fignum=1,force_opto=[],testruns=10,alluni=[])
     if (inact_type != "full" ) 
         error("partial inactivations not implemented, use \"full\"")
@@ -265,6 +315,19 @@ function plot_unilateral_farm(filename; inact_type="full",fignum=1,force_opto=[]
     end
 end 
 
+"""
+    looks at unilateral results for one farm across a range of opto strength parameters
+    ipsi/contra in MODEL SPACE, not RAT SPACE   
+ 
+INPUTS
+    filename, name of solution to plot
+
+OPTIONAL INPUTS
+    testruns, number of trajectories to compute accuracy on each opto strength
+    
+    plot_stuff, if true, plots the results
+
+"""
 function unilateral_by_strength(filename;testruns=100, plot_stuff=true)
 
         mypars, extra_pars, args, pars3 = load(filename, "mypars", "extra_pars", "args", "pars3")
@@ -324,7 +387,8 @@ function unilateral_by_strength(filename;testruns=100, plot_stuff=true)
 end
 
 """
-    Plots the results of unilateral inactivation
+    Plots the results of unilateral inactivation for all solutions for a forced opto_strength, as opposed to the model fit strength
+    Ispi/contra in MODEL SPACE, not RAT SPACE
 
 INPUTS
     farm_id, name of farm
@@ -332,6 +396,7 @@ INPUTS
     
 OPTIONAL INPUTS
     color_clusters, if true, plots each cluster separately as a different color
+
     inact_type, either "full", "delay", or "choice" determines which trial type to plot
 
 """
@@ -381,7 +446,29 @@ function plot_forced_unilateral_psychometric(farm_id, farmdir, force_strength; c
 
 end
 
+"""
+    filters for solutions based on their unilateral inactivation results. Ipsi/contra in RAT SPACE
 
+INPUTS
+
+    farmid, example C32
+    farmdir, example MiniC32
+
+OPTIONAL INPUTS
+    filters, thresholds for determing what is good, must be 4x1. accuracy must be: [ABOVE Pro/Ipsi, ABOVE Anti/Ipsi, BELOW Pro/Contra, BELOW Anti/Contra]
+RETURNS
+    uni_results, results matrix filtered by unilateral inclusion.
+ 
+    uni_clusters, a vector of 1s and 2s, where 1 indicates matches the unilateral criteria, used in all plotting functions. 
+
+    unidex,     logical index for the solutions that match unilateral filters
+
+    ipsi_unidex, logical index just for the ipsilateral criteria
+
+    contra_unidex,logical index just for the contralateral criteria
+
+    filters, filters used as thresholds.
+"""
 function load_farm_unilateral_filter(farmid, farmdir; filters = [90 80 60 40], plot_check=true)
 
 # Get list of all solutions below threshold

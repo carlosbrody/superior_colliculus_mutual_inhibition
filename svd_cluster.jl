@@ -1244,7 +1244,7 @@ Nothing. Plots a figure.
 
 
 """
-function plot_PCA(farm_id; farmdir="MiniOptimized", opto_conditions = 3, compute_good_only=true, threshold=-0.0002, deltaCost = 0.0008333, use_reduced_SVD=false, color_clusters=false, cluster_ids=[], cost_choice="cost")
+function plot_PCA(farm_id; farmdir="MiniOptimized", opto_conditions = 3, compute_good_only=true, threshold=-0.0002, deltaCost = 0.0008333, use_reduced_SVD=false, color_clusters=false, cluster_ids=[], cost_choice="cost", uni_clusters = false)
 
     if color_clusters & !compute_good_only
         error("coloring clusters is only supported is compute_good_only=true")
@@ -1337,6 +1337,9 @@ function plot_PCA(farm_id; farmdir="MiniOptimized", opto_conditions = 3, compute
         scatter(paramx[1,:], paramx[2,:]);
     else
         all_colors = "bgrcmyk";
+        if uni_clusters
+        all_colors = "gbrcmyk";
+        end
         ids = sort(unique(cluster_ids_copy));
         for i=1:length(ids)
             if !isnan(ids[i])
@@ -1353,6 +1356,9 @@ function plot_PCA(farm_id; farmdir="MiniOptimized", opto_conditions = 3, compute
 
     for i=1:size(hessians,1)
         all_colors = "bgrcmyk";
+        if uni_clusters
+            all_colors = "gbrcmyk";
+        end
         if !isnan(cluster_ids_copy[i])
             hessians[i,:,:,] = hessians[i,:,:].*sfsf;
             pcaHess[i,:,:] = scalevecs*hessians[i,:,:]*scalevecs';
