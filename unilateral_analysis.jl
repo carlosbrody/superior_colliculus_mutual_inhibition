@@ -118,7 +118,7 @@ OPTIONAL INPUTS
     inact_type, either "full", "delay", or "choice" determines which trial type to plot
 
 """
-function plot_unilateral_psychometric(farm_id, farmdir; color_clusters=true, inact_type="full")
+function plot_unilateral_psychometric(farm_id, farmdir; color_clusters="PCA", inact_type="full", uni_filters=[])
     # load unilateral hit data
     unilateral = load(farmdir*"_"*farm_id*"_unilateral.jld","uni_results")
     numfarms = size(unilateral["uni"],1)
@@ -126,11 +126,16 @@ function plot_unilateral_psychometric(farm_id, farmdir; color_clusters=true, ina
     # farms x ipsi/contra x pro/anti x control/delay/target/full
 
     # load cluster info
-    if color_clusters
+    if color_clusters == "PCA"
         cluster_info = load(farmdir*"_"*farm_id*"_clusters.jld")
         cluster_ids = cluster_info["idx"];
         all_colors = "bgrcmyk";   
         numclusters = sum(.!isnan.(sort(unique(cluster_ids))));
+    elseif color_clusters == "uni"
+        uni_results, uni_clusters, unidex, ipsi_unidex, contra_unidex, filters = load_farm_unilateral_filter("C32", "MiniC32"; filters=uni_filters);
+        all_colors = "gb";   
+        numclusters = 2;
+        cluster_ids = uni_clusters;
     else
         cluster_ids = ones(1,numfarms);
         numclusters = 1;
@@ -156,11 +161,11 @@ function plot_unilateral_psychometric(farm_id, farmdir; color_clusters=true, ina
         plot(1+co, uni[i,2,1,1],"o",color=string(all_colors[Int64(cluster_ids[i])])) # pro control, ipsi/contra irrelevant
         plot(2+co, uni[i,2,2,1],"x",color=string(all_colors[Int64(cluster_ids[i])])) # anti control, ipsi/contra irrelevant
 
-        plot(4+co, uni[i,1,1,idex],"o",color=string(all_colors[Int64(cluster_ids[i])])) # pro full, ipsi
-        plot(5+co, uni[i,1,2,idex],"x",color=string(all_colors[Int64(cluster_ids[i])])) # anti full, ipsi
+        plot(4+co, uni[i,2,1,idex],"o",color=string(all_colors[Int64(cluster_ids[i])])) # pro full, ipsi
+        plot(5+co, uni[i,2,2,idex],"x",color=string(all_colors[Int64(cluster_ids[i])])) # anti full, ipsi
 
-        plot(7+co, uni[i,2,1,idex],"o",color=string(all_colors[Int64(cluster_ids[i])])) # pro full, contra
-        plot(8+co, uni[i,2,2,idex],"x",color=string(all_colors[Int64(cluster_ids[i])])) # anti full, contra
+        plot(7+co, uni[i,1,1,idex],"o",color=string(all_colors[Int64(cluster_ids[i])])) # pro full, contra
+        plot(8+co, uni[i,1,2,idex],"x",color=string(all_colors[Int64(cluster_ids[i])])) # anti full, contra
         end
     end
 
@@ -169,14 +174,20 @@ function plot_unilateral_psychometric(farm_id, farmdir; color_clusters=true, ina
         co = (i-1)/(numclusters*2);
         plot(1+co, mean(uni[vec(cluster_ids .== i),2,1,1]),"ko")
         plot(2+co, mean(uni[vec(cluster_ids .== i),2,2,1]),"ko")
-        plot(4+co, mean(uni[vec(cluster_ids .== i),1,1,idex]),"ko")
-        plot(5+co, mean(uni[vec(cluster_ids .== i),1,2,idex]),"ko")
-        plot(7+co, mean(uni[vec(cluster_ids .== i),2,1,idex]),"ko")
-        plot(8+co, mean(uni[vec(cluster_ids .== i),2,2,idex]),"ko")
+        plot(4+co, mean(uni[vec(cluster_ids .== i),2,1,idex]),"ko")
+        plot(5+co, mean(uni[vec(cluster_ids .== i),2,2,idex]),"ko")
+        plot(7+co, mean(uni[vec(cluster_ids .== i),1,1,idex]),"ko")
+        plot(8+co, mean(uni[vec(cluster_ids .== i),1,2,idex]),"ko")
     end
 
     xticks([1.25,2.25,4.25,5.25,7.25,8.25],["Pro Control", "Anti Control", "Pro Ipsi", "Anti Ipsi", "Pro Contra", "Anti Contra"])
     ylabel("Accuracy %")
+    if color_clusters =="uni"
+        plot(vec([4 4.5]), vec([uni_filters[1] uni_filters[1]]), "k--")
+        plot(vec([5 5.5]), vec([uni_filters[2] uni_filters[2]]), "k--")
+        plot(vec([7 7.5]), vec([uni_filters[3] uni_filters[3]]), "k--")
+        plot(vec([8 8.5]), vec([uni_filters[4] uni_filters[4]]), "k--")
+    end
 
 end
 
@@ -370,3 +381,61 @@ function plot_forced_unilateral_psychometric(farm_id, farmdir, force_strength; c
 
 end
 
+
+function load_farm_unilateral_filter(farmid, farmdir; filters = [90 80 60 40], plot_check=true)
+
+# Get list of all solutions below threshold
+# Ipsi/contra x pro/anti x control/delay/target/full
+# Ipsi/Contra in MODEL SPACE not RAT SPACE
+unilateral  = load(farmdir*"_"*farmid*"_unilateral.jld","uni_results")
+numfarms    = size(unilateral["uni"],1)
+uni         = unilateral["uni"].*100;
+
+# filter by anti and pro cost
+# filters = [ABOVE Pro/Ipsi, ABOVE Anti/Ipsi, BELOW Pro/Contra, BELOW Anti/Contra]
+ipsi_unidex     = (uni[:,2,1,4] .>= filters[1]) .& (uni[:,2,2,4] .>= filters[2]);
+contra_unidex   = (uni[:,1,1,4] .<= filters[3]) .& (uni[:,1,2,4] .<= filters[4]);
+unidex          = ipsi_unidex .& contra_unidex;
+
+# PLOT for checking
+if plot_check
+    figure()
+    subplot(121)
+    plot(uni[:,1,1,1], uni[:,1,2,1],"rx")
+    plot(uni[:,2,1,4], uni[:,2,2,4],"bo")
+    plot(uni[ipsi_unidex,2,1,4], uni[ipsi_unidex,2,2,4],"gx")
+    xlabel("pro hit%")
+    ylabel("anti hit%")
+    title("go ipsi")
+    plot(vec([filters[1] filters[1]]),vec([filters[2] 100]),"k--")
+    plot(vec([filters[1] 100]),vec([filters[2] filters[2]]),"k--")
+    
+    # GO contra trials
+    subplot(122)
+    plot(uni[:,1,1,1], uni[:,1,2,1],"rx")
+    plot(uni[:,1,1,4], uni[:,1,2,4],"bo")
+    plot(uni[contra_unidex,1,1,4], uni[contra_unidex,1,2,4],"gx")
+    xlabel("pro hit%")
+    ylabel("anti hit%")
+    title("go contra")
+    plot(vec([filters[3] filters[3]]),vec([0 filters[4]]),"k--")
+    plot(vec([0 filters[3]]),vec([filters[4] filters[4]]),"k--")
+end
+
+# return results matrix filtered by unidex
+uni_results = Dict()
+uni_results["cost"]     = unilateral["cost"][vec(unidex)]
+uni_results["tcost"]    = unilateral["tcost"][vec(unidex)]
+uni_results["files"]    = unilateral["files"][vec(unidex)]
+uni_results["dirs"]     = unilateral["dirs"][vec(unidex)]
+uni_results["params"]   = unilateral["params"][vec(unidex),:]
+uni_results["uni"]      = unilateral["uni"][vec(unidex),:,:,:]
+
+# make a cluster index vector for plotting purposes
+uni_clusters = zeros(numfarms,1)
+uni_clusters[unidex] = 1
+uni_clusters[.!unidex] = 2;
+
+return uni_results, uni_clusters, unidex, ipsi_unidex, contra_unidex, filters
+
+end
