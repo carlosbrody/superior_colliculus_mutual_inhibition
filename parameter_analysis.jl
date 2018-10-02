@@ -207,10 +207,12 @@ function plot_psychometric(results; hit_type="standard", color_clusters=false, c
             plot(vec([2 2.5]), vec([targets[2,2] targets[2,2]]),"r")
             plot(vec([3 3.5]), vec([targets[3,2] targets[3,2]]),"r")
         end
-        if color_clusters && !isnan(cluster_ids[i])
+        if color_clusters 
+            if !isnan(cluster_ids[i])
             co = (cluster_ids[i]-1)/(numclusters*2)
             plot(vec([1 2 3]+co), P.*100, "o", color=string(all_colors[Int64(cluster_ids[i])]))
             plot(vec([1 2 3]+co), A.*100, "x", color=string(all_colors[Int64(cluster_ids[i])]))
+            end
         elseif variable_delays
             xvals = repmat(vec([1 2 3]),1,num_delays) +repmat(collect(0:(num_delays-1))'./(num_delays*2), 3,1);
             plot(xvals, P.*100, "ko")

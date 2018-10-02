@@ -526,3 +526,69 @@ uni_clusters[.!unidex] = 2;
 return uni_results, uni_clusters, unidex, ipsi_unidex, contra_unidex, filters
 
 end
+
+
+
+"""
+    Iterates through a farm directory and tests all model solutions
+    ipsi/contra in MODEL SPACE, not RAT SPACE
+
+INPUTS  
+    farm_id, Name of farm, ie "C30"
+
+    farmdir, Directory of farm, ie "MiniC30"
+
+OPTIONAL INPUTS
+    testruns, number of trials to simulate for each condition of unilateral inactivation
+
+    threshold, the test cost threshold to use to determine which farms to simulate
+     
+    opto_strength, new opto_strength parameter to override model fit parameter
+    
+OUTPUTS
+    Saves a file <farmdir>_<farm_id>_unilateral_by_strength.jld that includes the unilateral hit% for each condition, Ipsi/contra x pro/anti x control/delay/target/full
+        Ipsi/contra is in model space, not rat space. 
+    
+    returns nothing
+
+"""
+function test_farm_unilateral_by_strength(farm_id, farmdir; testruns=200, threshold=-0.0001, opto_strengths=collect(0:0.1:1))
+
+    # Get list of good farms to test
+    results = load_farm_cost_filter(farm_id, farmdir; threshold = threshold)
+
+    uni = zeros(length(results["cost"]),2,2,length(opto_strengths));
+    for i=1:length(results["cost"])
+        filename = results["files"][i];
+        @printf("%d/%d, %s:  \n", i, length(results["cost"]), filename)
+
+        # Ipsi/contra x pro/anti x control/delay/target/full
+        uni_hits = unilateral_by_strength(filename;testruns=testruns, plot_stuff=false)
+        for j=1:length(opto_strengths)
+            uni[i,:,:,j]= uni_hits[j,:,:];
+        end
+    end
+    uni_results = merge(copy(results),Dict("uni"=>uni));   
+
+    myfilename = farmdir*"_"*farm_id*"_unilateral_by_strength.jld";
+    save(myfilename, Dict("uni_results"=>uni_results))
+end
+
+
+
+function plot_unilateral_by_strength(uni_hits;optos=collect(0:.1:1),filename="")
+
+    fig, ax=subplots()
+    plot(optos, 90.*ones(11,1),"k-",alpha=0.25, label="Pro target")
+    plot(optos, 70.*ones(11,1),"k--",alpha=0.25,label="Anti target")
+    plot(optos, uni_hits[2,1,:],"b-",label="Pro Go Ipsi")
+    plot(optos, uni_hits[1,2,:],"g--",label="Anti Go Ipsi")
+    plot(optos, uni_hits[1,1,:],"m-",label="Pro Go Contra")
+    plot(optos, uni_hits[2,2,:],"r--",label="Anti Go Contra")
+#    plot(vec([og_opto og_opto]), vec([0 100]), "k--",alpha=0.25)
+    ax[:legend](loc="lower right")
+    ylabel("Accuracy %")
+    xlabel("Opto Strength (0=full)")
+    title(filename)
+
+end
