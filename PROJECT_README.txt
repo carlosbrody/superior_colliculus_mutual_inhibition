@@ -13,7 +13,9 @@ IMPORTANT FILES FOR ANALYSIS:
     svd_cluster.jl      analysis based on neural dynamics of the proanti model
     rule_encoding.jl    analysis based on neural encoding of task rule
     cluster_farms.jl    clusters farms based on model parameters, calls some matlab code
+    cluster_example.jl  Make a dataset of examples trajectories for each solution
     parameter_analysis.jl   analysis for examining parameters
+    unilateral_analysis.jl  simulate unilateral analysis
 
 DATA FILES:
     for each <Farm>:
@@ -36,7 +38,7 @@ ANALYSIS STEPS:
     1.copy files from spock to local dir
 
     2.make_mini_farm()        in results_analysis.jl
-    > make_mini_farm("C30"; farmdirs ="Farms_C30", todir="MiniC30")
+    > make_mini_farm("C30"; fromdirs ="Farms_C30", todir="MiniC30")
 
     3. update_farm()           in svd_cluster.jl
     cluster_farms()         in cluster_farms.jl

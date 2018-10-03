@@ -1,4 +1,15 @@
 # A set of functions for testing unilateral inactivations
+#
+# List of functions
+# test_farm_unilateral
+# test_solution
+# plot_unilateral_psychometric
+# plot_unilateral_farm
+# unilateral_by_strength
+# plot_forced_unilateral_psychometric
+# load_farm_unilateral_filter
+#
+
 include("pro_anti.jl")
 include("results_analysis.jl")
 include("svd_cluster.jl")
@@ -6,6 +17,7 @@ include("parameter_analysis.jl")
 
 """
     Iterates through a farm directory and tests all model solutions
+    ipsi/contra in MODEL SPACE, not RAT SPACE
 
 INPUTS  
     farm_id, Name of farm, ie "C30"
@@ -16,9 +28,16 @@ OPTIONAL INPUTS
     testruns, number of trials to simulate for each condition of unilateral inactivation
 
     threshold, the test cost threshold to use to determine which farms to simulate
+    
+    force_opto, if true, overrides the model-parameter opto_strength with the optional argument opto_strength
+    
+    opto_strength, new opto_strength parameter to override model fit parameter
+    
+    numconditions, number of opto conditions, control/rule/target/full. Right now only accepts = 1, or = 4
 
 OUTPUTS
-    Saves a file <farmdir>_<farm_id>_unilateral.jld that includes the unilateral hit% for each condition
+    Saves a file <farmdir>_<farm_id>_unilateral.jld that includes the unilateral hit% for each condition, Ipsi/contra x pro/anti x control/delay/target/full
+        Ipsi/contra is in model space, not rat space. 
     
     returns nothing
 
@@ -52,12 +71,20 @@ end
 """
     Tests a set of model parameters with both ipsilateral and contralateral unilateral inactivations
 
+    ipsi/contra in MODEL SPACE, not RAT SPACE
+
 INPUTS
     filename for the model to test
 
 OPTIONAL INPUTS
     testruns, the number of trials to simulate
 
+    force_opto, if true, overrides the model-parameter opto_strength with the optional argument opto_strength
+    
+    opto_strength, new opto_strength parameter to override model fit parameter
+    
+    numconditions, number of opto conditions, control/rule/target/full. Right now only accepts = 1, or = 4
+ 
 OUTPUTS
     returns a matrix 2x2x4, which is the hit% for ipsi/contra inactivations x pro/anti trials x control/delay/target/full trial inactivations 
 
@@ -108,17 +135,22 @@ end
 
 """
     Plots the results of unilateral inactivation
+    ipsi/contra in RAT SPACE, not MODEL SPACE
 
 INPUTS
     farm_id, name of farm
+
     farmdir, location of farm files
     
 OPTIONAL INPUTS
-    color_clusters, if true, plots each cluster separately as a different color
+    color_clusters, if PCA, plots each cluster separately as a different color, using PCA defined clusters. if "uni" then uses the unilateral based cluster definitions. 
+
     inact_type, either "full", "delay", or "choice" determines which trial type to plot
 
+    uni_filters, the performance thresholds to use for determining inclusion in the unilateral based clusters. 
+
 """
-function plot_unilateral_psychometric(farm_id, farmdir; color_clusters=true, inact_type="full")
+function plot_unilateral_psychometric(farm_id, farmdir; color_clusters="PCA", inact_type="full", uni_filters=[])
     # load unilateral hit data
     unilateral = load(farmdir*"_"*farm_id*"_unilateral.jld","uni_results")
     numfarms = size(unilateral["uni"],1)
@@ -126,11 +158,16 @@ function plot_unilateral_psychometric(farm_id, farmdir; color_clusters=true, ina
     # farms x ipsi/contra x pro/anti x control/delay/target/full
 
     # load cluster info
-    if color_clusters
+    if color_clusters == "PCA"
         cluster_info = load(farmdir*"_"*farm_id*"_clusters.jld")
         cluster_ids = cluster_info["idx"];
         all_colors = "bgrcmyk";   
         numclusters = sum(.!isnan.(sort(unique(cluster_ids))));
+    elseif color_clusters == "uni"
+        uni_results, uni_clusters, unidex, ipsi_unidex, contra_unidex, filters = load_farm_unilateral_filter("C32", "MiniC32"; filters=uni_filters);
+        all_colors = "gb";   
+        numclusters = 2;
+        cluster_ids = uni_clusters;
     else
         cluster_ids = ones(1,numfarms);
         numclusters = 1;
@@ -156,11 +193,11 @@ function plot_unilateral_psychometric(farm_id, farmdir; color_clusters=true, ina
         plot(1+co, uni[i,2,1,1],"o",color=string(all_colors[Int64(cluster_ids[i])])) # pro control, ipsi/contra irrelevant
         plot(2+co, uni[i,2,2,1],"x",color=string(all_colors[Int64(cluster_ids[i])])) # anti control, ipsi/contra irrelevant
 
-        plot(4+co, uni[i,1,1,idex],"o",color=string(all_colors[Int64(cluster_ids[i])])) # pro full, ipsi
-        plot(5+co, uni[i,1,2,idex],"x",color=string(all_colors[Int64(cluster_ids[i])])) # anti full, ipsi
+        plot(4+co, uni[i,2,1,idex],"o",color=string(all_colors[Int64(cluster_ids[i])])) # pro full, ipsi
+        plot(5+co, uni[i,2,2,idex],"x",color=string(all_colors[Int64(cluster_ids[i])])) # anti full, ipsi
 
-        plot(7+co, uni[i,2,1,idex],"o",color=string(all_colors[Int64(cluster_ids[i])])) # pro full, contra
-        plot(8+co, uni[i,2,2,idex],"x",color=string(all_colors[Int64(cluster_ids[i])])) # anti full, contra
+        plot(7+co, uni[i,1,1,idex],"o",color=string(all_colors[Int64(cluster_ids[i])])) # pro full, contra
+        plot(8+co, uni[i,1,2,idex],"x",color=string(all_colors[Int64(cluster_ids[i])])) # anti full, contra
         end
     end
 
@@ -169,18 +206,42 @@ function plot_unilateral_psychometric(farm_id, farmdir; color_clusters=true, ina
         co = (i-1)/(numclusters*2);
         plot(1+co, mean(uni[vec(cluster_ids .== i),2,1,1]),"ko")
         plot(2+co, mean(uni[vec(cluster_ids .== i),2,2,1]),"ko")
-        plot(4+co, mean(uni[vec(cluster_ids .== i),1,1,idex]),"ko")
-        plot(5+co, mean(uni[vec(cluster_ids .== i),1,2,idex]),"ko")
-        plot(7+co, mean(uni[vec(cluster_ids .== i),2,1,idex]),"ko")
-        plot(8+co, mean(uni[vec(cluster_ids .== i),2,2,idex]),"ko")
+        plot(4+co, mean(uni[vec(cluster_ids .== i),2,1,idex]),"ko")
+        plot(5+co, mean(uni[vec(cluster_ids .== i),2,2,idex]),"ko")
+        plot(7+co, mean(uni[vec(cluster_ids .== i),1,1,idex]),"ko")
+        plot(8+co, mean(uni[vec(cluster_ids .== i),1,2,idex]),"ko")
     end
 
     xticks([1.25,2.25,4.25,5.25,7.25,8.25],["Pro Control", "Anti Control", "Pro Ipsi", "Anti Ipsi", "Pro Contra", "Anti Contra"])
     ylabel("Accuracy %")
+    if color_clusters =="uni"
+        plot(vec([4 4.5]), vec([uni_filters[1] uni_filters[1]]), "k--")
+        plot(vec([5 5.5]), vec([uni_filters[2] uni_filters[2]]), "k--")
+        plot(vec([7 7.5]), vec([uni_filters[3] uni_filters[3]]), "k--")
+        plot(vec([8 8.5]), vec([uni_filters[4] uni_filters[4]]), "k--")
+    end
 
 end
 
+"""
 
+    ipsi/contra in MODEL SPACE, not RAT SPACE
+
+INPUTS
+    filename, name of solution to plot
+
+OPTIONAL INPUTS
+    inact_type, which type of inactivation, right now only accepts "full"
+
+    fignum, the figure to plot in, defaults to 1
+    
+    force_opto, the opto strength parameter to use. if empty, uses the model fit solution
+    
+    testruns,   number of example trajectories to plot
+    
+    alluni, if you pass in the accuracy matrix for all unilateral farms, then it will display some summary statistics
+
+"""
 function plot_unilateral_farm(filename; inact_type="full",fignum=1,force_opto=[],testruns=10,alluni=[])
     if (inact_type != "full" ) 
         error("partial inactivations not implemented, use \"full\"")
@@ -254,6 +315,19 @@ function plot_unilateral_farm(filename; inact_type="full",fignum=1,force_opto=[]
     end
 end 
 
+"""
+    looks at unilateral results for one farm across a range of opto strength parameters
+    ipsi/contra in MODEL SPACE, not RAT SPACE   
+ 
+INPUTS
+    filename, name of solution to plot
+
+OPTIONAL INPUTS
+    testruns, number of trajectories to compute accuracy on each opto strength
+    
+    plot_stuff, if true, plots the results
+
+"""
 function unilateral_by_strength(filename;testruns=100, plot_stuff=true)
 
         mypars, extra_pars, args, pars3 = load(filename, "mypars", "extra_pars", "args", "pars3")
@@ -313,7 +387,8 @@ function unilateral_by_strength(filename;testruns=100, plot_stuff=true)
 end
 
 """
-    Plots the results of unilateral inactivation
+    Plots the results of unilateral inactivation for all solutions for a forced opto_strength, as opposed to the model fit strength
+    Ispi/contra in MODEL SPACE, not RAT SPACE
 
 INPUTS
     farm_id, name of farm
@@ -321,6 +396,7 @@ INPUTS
     
 OPTIONAL INPUTS
     color_clusters, if true, plots each cluster separately as a different color
+
     inact_type, either "full", "delay", or "choice" determines which trial type to plot
 
 """
@@ -370,3 +446,149 @@ function plot_forced_unilateral_psychometric(farm_id, farmdir, force_strength; c
 
 end
 
+"""
+    filters for solutions based on their unilateral inactivation results. Ipsi/contra in RAT SPACE
+
+INPUTS
+
+    farmid, example C32
+    farmdir, example MiniC32
+
+OPTIONAL INPUTS
+    filters, thresholds for determing what is good, must be 4x1. accuracy must be: [ABOVE Pro/Ipsi, ABOVE Anti/Ipsi, BELOW Pro/Contra, BELOW Anti/Contra]
+RETURNS
+    uni_results, results matrix filtered by unilateral inclusion.
+ 
+    uni_clusters, a vector of 1s and 2s, where 1 indicates matches the unilateral criteria, used in all plotting functions. 
+
+    unidex,     logical index for the solutions that match unilateral filters
+
+    ipsi_unidex, logical index just for the ipsilateral criteria
+
+    contra_unidex,logical index just for the contralateral criteria
+
+    filters, filters used as thresholds.
+"""
+function load_farm_unilateral_filter(farmid, farmdir; filters = [90 80 60 40], plot_check=true)
+
+# Get list of all solutions below threshold
+# Ipsi/contra x pro/anti x control/delay/target/full
+# Ipsi/Contra in MODEL SPACE not RAT SPACE
+unilateral  = load(farmdir*"_"*farmid*"_unilateral.jld","uni_results")
+numfarms    = size(unilateral["uni"],1)
+uni         = unilateral["uni"].*100;
+
+# filter by anti and pro cost
+# filters = [ABOVE Pro/Ipsi, ABOVE Anti/Ipsi, BELOW Pro/Contra, BELOW Anti/Contra]
+ipsi_unidex     = (uni[:,2,1,4] .>= filters[1]) .& (uni[:,2,2,4] .>= filters[2]);
+contra_unidex   = (uni[:,1,1,4] .<= filters[3]) .& (uni[:,1,2,4] .<= filters[4]);
+unidex          = ipsi_unidex .& contra_unidex;
+
+# PLOT for checking
+if plot_check
+    figure()
+    subplot(121)
+    plot(uni[:,1,1,1], uni[:,1,2,1],"rx")
+    plot(uni[:,2,1,4], uni[:,2,2,4],"bo")
+    plot(uni[ipsi_unidex,2,1,4], uni[ipsi_unidex,2,2,4],"gx")
+    xlabel("pro hit%")
+    ylabel("anti hit%")
+    title("go ipsi")
+    plot(vec([filters[1] filters[1]]),vec([filters[2] 100]),"k--")
+    plot(vec([filters[1] 100]),vec([filters[2] filters[2]]),"k--")
+    
+    # GO contra trials
+    subplot(122)
+    plot(uni[:,1,1,1], uni[:,1,2,1],"rx")
+    plot(uni[:,1,1,4], uni[:,1,2,4],"bo")
+    plot(uni[contra_unidex,1,1,4], uni[contra_unidex,1,2,4],"gx")
+    xlabel("pro hit%")
+    ylabel("anti hit%")
+    title("go contra")
+    plot(vec([filters[3] filters[3]]),vec([0 filters[4]]),"k--")
+    plot(vec([0 filters[3]]),vec([filters[4] filters[4]]),"k--")
+end
+
+# return results matrix filtered by unidex
+uni_results = Dict()
+uni_results["cost"]     = unilateral["cost"][vec(unidex)]
+uni_results["tcost"]    = unilateral["tcost"][vec(unidex)]
+uni_results["files"]    = unilateral["files"][vec(unidex)]
+uni_results["dirs"]     = unilateral["dirs"][vec(unidex)]
+uni_results["params"]   = unilateral["params"][vec(unidex),:]
+uni_results["uni"]      = unilateral["uni"][vec(unidex),:,:,:]
+
+# make a cluster index vector for plotting purposes
+uni_clusters = zeros(numfarms,1)
+uni_clusters[unidex] = 1
+uni_clusters[.!unidex] = 2;
+
+return uni_results, uni_clusters, unidex, ipsi_unidex, contra_unidex, filters
+
+end
+
+
+
+"""
+    Iterates through a farm directory and tests all model solutions
+    ipsi/contra in MODEL SPACE, not RAT SPACE
+
+INPUTS  
+    farm_id, Name of farm, ie "C30"
+
+    farmdir, Directory of farm, ie "MiniC30"
+
+OPTIONAL INPUTS
+    testruns, number of trials to simulate for each condition of unilateral inactivation
+
+    threshold, the test cost threshold to use to determine which farms to simulate
+     
+    opto_strength, new opto_strength parameter to override model fit parameter
+    
+OUTPUTS
+    Saves a file <farmdir>_<farm_id>_unilateral_by_strength.jld that includes the unilateral hit% for each condition, Ipsi/contra x pro/anti x control/delay/target/full
+        Ipsi/contra is in model space, not rat space. 
+    
+    returns nothing
+
+"""
+function test_farm_unilateral_by_strength(farm_id, farmdir; testruns=200, threshold=-0.0001, opto_strengths=collect(0:0.1:1))
+
+    # Get list of good farms to test
+    results = load_farm_cost_filter(farm_id, farmdir; threshold = threshold)
+
+    uni = zeros(length(results["cost"]),2,2,length(opto_strengths));
+    for i=1:length(results["cost"])
+        filename = results["files"][i];
+        @printf("%d/%d, %s:  \n", i, length(results["cost"]), filename)
+
+        # Ipsi/contra x pro/anti x control/delay/target/full
+        uni_hits = unilateral_by_strength(filename;testruns=testruns, plot_stuff=false)
+        for j=1:length(opto_strengths)
+            uni[i,:,:,j]= uni_hits[j,:,:];
+        end
+    end
+    uni_results = merge(copy(results),Dict("uni"=>uni));   
+
+    myfilename = farmdir*"_"*farm_id*"_unilateral_by_strength.jld";
+    save(myfilename, Dict("uni_results"=>uni_results))
+end
+
+
+
+function plot_unilateral_by_strength(uni_hits;optos=collect(0:.1:1),filename="")
+
+    fig, ax=subplots()
+    plot(optos, 90.*ones(11,1),"k-",alpha=0.25, label="Pro target")
+    plot(optos, 70.*ones(11,1),"k--",alpha=0.25,label="Anti target")
+    plot(optos, uni_hits[2,1,:],"b-",label="Pro Go Ipsi")
+    plot(optos, uni_hits[1,2,:],"g--",label="Anti Go Ipsi")
+    plot(optos, uni_hits[1,1,:],"m-",label="Pro Go Contra")
+    plot(optos, uni_hits[2,2,:],"r--",label="Anti Go Contra")
+#    plot(vec([og_opto og_opto]), vec([0 100]), "k--",alpha=0.25)
+    ax[:legend](loc="lower right")
+    ylabel("Accuracy %")
+    xlabel("Opto Strength (0=full)")
+    title(filename)
+
+end

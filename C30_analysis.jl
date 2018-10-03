@@ -33,5 +33,40 @@ SVD_interactive("C30"; farmdir="MiniC30", threshold=-0.00025, disp_encoding=fals
 plot_psychometric(results, color_clusters=true, cluster_ids=cluster_ids, plot_only=Inf, hit_type="standard")
 plot_psychometric(results, color_clusters=true, cluster_ids=cluster_ids, plot_only=Inf, hit_type="binarized")
 
+# unilateral analysis
+    unilateral = load("MiniC30_C30_unilateral.jld","uni_results")
+    numfarms = size(unilateral["uni"],1)
+
+#ipsi/contra x pro/anti x control/delay/target/full
+    uni = unilateral["uni"].*100;
+
+#
+figure()
+for i=1:numfarms
+     plot(uni[i,1,1,1], uni[i,1,2,1], "rx")   
+    plot(uni[i,2,1,4], uni[i,2,2,4], "bo")
+end
+xlabel("pro hit%")
+ylabel("anti hit%")
+
+# GO ipsi trials
+figure()
+for i=1:numfarms
+     plot(uni[i,1,1,1], uni[i,1,2,1], "rx")   
+    plot(uni[i,1,1,4], uni[i,2,2,4], "bo")
+end
+xlabel("pro hit%")
+ylabel("anti hit%")
+title("go ipsi")
+
+# GO contra trials
+figure()
+for i=1:numfarms
+     plot(uni[i,1,1,1], uni[i,1,2,1], "rx")   
+    plot(uni[i,2,1,4], uni[i,1,2,4], "bo")
+end
+xlabel("pro hit%")
+ylabel("anti hit%")
+title("go contra")
 
 
