@@ -81,7 +81,7 @@ function cluster_farms(farm_id; farmdir="MiniOptimized", cost_choice="cost", thr
     files   = d["files"]
 
     # remove temporary files
-    run(`rm compute_clustering/data_for_matlab_temp.mat`);
+#    run(`rm compute_clustering/data_for_matlab_temp.mat`);
     run(`rm compute_clustering/data_for_julia_temp.mat`);
 
     save("compute_clustering/MarinoCode_"*farm_id*"_"*farmdir*".jld", 

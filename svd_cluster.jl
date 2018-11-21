@@ -550,7 +550,7 @@ If disp_encoding is also true:
 
 
 """
-function SVD_interactive(farm_id;farmdir="MiniFarms", threshold =-0.0002, plot_option=1, plot_bad_farms=false, compute_good_only=true, opto_conditions = 3,disp_encoding = true, use_reduced_SVD=false, backend_mode=false, ndims=2, psth_mode=false, color_clusters=false, cost_choice="cost")
+function SVD_interactive(farm_id;farmdir="MiniFarms", threshold =-0.0002, plot_option=1, plot_bad_farms=false, compute_good_only=true, opto_conditions = 3,disp_encoding = true, use_reduced_SVD=false, backend_mode=false, ndims=2, psth_mode=false, color_clusters=false, cost_choice="cost", cluster_ids=[])
 
     if backend_mode & !compute_good_only
         error("Backend mode doesn't play nice with including the bad farms right now...")
@@ -580,8 +580,10 @@ function SVD_interactive(farm_id;farmdir="MiniFarms", threshold =-0.0002, plot_o
         if !compute_good_only
             error("Cluster coloring doesn't work with bad farms, set compute_good_only=true")
         end
+        if isempty(cluster_ids)
         cluster_info    = load(farmdir*"_"*farm_id*"_clusters.jld");
         cluster_ids     = cluster_info["idx"];
+        end
     end
 
     # set up filter by nan
