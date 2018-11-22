@@ -168,4 +168,205 @@ xlabel("Most Discriminable dimension")
 
 sortrows([abs(dvec) args])
 dprime = (mean(uni_proj) - mean(non_proj))./sqrt(.5*(var(uni_proj) + var(non_proj)));
+### just making figures
+
+figure()
+plot(dims[:,2].*100,dims[:,3].*100,"ko")
+xlim(0,100); ylim(0,100);
+ylabel("Target period V.E")
+xlabel("Delay period V.E")
+
+
+figure()
+m1 = mean(dims[:,2]).*100;
+m2 = mean(dims[:,3]).*100;
+s1 = std(dims[:,2]).*100;
+s2 = std(dims[:,3]).*100;
+
+plot(m1,m2,"ko")
+plot(vec([m1 m1]), vec([m2-s2 m2+s2]),"k")
+plot(vec([m1-s1 m1+s1]), vec([m2 m2]),"k")
+xlim(0,100); ylim(0,100);
+ylabel("Target period V.E")
+xlabel("Delay period V.E")
+
+figure()
+ma = mean(dims[:,1]).*100;
+m1 = mean(dims[:,2]).*100;
+m2 = mean(dims[:,3]).*100;
+sa = std(dims[:,1]).*100;
+s1 = std(dims[:,2]).*100;
+s2 = std(dims[:,3]).*100;
+
+plot(vec([1,2,3]),vec([ma, m1,m2]),"ko")
+plot(vec([1,1]), vec([ma+sa, ma-sa]), "k");
+plot(vec([2,2]), vec([m1+s1, m1-s1]), "k");
+plot(vec([3,3]), vec([m2+s2, m2-s2]), "k");
+
+xlim(0,4); 
+ylim(0,100);
+ylabel("Variance Explained %")
+xticks([1,2,3],["Full, 3 PC","Delay, 2 PC","Target, 2 PC"])
+ylabel("Target period V.E")
+xlabel("Delay period V.E")
+
+
+p = results["params"]
+C = cov(p);
+vals, vecs = eig(C);
+totalvar = sum(vals);
+figure()
+plot(vec(collect(1:16)),cumsum(flipdim(vals,1))./totalvar.*100,"k")
+xlabel("Parameter PC")
+ylabel("Variance Explained")
+ylim(0, 100)
+
+
+
+
+
+
+examples,results = load("MiniC32_C32_examples_50.jld","examples","results");
+dex = results["cost"] .<= -0.0001;
+ex = examples[dex,:,:,:,:,:];
+dt = 0.024;
+tvec = vec(collect(0:60).*dt);
+
+function get_index(ex,proanti,hitmiss,opto)
+    choice_dex = zeros(size(ex,1)*size(ex,6), size(ex,5));
+    rule_dex = zeros(size(ex,1)*size(ex,6), size(ex,5));
+
+    count = 1;
+    for i=1:size(ex,1)
+    for j=1:size(ex,6)
+        if (hitmiss & (ex[i,opto,proanti,1,end,j] > ex[i,opto,proanti,4,end,j])) | (!hitmiss & (ex[i,opto,proanti,1,end,j] < ex[i,opto,proanti,4,end,j]));
+        choice_dex[count,:] = ex[i,opto,proanti,1,:,j] - ex[i,opto,proanti,4,:,j] ;
+        rule_dex[count,:] = 0.5.*(ex[i,opto,proanti,1,:,j]+ex[i,opto,proanti,4,:,j])  - 0.5.*(ex[i,opto,proanti,3,:,j] +ex[i,opto,proanti,3,:,j]) ;
+        count +=1;
+        end
+    end
+    end
+    choice_dex = choice_dex[1:count-1,:];
+    rule_dex = rule_dex[1:count-1,:];
+
+    return choice_dex, rule_dex;
+end
+
+choice_dex,     rule_dex    = get_index(ex,1,true,1);
+choice_dexm,    rule_dexm   = get_index(ex,1,false,1);
+choice_dexd,    rule_dexd   = get_index(ex,1,true,2);
+choice_dexdm,   rule_dexdm  = get_index(ex,1,false,2);
+choice_dext,    rule_dext   = get_index(ex,1,true,3);
+choice_dextm,   rule_dextm  = get_index(ex,1,false,3);
+achoice_dex,    arule_dex   = get_index(ex,2,true,1);
+achoice_dexm,   arule_dexm  = get_index(ex,2,false,1);
+achoice_dexd,   arule_dexd  = get_index(ex,2,true,2);
+achoice_dexdm,  arule_dexdm = get_index(ex,2,false,2);
+achoice_dext,   arule_dext  = get_index(ex,2,true,3);
+achoice_dextm,  arule_dextm = get_index(ex,2,false,3);
+
+# Choice index strength is roughly same for pro and anti
+figure();
+plot(tvec,vec(mean(choice_dex,1)),"k")
+plot(tvec,vec(-mean(choice_dexm,1)),"k--")
+plot(tvec,vec(mean(achoice_dex,1)),"r")
+plot(tvec,vec(-mean(achoice_dexm,1)),"r--")
+ylabel("Choice Index")
+xlabel("Time")
+ylim(-.7 , .7)
+xlim(0, 1.5)
+
+# Rule index is stronger for anti, and persists during choice period
+figure();
+plot(tvec,vec(mean(rule_dex,1)),"k")
+plot(tvec,vec(mean(rule_dexm,1)),"k--")
+plot(tvec,vec(-mean(arule_dex,1)),"r")
+plot(tvec,vec(-mean(arule_dexm,1)),"r--")
+ylabel("Rule Index")
+xlabel("Time")
+ylim(0 , .4)
+xlim(0, 1.5)
+
+# Delay inactivation selectively disrupts anti rule encoding 
+figure();
+plot(tvec,vec(mean(rule_dexd,1)),"k")
+plot(tvec,vec(mean(rule_dexdm,1)),"k--")
+plot(tvec,vec(-mean(arule_dexd,1)),"r")
+plot(tvec,vec(-mean(arule_dexdm,1)),"r--")
+ylabel("Rule Index")
+xlabel("Time")
+ylim(0 , .4)
+xlim(0, 1.5)
+
+# Choice inactivation does not disrupt anti rule encoding 
+figure();
+plot(tvec,vec(mean(rule_dext,1)),"k")
+plot(tvec,vec(mean(rule_dextm,1)),"k--")
+plot(tvec,vec(-mean(arule_dext,1)),"r")
+plot(tvec,vec(-mean(arule_dextm,1)),"r--")
+ylabel("Rule Index")
+xlabel("Time")
+ylim(0 , .4)
+xlim(0, 1.5)
+
+
+
+
+
+
+figure();
+plot(tvec,vec(mean(choice_dexd,1)),"b")
+plot(tvec,vec(mean(choice_dexdm,1)),"b--")
+plot(tvec,vec(mean(choice_dext,1)),"r")
+plot(tvec,vec(mean(choice_dextm,1)),"r--")
+plot(tvec,vec(mean(choice_dex,1)),"k")
+plot(tvec,vec(mean(choice_dexm,1)),"k--")
+plot(vec([1 1]), vec([-.7 .7]),"k")
+plot(vec([tvec[1] tvec[end]]), vec([0 0]),"k")
+ylabel("Choice Index")
+xlabel("Time")
+ylim(-.7 , .7)
+
+figure();
+plot(tvec,vec(mean(rule_dexd,1)),"b")
+plot(tvec,vec(mean(rule_dexdm,1)),"b--")
+plot(tvec,vec(mean(rule_dext,1)),"r")
+plot(tvec,vec(mean(rule_dextm,1)),"r--")
+plot(tvec,vec(mean(rule_dex,1)),"k")
+plot(tvec,vec(mean(rule_dexm,1)),"k--")
+plot(vec([1 1]), vec([-.7 .7]),"k")
+plot(vec([tvec[1] tvec[end]]), vec([0 0]),"k")
+ylabel("Rule Index")
+xlabel("Time")
+ylim(-.7 , .7)
+
+figure();
+plot(tvec,vec(mean(choice_dexd,1)),"b")
+plot(tvec,vec(mean(choice_dexdm,1)),"b--")
+plot(tvec,vec(mean(choice_dext,1)),"r")
+plot(tvec,vec(mean(choice_dextm,1)),"r--")
+plot(tvec,vec(mean(choice_dex,1)),"k")
+plot(tvec,vec(mean(choice_dexm,1)),"k--")
+plot(vec([1 1]), vec([-.7 .7]),"k")
+plot(vec([tvec[1] tvec[end]]), vec([0 0]),"k")
+ylabel("Choice Index")
+xlabel("Time")
+ylim(-.7 , .7)
+
+figure();
+plot(tvec,vec(mean(rule_dexd,1)),"b")
+plot(tvec,vec(mean(rule_dexdm,1)),"b--")
+plot(tvec,vec(mean(rule_dext,1)),"r")
+plot(tvec,vec(mean(rule_dextm,1)),"r--")
+plot(tvec,vec(mean(rule_dex,1)),"k")
+plot(tvec,vec(mean(rule_dexm,1)),"k--")
+plot(vec([1 1]), vec([-.7 .7]),"k")
+plot(vec([tvec[1] tvec[end]]), vec([0 0]),"k")
+ylabel("Rule Index")
+xlabel("Time")
+ylim(-.7 , .7)
+
+
+
+
 
