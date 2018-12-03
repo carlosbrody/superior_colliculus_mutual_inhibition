@@ -1,6 +1,42 @@
 include("svd_cluster.jl")
 using MAT
 
+
+function full_trial_inactivation(farm_id, farmdir; testruns=10000)
+farmfilejld = farmdir*"_"*farm_id*"_full_trial_inactivation.jld";
+# load results
+results = load_farm_cost_filter("C32", "MiniC32"; threshold = -0.0001)
+new_opto = ["trial_start" "trial_end"; "trial_start" "target_start-0.4"];
+# Iterate over every farm,
+# save accuracy pro/anti x 2 opto conditions
+output = zeros(length(results["files"]), 2, 2);
+for i=1:length(results["files"])
+    println(string(i)*"/"*string(length(results["files"])))
+    # get stuff for this farm
+    filename = results["files"][i];
+    mypars, extra_pars, args, pars3 = load(filename, "mypars", "extra_pars", "args", "pars3");
+    # run each condition
+    for j=1:2
+        these_pars = merge(mypars, extra_pars);
+        these_pars = merge(these_pars, Dict(
+        :opto_times=>reshape(new_opto[j,:], 1, 2),
+        :rule_and_delay_period=>these_pars[:rule_and_delay_periods][1], 
+        :target_period=>these_pars[:target_periods][1], 
+        :post_target_period=>these_pars[:post_target_periods][1]));
+        proVs, antiVs, pfull, afull = run_ntrials(testruns, testruns; plot_list=[1:10;], plot_Us=false,
+            merge(make_dict(args, pars3, these_pars), Dict())...); 
+        hitsP  = 0.5*(1 + tanh.((proVs[1,:]-proVs[4,:,])/0.05));
+        hitsA  = 0.5*(1 + tanh.((antiVs[4,:]-antiVs[1,:,])/0.05));
+        # save each condition
+        output[i,j,1] = mean(hitsP);
+        output[i,j,2] = mean(hitsA);
+    end 
+end
+# return everything for plotting
+save(farmfilejld, Dict("output"=>output,"results_output"=>results))
+end
+
+
 function cluster_example_trajectories(farm_id, farmdir; threshold=-0.00025,testruns=10,num_steps=76)
 
 farmfilemat = farmdir*"_"*farm_id*"_examples_50.mat";

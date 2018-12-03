@@ -170,6 +170,117 @@ sortrows([abs(dvec) args])
 dprime = (mean(uni_proj) - mean(non_proj))./sqrt(.5*(var(uni_proj) + var(non_proj)));
 ### just making figures
 
+#making psychometric
+results = load_farm_cost_filter("C32", "MiniC32"; threshold = -0.0001)
+output = plot_psychometric(results, plot_only=Inf, hit_type="standard",backend_mode=true)
+full_output = load("MiniC32_C32_full_trial_inactivation.jld","output");
+
+figure()
+targets = [90 70; 85 50; 90 70];
+plot(vec([1 1.5]), vec([targets[1,1] targets[1,1]]),"k")
+plot(vec([2 2.5]), vec([targets[2,1] targets[2,1]]),"k")
+plot(vec([3 3.5]), vec([targets[3,1] targets[3,1]]),"k")
+plot(vec([1 1.5]), vec([targets[1,2] targets[1,2]]),"r")
+plot(vec([2 2.5]), vec([targets[2,2] targets[2,2]]),"r")
+plot(vec([3 3.5]), vec([targets[3,2] targets[3,2]]),"r")
+meanvec     = mean(output,1)[1,:,:]*100;
+stdvec      = std(output,1)[1,:,:]*100;
+xvec        = vec([1.25 2.25 3.25])
+plot(xvec, meanvec[:,1],"ko")
+plot(xvec, meanvec[:,2],"ro")
+plotm       = zeros(3,2);
+plotm[:,1]  = meanvec[:,1]+1.96*stdvec[:,1];
+plotm[:,2]  = meanvec[:,1]-1.96*stdvec[:,1];
+plot(repmat(xvec,1,2)', plotm',"k")
+plotm[:,1]  = meanvec[:,2]+1.96*stdvec[:,2];
+plotm[:,2]  = meanvec[:,2]-1.96*stdvec[:,2];
+plot(repmat(xvec,1,2)', plotm',"r")
+ylim([40, 100])
+xlim([.8, 3.7]);
+ylabel("Accuracy %")
+xlabel("Opto Condition")
+xticks([1.25, 2.25, 3.25], ["Control", "Delay", "Choice"])
+# Making psychometric with relative error increase
+## Delay period
+targets = [90 70; 85 50; 90 70];
+diff_targets = [5 20; 0 0];
+mean_diff_pro_delay = mean(output[:,2,1] - output[:,1,1]).*-100;
+mean_diff_anti_delay = mean(output[:,2,2] - output[:,1,2]).*-100;
+std_diff_pro_delay = std(output[:,2,1] - output[:,1,1]).*-100;
+std_diff_anti_delay = std(output[:,2,2] - output[:,1,2]).*-100;
+figure()
+plot(vec([1 1.5]), vec([diff_targets[1,1] diff_targets[1,1]]),"k")
+plot(vec([2 2.5]), vec([diff_targets[1,2] diff_targets[1,2]]),"k")
+plot(vec([1.25]), mean_diff_pro_delay, "go")
+plot(vec([2.25]), mean_diff_anti_delay, "ro")
+plot(vec([1.25 1.25]), vec([mean_diff_pro_delay + 1.96*[-std_diff_pro_delay, std_diff_pro_delay]][1]),"g")
+plot(vec([2.25 2.25]), vec([mean_diff_anti_delay + 1.96*[-std_diff_anti_delay, std_diff_anti_delay]][1]),"r")
+plot(vec([0 3]), vec([0 0]), "k")
+ylim(-5, 25)
+xlim(0.5, 3)
+ylabel("% Error Increase")
+xlabel("Delay")
+xticks([1.25, 2.25], ["Pro", "Anti"])
+## Choice period
+mean_diff_pro_choice = mean(output[:,3,1] - output[:,1,1]).*-100;
+mean_diff_anti_choice = mean(output[:,3,2] - output[:,1,2]).*-100;
+std_diff_pro_choice = std(output[:,3,1] - output[:,1,1]).*-100;
+std_diff_anti_choice = std(output[:,3,2] - output[:,1,2]).*-100;
+figure()
+plot(vec([1 1.5]), vec([diff_targets[2,1] diff_targets[2,1]]),"k")
+plot(vec([2 2.5]), vec([diff_targets[2,2] diff_targets[2,2]]),"k")
+plot(vec([1.25]), mean_diff_pro_choice, "go")
+plot(vec([2.25]), mean_diff_anti_choice, "ro")
+plot(vec([1.25 1.25]), vec([mean_diff_pro_choice + 1.96*[-std_diff_pro_choice, std_diff_pro_choice]][1]),"g")
+plot(vec([2.25 2.25]), vec([mean_diff_anti_choice + 1.96*[-std_diff_anti_choice, std_diff_anti_choice]][1]),"r")
+plot(vec([0 3]), vec([0 0]), "k")
+ylim(-5, 25)
+xlim(0.5, 3)
+ylabel("% Error Increase")
+xlabel("Choice")
+xticks([1.25, 2.25], ["Pro", "Anti"])
+## Full Trial
+mean_diff_pro_full = mean(full_output[:,1,1]    - output[:,1,1]).*-100;
+mean_diff_anti_full = mean(full_output[:,1,2]   - output[:,1,2]).*-100;
+std_diff_pro_full = std(full_output[:,1,1]      - output[:,1,1]).*-100;
+std_diff_anti_full = std(full_output[:,1,2]     - output[:,1,2]).*-100;
+figure()
+plot(vec([1.25]), mean_diff_pro_full, "go")
+plot(vec([2.25]), mean_diff_anti_full, "ro")
+plot(vec([1.25 1.25]), vec([mean_diff_pro_full  + 1.96*[-std_diff_pro_full,  std_diff_pro_full]][1]),"g")
+plot(vec([2.25 2.25]), vec([mean_diff_anti_full + 1.96*[-std_diff_anti_full, std_diff_anti_full]][1]),"r")
+plot(vec([0 3]), vec([0 0]), "k")
+ylim(-5, 25)
+xlim(0.5, 3)
+ylabel("% Error Increase")
+xlabel("Full trial")
+xticks([1.25, 2.25], ["Pro", "Anti"])
+## Rule period
+mean_diff_pro_rule = mean(full_output[:,2,1]    - output[:,1,1]).*-100;
+mean_diff_anti_rule = mean(full_output[:,2,2]   - output[:,1,2]).*-100;
+std_diff_pro_rule = std(full_output[:,2,1]      - output[:,1,1]).*-100;
+std_diff_anti_rule = std(full_output[:,2,2]     - output[:,1,2]).*-100;
+figure()
+plot(vec([1.25]), mean_diff_pro_rule, "go")
+plot(vec([2.25]), mean_diff_anti_rule, "ro")
+plot(vec([1.25 1.25]), vec([mean_diff_pro_rule  + 1.96*[-std_diff_pro_rule,  std_diff_pro_rule]][1]),"g")
+plot(vec([2.25 2.25]), vec([mean_diff_anti_rule + 1.96*[-std_diff_anti_rule, std_diff_anti_rule]][1]),"r")
+plot(vec([0 3]), vec([0 0]), "k")
+ylim(-5, 25)
+xlim(0.5, 3)
+ylabel("% Error Increase")
+xlabel("Task cue")
+xticks([1.25, 2.25], ["Pro", "Anti"])
+
+
+
+
+
+
+
+
+
+# variance explained delay period vs target period top 2 dims
 figure()
 plot(dims[:,2].*100,dims[:,3].*100,"ko")
 xlim(0,100); ylim(0,100);
@@ -177,12 +288,12 @@ ylabel("Target period V.E")
 xlabel("Delay period V.E")
 
 
+# bar plot version top two dims
 figure()
 m1 = mean(dims[:,2]).*100;
 m2 = mean(dims[:,3]).*100;
 s1 = std(dims[:,2]).*100;
 s2 = std(dims[:,3]).*100;
-
 plot(m1,m2,"ko")
 plot(vec([m1 m1]), vec([m2-s2 m2+s2]),"k")
 plot(vec([m1-s1 m1+s1]), vec([m2 m2]),"k")
@@ -190,6 +301,7 @@ xlim(0,100); ylim(0,100);
 ylabel("Target period V.E")
 xlabel("Delay period V.E")
 
+# bar plot with full trial in 3 dims, each epoch in 2 dims
 figure()
 ma = mean(dims[:,1]).*100;
 m1 = mean(dims[:,2]).*100;
@@ -197,12 +309,10 @@ m2 = mean(dims[:,3]).*100;
 sa = std(dims[:,1]).*100;
 s1 = std(dims[:,2]).*100;
 s2 = std(dims[:,3]).*100;
-
 plot(vec([1,2,3]),vec([ma, m1,m2]),"ko")
 plot(vec([1,1]), vec([ma+sa, ma-sa]), "k");
 plot(vec([2,2]), vec([m1+s1, m1-s1]), "k");
 plot(vec([3,3]), vec([m2+s2, m2-s2]), "k");
-
 xlim(0,4); 
 ylim(0,100);
 ylabel("Variance Explained %")
@@ -210,7 +320,7 @@ xticks([1,2,3],["Full, 3 PC","Delay, 2 PC","Target, 2 PC"])
 ylabel("Target period V.E")
 xlabel("Delay period V.E")
 
-
+# variance explained across parameter dimensions
 p = results["params"]
 C = cov(p);
 vals, vecs = eig(C);
@@ -222,13 +332,12 @@ ylabel("Variance Explained")
 ylim(0, 100)
 
 
-
-
-
-
+# make index plots
 examples,results = load("MiniC32_C32_examples_50.jld","examples","results");
+examplesS = get_synthetic_LR_trials(examples);
 dex = results["cost"] .<= -0.0001;
 ex = examples[dex,:,:,:,:,:];
+exS = examplesS[dex,:,:,:,:,:];
 dt = 0.024;
 tvec = vec(collect(0:60).*dt);
 
@@ -252,6 +361,7 @@ function get_index(ex,proanti,hitmiss,opto)
     return choice_dex, rule_dex;
 end
 
+
 choice_dex,     rule_dex    = get_index(ex,1,true,1);
 choice_dexm,    rule_dexm   = get_index(ex,1,false,1);
 choice_dexd,    rule_dexd   = get_index(ex,1,true,2);
@@ -271,6 +381,10 @@ plot(tvec,vec(mean(choice_dex,1)),"k")
 plot(tvec,vec(-mean(choice_dexm,1)),"k--")
 plot(tvec,vec(mean(achoice_dex,1)),"r")
 plot(tvec,vec(-mean(achoice_dexm,1)),"r--")
+#plot_error(tvec, vec(mean(choice_dex,1)), vec(std(choice_dex,1)),"k")
+#plot_error(tvec, vec(-mean(choice_dexm,1)), vec(std(choice_dexm,1)),"k--")
+#plot_error(tvec, vec(mean(achoice_dex,1)), vec(std(achoice_dex,1)),"r")
+#plot_error(tvec, vec(-mean(achoice_dexm,1)), vec(std(achoice_dexm,1)),"r--")
 ylabel("Choice Index")
 xlabel("Time")
 ylim(-.7 , .7)
@@ -368,5 +482,92 @@ ylim(-.7 , .7)
 
 
 
+
+function get_dprime_choice(ex, proanti, hitmiss, opto)
+    # proanti: 1 = pro, 2 = anti
+    # hitmss: true = hit?
+    # opto: 1 is control, 2 delay opto, 3 target opto
+    choice_d = zeros(size(ex,1), size(ex,5));
+#    rule_d   = zeros(size(ex,1), size(ex,5));
+
+    # dprime = (m_1 - m_2) /sqrt(0.5*(s2_1+s2_2 ))
+    for i=1:size(ex,1)
+        choice_dex = ex[i,opto,proanti,1,end,:] .> ex[i,opto,proanti,4,end,:];
+        hit_dex    = copy(choice_dex);
+        hit_dex[26:end] = .!hit_dex[26:end];
+        dex = choice_dex .& hit_dex;
+        muR = mean(ex[i,opto,proanti,1,:,dex] - ex[i,opto,proanti,4,:,dex],2);
+        muL = mean(ex[i,opto,proanti,1,:,.!dex] - ex[i,opto,proanti,4,:,.!dex],2);
+        varR= var(ex[i,opto,proanti,1,:,dex] - ex[i,opto,proanti,4,:,dex],2);
+        varL= var(ex[i,opto,proanti,1,:,.!dex] - ex[i,opto,proanti,4,:,.!dex],2);
+        choice_d[i,:] = (muR - muL) ./ (0.5.*sqrt.(varR+varL) );
+    end    
+    return choice_d
+end
+
+function plot_error(tvec, xvec, stdvec, color_string)
+    plot(tvec, xvec-stdvec, color_string)
+    plot(tvec, xvec+stdvec, color_string)
+end
+
+choice_d = get_dprime_choice(exS,1,true,1);
+choice_dm= get_dprime_choice(exS,1,false,1);
+choice_da = get_dprime_choice(exS,2,true,1);
+choice_dam= get_dprime_choice(exS,2,false,1);
+good_dex = choice_d[:,end] .< 50;
+figure();
+plot(tvec, vec(mean(choice_d[good_dex,:],1)), "k")
+plot_error(tvec,vec(mean(choice_d[good_dex,:],1)), vec(std(choice_d[good_dex,:],1)),"k")
+
+figure();
+good_dex = choice_dm[:,end] .< 50;
+plot(tvec, vec(mean(choice_dm[good_dex,:],1)), "k--")
+plot_error(tvec,vec(mean(choice_dm[good_dex,:],1)), vec(std(choice_dm[good_dex,:],1)),"k--")
+
+figure();
+good_dex = choice_da[:,end] .< 500000;
+plot(tvec, vec(mean(choice_da[good_dex,:],1)), "r")
+plot_error(tvec,vec(mean(choice_da[good_dex,:],1)), vec(std(choice_da[good_dex,:],1)),"r")
+
+figure();
+good_dex = choice_dam[:,end] .< 5000000;
+plot(tvec, vec(mean(choice_dam[good_dex,:],1)), "r--")
+plot_error(tvec,vec(mean(choice_dam[good_dex,:],1)), vec(std(choice_dam[good_dex,:],1)),"r--")
+
+figure()
+good_dexp = choice_d[:,end] .< 50;
+good_dexa = choice_da[:,end] .< 50;
+big_choice = [choice_d[good_dexp,:]; choice_da[good_dexa,:]];
+plot(tvec, vec(mean(big_choice,1)), "k")
+plot_error(tvec,vec(mean(big_choice,1)), vec(std(big_choice,1)),"k")
+ylabel("Choice d'")
+xlabel("Time")
+plot(vec([tvec[1] tvec[end]]), vec([0 0]),"k")
+
+
+
+
+
+function get_dprime_rule(ex, proanti, hitmiss, opto)
+    # proanti: 1 = pro, 2 = anti
+    # hitmss: true = hit?
+    # opto: 1 is control, 2 delay opto, 3 target opto
+#    choice_d = zeros(size(ex,1), size(ex,5));
+    rule_d   = zeros(size(ex,1), size(ex,5));
+
+    # dprime = (m_1 - m_2) /sqrt(0.5*(s2_1+s2_2 ))
+    for i=1:size(ex,1)
+        choice_dex = ex[i,opto,proanti,1,end,:] .> ex[i,opto,proanti,4,end,:];
+        hit_dex    = copy(choice_dex);
+        hit_dex[26:end] = .!hit_dex[26:end];
+        dex = choice_dex .& hit_dex;
+        muR = mean(ex[i,opto,proanti,1,:,dex] - ex[i,opto,proanti,4,:,dex],2);
+        muL = mean(ex[i,opto,proanti,1,:,.!dex] - ex[i,opto,proanti,4,:,.!dex],2);
+        varR= var(ex[i,opto,proanti,1,:,dex] - ex[i,opto,proanti,4,:,dex],2);
+        varL= var(ex[i,opto,proanti,1,:,.!dex] - ex[i,opto,proanti,4,:,.!dex],2);
+        choice_d[i,:] = (muR - muL) ./ (0.5.*sqrt.(varR+varL) );
+    end    
+    return choice_d
+end
 
 
