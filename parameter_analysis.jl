@@ -159,7 +159,7 @@ OPTIONAL INPUTS
     plot_only,      only plot this many farms. Plotting is slow due to file loading, so this is useful for debugging
 
 """
-function plot_psychometric(results; hit_type="standard", color_clusters=false, cluster_ids=[],minidir=true, plot_only = 10, variable_delays=false,num_delays=4)
+function plot_psychometric(results; hit_type="standard", color_clusters=false, cluster_ids=[],minidir=true, plot_only = 10, variable_delays=false,num_delays=4,backend_mode=false)
     println("this function is slow because I have to load many files...")
     println("set plot_only = 10 to plot a smaller number of files")
 
@@ -187,6 +187,7 @@ function plot_psychometric(results; hit_type="standard", color_clusters=false, c
 
     # get list of farms from results
     num2plot = Int64(minimum([length(results["files"]), plot_only]));
+    output = zeros(num2plot,3,2);
     for i=1:num2plot
         if rem(i, 50) == 0
             println(i)
@@ -218,15 +219,19 @@ function plot_psychometric(results; hit_type="standard", color_clusters=false, c
             plot(xvals, P.*100, "ko")
             plot(xvals, A.*100, "rx")
         else
-            plot(vec([1 2 3]), P.*100, "ko")
-            plot(vec([1 2 3]), A.*100, "rx")
+            plot(vec([1.25 2.25 3.25]), P.*100, "ko")
+            plot(vec([1.25 2.25 3.25]), A.*100, "ro")
         end
-
+        output[i,:,1] = P[:,1];
+        output[i,:,2] = A[:,1];
     end
-    ylim([0, 100])
+    ylim([40, 100])
     xlim([.8, 3.7]);
     ylabel("Accuracy %")
     xlabel("Opto Condition")
     title(results["dirs"][1]*"--"*hit_type)
     xticks([1.25, 2.25, 3.25], ["Control", "Delay", "Choice"])
+    if backend_mode
+        return output
+    end
 end
