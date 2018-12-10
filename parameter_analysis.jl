@@ -5,7 +5,7 @@
 #   scatter_by_arg()
 #   histo_params_by_cluster()
 #   plot_psychometric()
-#
+#   
 #
 #
 #
@@ -37,11 +37,13 @@
 """
 function scatter_by_arg(results, args, arg1,arg2; fignum=1, cluster_ids=[])
 
+
     # check for clustering
     clustering = !isempty(cluster_ids);
 
     if !clustering
-        scatter_by_arg_backend(results, args, arg1, arg2; fignum=fignum);
+        fig = scatter_by_arg_backend(results, args, arg1, arg2; fignum=fignum);
+        return fig
     else
         all_colors = "bgrcmyk";
         # iterate over clusters
@@ -82,7 +84,7 @@ function scatter_by_arg_backend(results, args, arg1, arg2; fignum=1, color="k", 
     end
 
     # open figure
-    figure(fignum)
+    fig = figure(figsize=(5.75,5))
 
     # get the parameters we want
     x = results["params"][:,index1];
@@ -105,9 +107,12 @@ function scatter_by_arg_backend(results, args, arg1, arg2; fignum=1, color="k", 
     # scatter the parameters
     plot(x,y, "o",color=color);
 
-    ylabel(arg2)
-    xlabel(arg1)
+    ylabel(arg2,fontsize=12)
+    xlabel(arg1,fontsize=12)
+    xticks([-3, -2, -1, 0, 1, 2, 3],("-3", "-2", "-1", "0", "1", "2", "3"),fontsize=12)
+    yticks([-3, -2, -1, 0, 1, 2, 3],("-3", "-2", "-1", "0", "1", "2", "3"),fontsize=12)
 
+    return fig
 end
 
 
@@ -235,3 +240,118 @@ function plot_psychometric(results; hit_type="standard", color_clusters=false, c
         return output
     end
 end
+
+
+
+
+
+"""
+HD = histo_params(args, params, tcosts, costs, files; fignum=1, nbins=10)
+
+This is the function that makes the nice histogram plot for the paper
+
+Histogram each parameter. params should be nentries-by-length(args) in size.
+args should be a vector of strings. tcosts and costs should be nentries in length,
+and represent trainig cost, and test cost, respectively. files should be a vector
+of filenames.
+
+# OPTIONAL PARAMS
+
+- fignum   The figure in which histograms will be plotted.
+
+- nbins    The number of bins to use in each histogram.
+
+"""
+function histo_params_2_internal(args, params, tcosts, costs, files; fignum=1, nbins=10, linewidth=3)
+
+    pygui(true)
+    close(fignum); 
+    fig=figure(fignum,figsize=(12,12)); 
+    
+    HD = histo_data([], [], [], [], [])
+
+    nparams = size(params,2)
+    nrows = ceil(nparams/4)
+
+    for i=1:nparams;
+        HD.axisHandles = [HD.axisHandles ; subplot(nrows,4,i)]; 
+        plt[:hist](params[:,i], nbins)
+        meanp = mean(params[:,i]);
+        y = ylim();
+        plot(vec([0 0]), vec([y[1] y[2]*1.1]), "k--")
+        #plot(meanp, ylim()[2]*1.05,"rv",markersize=10);
+        plot(meanp, y[2].*1.05,"rv",markersize=10);
+        title(args[i])
+        
+        myrow = ceil(i/4)
+        if myrow < (nrows+1)/2;     axisHeightChange(0.8, lock="t")
+        elseif myrow > (nrows+1)/2; axisHeightChange(0.8, lock="b")
+        else                        axisHeightChange(0.8, lock="c")
+        end    
+    end
+
+ #   HD.axisHandles = [HD.axisHandles ; subplot(nrows, 2, nrows*2-1)]; axisHeightChange(0.8, lock="b"); 
+ #   axisMove(0, -0.025); plt[:hist](tcosts*1000, nbins); title("training cost*1000")
+
+#    HD.axisHandles = [HD.axisHandles ; subplot(nrows, 2, nrows*2)];   axisHeightChange(0.8, lock="b"); 
+#    axisMove(0, -0.025); plt[:hist](costs*1000, nbins); title("test cost*1000")
+
+  #  for ax in HD.axisHandles
+  #      safe_axes(ax)
+  #      h = plot([0 0 0 ; 0 0 0], [ylim()[1] ; ylim()[2]]*ones(1,3), visible=false, linewidth=linewidth)
+  #      h[1][:set_color]("m"); h[2][:set_color]("b"); h[3][:set_color]("c")
+  #      HD.LineHandles = [HD.LineHandles ; reshape(h[end:-1:1], 1, 3)]
+  #  end
+    
+    args   = [args ; ["train cost" ; "test cost"]]
+    params = [params tcosts*1000 costs*1000]
+    
+    HD.names  = args
+    HD.values = params
+    HD.files  = files
+    fig[:subplots_adjust](wspace=.25,hspace=0.5)   
+ 
+    return HD,fig
+end
+
+
+"""
+    histo_params(res; threshold=-0.0001, further_params...)
+
+I'm not sure this every got used
+
+Wrapper that calls the other histo_params method, after first selecting for
+only  runs that have a test cost less than threshold.  further_params are passed
+on to the other histo_params method.
+
+- threshold             training costs below this value are considered "successful" (red dots), 
+                        above it are "unsuccessful" (blue dots)
+
+- cost_choice           String, used to indicate which cost will be used for thresholding. It 
+                        must be either "cost", indicating the testing cost, or "tcost", the training cost. 
+
+- fignum                The figure in which histograms will be plotted.
+
+- nbins                 The number of bins to use in each histogram.
+
+
+"""
+function histo_params_2(res; threshold=-0.0001, cost_choice="cost", further_params...)
+    args   = res["args"]
+    params = res["params"]
+    tcost  = res["tcost"]
+    cost   = res["cost"]
+    files  = res["files"]
+    
+    if cost_choice=="cost"
+        I = find(cost.<threshold)
+    elseif cost_choice=="tcost"
+        I = find(tcost.<threshold)
+    else
+        error("cost_choice MUST be one of \"tcost\" or \"cost\"")
+    end
+    
+    return histo_params(args, params[I,:], tcost[I], cost[I], files[I,:]; Dict(further_params)...)
+end
+
+

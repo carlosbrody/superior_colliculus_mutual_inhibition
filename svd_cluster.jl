@@ -670,7 +670,8 @@ function SVD_interactive(farm_id;farmdir="MiniFarms", threshold =-0.0002, plot_o
             display_encoding(encoding, error_types, index[1])
             end
             if plot_option == 1
-                plot_farm(filename)
+            #    plot_farm(filename)
+                plot_farm_figure(filename);
             else
                 plot_farm2(filename)
             end
@@ -678,18 +679,22 @@ function SVD_interactive(farm_id;farmdir="MiniFarms", threshold =-0.0002, plot_o
     
         end   
         pygui(true)
-        BP = install_nearest_point_callback(figure(100), mycallback)
+        BP = install_nearest_point_callback(figure(100,figsize=(6,5.5)), mycallback)
+#        xlim(-.1, .125)
+#        ylim(-.125,.125)
+        xticks([-.1, -.05, 0, 0.05, .1],("-0.10","-0.05","0","0.05","0.10"),fontsize=12)
+        yticks([-.1, -.05, 0, 0.05, .1],("-0.10","-0.05","0","0.05","0.10"),fontsize=12)
         if plot_bad_farms
             plot(u[:,1],u[:,2],"bo")
         end
 
-        title("SVD U columns 1 and 2")
-        ylabel("SVD Dim 2")
-        xlabel("SVD Dim 1")      
+#        title("SVD U columns 1 and 2")
+        ylabel("SVD Dimension 2",fontsize=16)
+        xlabel("SVD Dimension 1",fontsize=16)      
 
         # plot each cluster in a different color
         if !color_clusters
-            plot(u1good, u2good, "ro")
+            plot(u1good, u2good, "ko")
         else
             all_colors = "bgrcmyk"
             ids = sort(unique(cluster_ids_copy))
@@ -1361,11 +1366,13 @@ function plot_PCA(farm_id; farmdir="MiniOptimized", opto_conditions = 3, compute
         if uni_clusters
             all_colors = "gbrcmyk";
         end
+        if color_clusters
         if !isnan(cluster_ids_copy[i])
             hessians[i,:,:,] = hessians[i,:,:].*sfsf;
             pcaHess[i,:,:] = scalevecs*hessians[i,:,:]*scalevecs';
             this_color = string(all_colors[Int64(cluster_ids_copy[i])])
             plot_ellipse(paramx[:,i],pcaHess[i,:,:],deltaCost,fignum;color = this_color)
+        end
         end
     end
     xlabel("PCA Dim 1")
@@ -2021,3 +2028,105 @@ function load_farm_cost_filter(farmid, farmdir; threshold=-0.0002, cost_choice="
     # return filtered matrix
     return r1
 end 
+
+
+# This is the plot-farm function that is used to generate all the plots used in the paper. 
+function plot_farm_figure(filename; testruns=nothing, fignum=3, overrideDict=Dict())
+
+    if testruns == nothing; testruns = plot_farm_trials; end
+
+    mypars, extra_pars, args, pars3 = load(filename, "mypars", "extra_pars", "args", "pars3")
+
+    pygui(true)
+    fig = figure(figsize=(12,8));  
+    pstrings = ["No Inactivation", "Delay Inactivation", "Choice Inactivation"];
+    p2strings = ["Pro \\ Target Left", "Anti \\ Target Left"];
+    cProvall = [];
+    cAntivall = [];
+    for period = 1:3
+        these_pars = merge(mypars, extra_pars);
+        these_pars = merge(these_pars, Dict(
+        # :opto_strength=>0.3, 
+        :opto_times=>reshape(extra_pars[:opto_periods][period,:], 1, 2),
+        # :opto_times=>["target_start-0.4" "target_start"],
+        # :opto_times=>["target_start" "target_end"],
+        # :post_target_period=>0.3,
+        # :rule_and_delay_period=>1.2,
+        # :dt=>0.005,
+        ))
+
+        # The plot_list should be the one we give it below, not whatever was in the stored parameters
+        delete!(these_pars, :plot_list)
+        proVs, antiVs,proVall, antiVall = run_ntrials(testruns, testruns; merge(make_dict(args, pars3, these_pars), overrideDict)...);
+        tvec = collect(0:these_pars[:dt]:(these_pars[:rule_and_delay_period]+these_pars[:target_period]));
+        tp = these_pars[:rule_and_delay_period];
+        pvax = subplot(3,2,period+period-1);   
+            title("Pro \\ Stimulus Left \n "*pstrings[period],fontsize=12)
+            plot(tvec, proVall[2,:,:], color=(253/255,137/255, 57/255));
+            plot(tvec, proVall[3,:,:], color=(253/255,200/255,100/255));
+            plot(tvec, proVall[1,:,:], color=(0/255,  128/255,  0/255));
+            plot(tvec, proVall[4,:,:], color=(100/255,200/255,100/255));
+            plot(vec([tp tp]), vec([0,1]), color=(179/255, 179/255, 179/255));
+            plot(vec([0 tvec[end]]), vec([0,0]), color=(179/255, 179/255, 179/255));
+            ylabel("Activation",fontsize=12)
+            xlabel("Time",fontsize=12)
+            xticks([0, 0.5, 1, 1.5],("0","0.5","1","1.5"),fontsize=12)
+            yticks([0, 0.5, 1],("0","0.5","1"),fontsize=12)
+            ylim(-0.01,1)
+            xlim(0,tvec[end])
+        avax = subplot(3,2,period*2);          
+            title("Anti \\ Stimulus Left \n "*pstrings[period],fontsize=12)       
+            plot(tvec, antiVall[2,:,:],color=(253/255,136/255,57/255));
+            plot(tvec, antiVall[3,:,:],color=(253/255,200/255,100/255));
+            plot(tvec, antiVall[1,:,:],color=(0/255,128/255,0/255));
+            plot(tvec, antiVall[4,:,:],color=(100/255,200/255,100/255));
+            ylabel("Activation",fontsize=12)
+            xlabel("Time",fontsize=12)
+            plot(vec([tp tp]), vec([0,1]), color=(179/255, 179/255, 179/255))
+            plot(vec([0 tvec[end]]), vec([0,0]), color=(179/255, 179/255, 179/255));
+            xticks([0, 0.5, 1, 1.5],("0","0.5","1","1.5"),fontsize=12)
+            yticks([0, 0.5, 1],("0","0.5","1"),fontsize=12)
+            ylim(-.01,1)
+            xlim(0,tvec[end])
+        if period == 1
+            cProvall = proVall;
+            cAntivall = antiVall;
+        end
+    end
+    fig[:subplots_adjust](hspace = .75,wspace=.75);
+
+
+#    figure();
+#    subplot(1,2,1);
+#    pchoice = abs.(p[1,:,:] - p[4,:,:]);
+#    prule = abs.(0.5.*(p[1,:,:] + p[4,:,:]) - 0.5.*(p[2,:,:] + p[3,:,:]));
+#    achoice = abs.(a[1,:,:] - a[4,:,:]);
+#    arule = abs.(0.5.*(a[1,:,:] + a[4,:,:]) - 0.5.*(a[2,:,:] + a[3,:,:]));
+#    plot(pchoice,"k")
+#    plot(achoice,"r")
+#    subplot(1,2,2);
+#    plot(prule,"k")
+#    plot(arule,"r")
+    return fig  # ,cProvall, cAntivall
+end
+
+# plots the SVD plot of all solutions, and plots the filename solution on it. used in figure 2 A. 
+function get_svd_plot_figure(filename)
+    svd_cord,names = SVD_interactive("C32"; farmdir="MiniC32", threshold=-0.0001, disp_encoding=false, color_clusters = false, backend_mode=true);
+    figure();
+    plot(vec(svd_cord[:,1]), vec(svd_cord[:,2]),"ko")
+    dex = find(names .== filename);
+    plot(vec(svd_cord[dex,1]), vec(svd_cord[dex,2]),"ro")
+end
+
+# plots the scatter plot of vw_pa against dw_pa, and plots the filename solution on it. Used in figure 2 C
+function get_parameter_plot_figure(filename)
+    results = load_farm_cost_filter("C32", "MiniC32"; threshold = -0.0001)
+    f1 = load("MiniC32/farm_C32_Farms_C32_spock-brody01-01_0001.jld")
+    args = f1["args"];
+    scatter_by_arg(results, args, "vW_PA", "dW_PA");
+    dex = find(results["files"] .== filename);
+    plot(vec(results["params"][dex, 16]), vec(results["params"][dex, 10]),"ro")
+end
+
+

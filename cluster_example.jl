@@ -1,12 +1,12 @@
 include("svd_cluster.jl")
 using MAT
 
-
+# simulates full trial inactivation
 function full_trial_inactivation(farm_id, farmdir; testruns=10000)
-farmfilejld = farmdir*"_"*farm_id*"_full_trial_inactivation.jld";
+farmfilejld = farmdir*"_"*farm_id*"_full_trial_inactivation_2.jld";
 # load results
 results = load_farm_cost_filter("C32", "MiniC32"; threshold = -0.0001)
-new_opto = ["trial_start" "trial_end"; "trial_start" "target_start-0.4"];
+new_opto = ["trial_start" "trial_end"; "trial_start" "trial_start+0.4"];
 # Iterate over every farm,
 # save accuracy pro/anti x 2 opto conditions
 output = zeros(length(results["files"]), 2, 2);
@@ -20,8 +20,8 @@ for i=1:length(results["files"])
         these_pars = merge(mypars, extra_pars);
         these_pars = merge(these_pars, Dict(
         :opto_times=>reshape(new_opto[j,:], 1, 2),
-        :rule_and_delay_period=>these_pars[:rule_and_delay_periods][1], 
-        :target_period=>these_pars[:target_periods][1], 
+        :rule_and_delay_period=>these_pars[:rule_and_delay_periods][2], 
+        :target_period=>these_pars[:target_periods][2], 
         :post_target_period=>these_pars[:post_target_periods][1]));
         proVs, antiVs, pfull, afull = run_ntrials(testruns, testruns; plot_list=[1:10;], plot_Us=false,
             merge(make_dict(args, pars3, these_pars), Dict())...); 
@@ -36,16 +36,18 @@ end
 save(farmfilejld, Dict("output"=>output,"results_output"=>results))
 end
 
+# has nothing to do with clusters really, but makes example trajectories for each solution. Very useful!
+function cluster_example_trajectories(farm_id, farmdir; threshold=-0.0001,testruns=100,num_steps=75)
 
-function cluster_example_trajectories(farm_id, farmdir; threshold=-0.00025,testruns=10,num_steps=76)
-
-farmfilemat = farmdir*"_"*farm_id*"_examples_50.mat";
-farmfilejld = farmdir*"_"*farm_id*"_examples_50.jld";
+farmfilemat = farmdir*"_"*farm_id*"_examples_50_long.mat";
+farmfilejld = farmdir*"_"*farm_id*"_examples_50_long.jld";
 #farmfilemat = farmdir*"_"*farm_id*"_examples.mat";
 #farmfilejld = farmdir*"_"*farm_id*"_examples.jld";
 
 # load results
-response, results = load(farmdir*"_"*farm_id*"_SVD_response_matrix3.jld", "response","results")
+#response, results = load(farmdir*"_"*farm_id*"_SVD_response_matrix3.jld", "response","results")
+results = load_farm_cost_filter(farm_id, farmdir; threshold = threshold)
+
 
 # load cluster labels
 cluster_info    = load(farmdir*"_"*farm_id*"_clusters.jld")
@@ -68,8 +70,8 @@ for i=1:length(results["files"])
         these_pars = merge(mypars, extra_pars);
         these_pars = merge(these_pars, Dict(
         :opto_times=>reshape(extra_pars[:opto_periods][j,:], 1, 2),
-        :rule_and_delay_period=>these_pars[:rule_and_delay_periods][1], 
-        :target_period=>these_pars[:target_periods][1], 
+        :rule_and_delay_period=>these_pars[:rule_and_delay_periods][2], 
+        :target_period=>these_pars[:target_periods][2], 
         :post_target_period=>these_pars[:post_target_periods][1]));
 
         proVs, antiVs, pfull, afull = run_ntrials(testruns, testruns; plot_list=[1:10;], plot_Us=false,
@@ -87,8 +89,8 @@ save(farmfilejld, Dict("examples"=>examples,"results"=>results, "cluster_ids"=>c
 matwrite(farmfilemat, Dict("examples"=>examples,"results"=>results, "cluster_ids"=>cluster_ids))
 end
 
-# This function computes the PCA dimensions during the rule and delay period, as well as the target period for example trials x. Then it computes the angle between those PCA dimensions and the reference PCAs. 
-function cluster_example_PCA(x; ref1=[], ref2=[],numruns=10)
+# This function computes the PCA dimensions during the rule and delay period, as well as the target period for example trials x. Then it computes the angle between those PCA dimensions and the reference PCAs 
+function cluster_example_PCA(x; ref1=[], ref2=[],numruns=10,return_all=false,limited_delay=false)
     # do total PCA
     a   = copy(x);
     a   = reshape(a,2,4,61*numruns);
@@ -100,9 +102,17 @@ function cluster_example_PCA(x; ref1=[], ref2=[],numruns=10)
     # For each solution, do PCA on the delay period activity and target period separately
     # 1 - 41, rule and delay period
     # 42 - 61, target perioda
+    if limited_delay
+     rd  = x[:,:,21:41,:];   
+    else
     rd  = x[:,:,1:41,:];
+    end
     t   = x[:,:,42:end,:];
-    rd  = reshape(rd,2,4,41*numruns);
+    if limited_delay
+    rd  = reshape(rd,2,4,21*numruns);
+    else
+    rd  = reshape(rd,2,4,41*numruns);   
+    end
     d   = [rd[1,:,:] rd[2,:,:]]
     c   = cov(d');
     valsrd, vecsrd = eig(c);
@@ -134,23 +144,31 @@ function cluster_example_PCA(x; ref1=[], ref2=[],numruns=10)
         r3  = [NaN NaN];
     end
     # Returns the variance explained during the whole trial in top 3 dims, rule_and_delay top 2 dims, target top 2 dims, angle between rd and target spaces, and angles between the reference spaces for rd and target
-    return var_expla[3], var_explrd[2], var_explt[2], r1.*(90/(pi/2)), r2.*(90/(pi/2)),r3.*(90/(pi/2))
+    if return_all
+        return var_expla, var_explrd, var_explt, r1.*(90/(pi/2)), r2.*(90/(pi/2)),r3.*(90/(pi/2))
+    else
+        return var_expla[3], var_explrd[2], var_explt[2], r1.*(90/(pi/2)), r2.*(90/(pi/2)),r3.*(90/(pi/2))
+    end
 end
 
 
 # This function iterates over all examples and computes the top PCA dimensions for the rule and delay period, as well as the target period, and then computes the angle between those dimensions and the reference dimensions. 
-function check_dimensions(examples, results;threshold=-0.0001,ref1=[], ref2=[], numruns=10)
+function check_dimensions(examples, results;threshold=-0.0001,ref1=[], ref2=[], numruns=10,return_all=false,limited_delay=false)
     
     # make index of which solutions to check
     dex = results["cost"] .<= threshold;
 
     # set up space
-    dims = zeros(length(results["cost"]),9);
+    if return_all
+        dims = zeros(length(results["cost"]),18);
+    else
+        dims = zeros(length(results["cost"]),9);
+    end
 
     # Iterate over solutions
     for i=1:length(results["cost"])
         if dex[i]
-            va, v1, v2,r,r2,r3 = cluster_example_PCA(examples[i,1,:,:,:,:];ref1=ref1, ref2=ref2,numruns=numruns);
+            va, v1, v2,r,r2,r3 = cluster_example_PCA(examples[i,1,:,:,:,:];ref1=ref1, ref2=ref2,numruns=numruns,return_all=return_all,limited_delay=limited_delay);
             dims[i,:] = [va v1 v2 r' r2' r3'];
         end
     end
@@ -187,11 +205,10 @@ end
 # This function takes half the example trials and switches them to be left vs right trials. This allows symmetric computation of PCA spaces.
 function get_synthetic_LR_trials(examples)
     new_examples = copy(examples);
-    new_examples[:,:,:,1,:,26:end] = examples[:,:,:,4,:,26:end];
-    new_examples[:,:,:,4,:,26:end] = examples[:,:,:,1,:,26:end];
-    new_examples[:,:,:,2,:,26:end] = examples[:,:,:,3,:,26:end];
-    new_examples[:,:,:,3,:,26:end] = examples[:,:,:,2,:,26:end];
-
+    new_examples[:,:,:,1,:,51:end] = examples[:,:,:,4,:,51:end];
+    new_examples[:,:,:,4,:,51:end] = examples[:,:,:,1,:,51:end];
+    new_examples[:,:,:,2,:,51:end] = examples[:,:,:,3,:,51:end];
+    new_examples[:,:,:,3,:,51:end] = examples[:,:,:,2,:,51:end];
     # only want to switch half
     return new_examples
 end
@@ -199,12 +216,15 @@ end
 
 
 ## This is the top level function that plots dimension analysis
-function plot_dimension_analysis(cluster_ids;threshold=-0.0001, testruns = 50, refseed=13)
+function plot_dimension_analysis(cluster_ids;threshold=-0.0001, testruns = 50, refseed=13,return_all=false,limited_delay=false)
     examples,results = load("MiniC32_C32_examples_50.jld","examples","results");
     examples = get_synthetic_LR_trials(examples);
     ref1, ref2 = get_reference(examples, results; seed=refseed,numruns=testruns)
-    dims = check_dimensions(examples, results; threshold=threshold, ref1=ref1, ref2=ref2,numruns=testruns);
+    dims = check_dimensions(examples, results; threshold=threshold, ref1=ref1, ref2=ref2,numruns=testruns,return_all=return_all,limited_delay=limited_delay);
 
+    if return_all
+        return dims
+    end
     figure();
     all_colors = "bgrcmyk";
     numclusters = sum(.!isnan.(unique(cluster_ids)));
