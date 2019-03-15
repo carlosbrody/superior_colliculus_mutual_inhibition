@@ -10,7 +10,7 @@ end
 using HDF5
 
 ####################################################################
-#                                                                  
+#
 #   Define some helper functions for loading farms,
 #   plotting histograms over the parameters, and managing
 #   with GUI interactivity.
@@ -39,12 +39,12 @@ Package and return a summary of results from a number of runs.
 # RETURNS:
 
 A dictionary with the keys:
-    - "tcost" (vector or training costs), 
-    - "cost" (vector of test costs), 
-    - "dirs" (vector directories in which files  are found), 
-    - "files" (vector of filenames, including paths), 
-    - "qu_out" (deprecated for farm C17 and other non-pre-search farms), 
-    - "params"" (nruns-by-nparams matrix of paramters), 
+    - "tcost" (vector or training costs),
+    - "cost" (vector of test costs),
+    - "dirs" (vector directories in which files  are found),
+    - "files" (vector of filenames, including paths),
+    - "qu_out" (deprecated for farm C17 and other non-pre-search farms),
+    - "params"" (nruns-by-nparams matrix of paramters),
     - "args" (nparams-long vector of parameter names).
     - "grads" (nruns-by-nparams matrix of training cost gradients). If not available in the file, all elements will be "nothing".
     - "hessians" (nruns vector of nparams-by-nparams hessian matrices). If not available in the file, all elements will be "nothing".
@@ -55,20 +55,20 @@ the same names across all the runs.
 function farmload(farm_id; farmdir="../NewFarms", verbose=true, verbose_every=50)
 
     if typeof(farmdir)==String; farmdir=[farmdir]; end
-    
+
     results = Dict(); dirs=[]; files =[]; qs=[]; tcosts=[]; costs=[]; pars=[]; hBPs=[]; hBAs=[];
     grads = []; hessians = Array{Array{Float64}}(0,1);
     n=0;
     for dd in farmdir
         for f in filter(x -> startswith(x, "farm_" * farm_id * "_"), readdir(dd * "/"))
             n += 1
-            myfile = dd * "/" * f; 
-            fj = jldopen(myfile); 
-            if exists(fj, "qu_out"); qu_out = load(myfile, "qu_out"); 
-            else;                    qu_out = [-1 -1]; 
+            myfile = dd * "/" * f;
+            fj = jldopen(myfile);
+            if exists(fj, "qu_out"); qu_out = load(myfile, "qu_out");
+            else;                    qu_out = [-1 -1];
             end
             # if exists(fj, "ftraj3"); ftraj3 = load(myfile, "ftraj3"); mygrad=ftraj3[1,end]'; myhess=ftraj3[2,end]
-            # else                     
+            # else
                 ftraj3 = nothing;            mygrad=nothing;        myhess=nothing
             # end
             close(fj)
@@ -76,7 +76,7 @@ function farmload(farm_id; farmdir="../NewFarms", verbose=true, verbose_every=50
             args, params, traj3, cost, hBP, hBA = load(myfile, "args", "pars3", "traj3", "cost", "hBP", "hBA")
 
             if     !haskey(results, args);       results["args"] = args;
-            elseif !all(results["args"].==args); error("Not all files have same args!"); 
+            elseif !all(results["args"].==args); error("Not all files have same args!");
             end
 
             files = [files ; myfile]; dirs = [dirs ; dd]
@@ -84,20 +84,20 @@ function farmload(farm_id; farmdir="../NewFarms", verbose=true, verbose_every=50
             if length(pars) ==0; pars =params';  else pars  = [pars  ; params']; end
             if length(hBPs) ==0; hBPs =hBP';     else hBPs  = [hBPs  ; hBP'];    end
             if length(hBAs) ==0; hBAs =hBA';     else hBAs  = [hBAs  ; hBA'];    end
-            
+
             if mygrad==nothing
                 if length(grads)==0; grads=[mygrad];   else grads = [grads ; [mygrad]]; end
             else
                 if length(grads)==0; grads=mygrad;     else grads = [grads ; mygrad];   end
             end
             if myhess==nothing
-                if length(hessians)==0; hessians = [nothing]; 
+                if length(hessians)==0; hessians = [nothing];
                 else hessians = [hessians ; [nothing]];
                 end
             else
                 hessians = [hessians ; [myhess]]
             end
-            
+
             if verbose && rem(n, verbose_every)==0
                 @printf("%s %g\n", myfile, tcosts[end])
             end
@@ -128,20 +128,20 @@ Data structure for interactive scatterplots
 
 `interactive_scatter()` returns one of these objects; used to manage GUI handling.
 
-A mutlidimensional set of data points is plotted in a set of scatterplots, each of which 
+A mutlidimensional set of data points is plotted in a set of scatterplots, each of which
 shows the scatterplot of one dimension against another. Each data point is identified
 by a unique string.  When the user clicks on one of the axes, the closest point to it
 is identified, and if defined, a callback function is called, with the string ID that
 datapoint passed as one of its parameters.
 
 The points can be divided into different subsets of them, with each set plotted
-in its own color. In addition, a series of initially invisible dots can also be 
+in its own color. In addition, a series of initially invisible dots can also be
 added to the plot. If scatter_highlight() is defined as the callback function, then
-these initially invidible points will become sequentially visible as the user clicks 
+these initially invidible points will become sequentially visible as the user clicks
 on the scatterplots.
 
-The main function that is called to set things up is `interactive_scatter()`. The 
-usual callback is `scatter_highlight()`. 
+The main function that is called to set things up is `interactive_scatter()`. The
+usual callback is `scatter_highlight()`.
 
 These functions work with a scatter_data data structure, defined here.
 
@@ -154,8 +154,8 @@ The data structure's fields are:
     axisHandles::Array{PyCall.PyObject}  # handles to the plotted axes
     axisDims::Array{Int64}               # naxes-by-2. Each row indicates the x- and y-axes dimension for each axis plot. E.g., if row j contains [2 3] that means that the jth scatterplot has column 2 of Data as its x-axis and column 3 of Data as its y-axis
     dotHandles::Array{PyCall.PyObject}   # naxes-by-ndots, handles to the extra, initially invisible, dots plotted
-    callback::Any                        # A function that could be called after a button press. 
-                                         # Function should be defined as taking two parameters, callback(str, SD::scatterdata). 
+    callback::Any                        # A function that could be called after a button press.
+                                         # Function should be defined as taking two parameters, callback(str, SD::scatterdata).
                                          # str will be one of the strings in stringIDs
 
 """
@@ -171,28 +171,28 @@ type scatter_data
 end
 
 """
-SD = interactive_scatters(Data, stringIDs; set_indices=nothing, 
+SD = interactive_scatters(Data, stringIDs; set_indices=nothing,
     plot_set2=false, axisDims = [2 1 ; 3 1], user_callback=nothing,
     n_invisible_dots = 3, invisible_colors = ["c"; "b"; "m"],
-    fignum = nothing, axisHandles = nothing, plot_colors = ["r"; "g"; "k"; "y" ; "m"], 
+    fignum = nothing, axisHandles = nothing, plot_colors = ["r"; "g"; "k"; "y" ; "m"],
     markersize=10, marker=".")
 
-A multidimensional set of data points is plotted in a set of scatterplots, each of which 
+A multidimensional set of data points is plotted in a set of scatterplots, each of which
 shows the scatterplot of one dimension against another. Each data point is identified
 by a unique string.  When the user clicks on one of the axes, the closest point to it
 is identified, and if defined, a callback function is called, with the string ID that
 datapoint passed as one of its parameters.
 
 The points can be divided into different subsets of them, with each set plotted
-in its own color. In addition, a series of initially invisible dots can also be 
+in its own color. In addition, a series of initially invisible dots can also be
 added to the plot. If scatter_highlight() is defined as the callback function, then
-these initially invidible points will become sequentially visible as the user clicks 
+these initially invidible points will become sequentially visible as the user clicks
 on the scatterplots.
 
-The main function that is called to set things up is `interactive_scatter()`. The 
-usual callback is `scatter_highlight()`. 
+The main function that is called to set things up is `interactive_scatter()`. The
+usual callback is `scatter_highlight()`.
 
-This function, `interactive_scatter()`: Given a set of multidimensional data points, 
+This function, `interactive_scatter()`: Given a set of multidimensional data points,
 puts up at most two scatterplots of different dimensions
 against each other. (If data has only two dimensions, only one scatterplot goes up.)
 In addition, enables GUI interactivity: users can associate a callback function
@@ -201,25 +201,25 @@ be used by `scatter_highlight()`.  Returns a data structure with info as to what
 meant to be used by GUI callbacks and functions such as `scatter_highlight()`.
 
 If the user clicks on one of the plots, the plotted data point closest to the clicked point
-will be identified, and if the user callback was defined, then user_callback will be called 
+will be identified, and if the user callback was defined, then user_callback will be called
 as user_callback(stringID, SD)
 
-If desired, only a subset of the points in Data can be plotted; and multiple different subsets can be 
+If desired, only a subset of the points in Data can be plotted; and multiple different subsets can be
 requested to be plotted, in different colors.
 
 # PARAMETERS:
 
 - Data          An npoints-by-ndims Array{Float64}
 
-- stringIDs     And npoints-long vector of unique strings, each of which will be used to 
+- stringIDs     And npoints-long vector of unique strings, each of which will be used to
                 identify the corresponding row in Data.
 
 # OPTIONAL PARAMETERS:
 
-- set_indices           Default is a vector with one element, which itself is 1:size(Data,1), 
-                        i.e., default will plot all points in Data as "set 1" points. 
+- set_indices           Default is a vector with one element, which itself is 1:size(Data,1),
+                        i.e., default will plot all points in Data as "set 1" points.
                         If passed, set_indices should be a vector of vectors; each
-                        element should be a vectors of integers, each within 1:size(Data,2). 
+                        element should be a vectors of integers, each within 1:size(Data,2).
                         The rows of Data in set_indices[i] will be plotted with color plot_colors[i].
 
 - plot_colors           n-row Array, with row i containing the color to be used for set i.
@@ -241,7 +241,7 @@ requested to be plotted, in different colors.
                         Figure number on which to plot the scatterplots.If not passed, a new figure is created.
 
 - axisHandles           Two element vector containing PyPlot axis handles, indicating where to put up
-                        the scatterplots. If not passed, the figure is cleared and two side-by-side 
+                        the scatterplots. If not passed, the figure is cleared and two side-by-side
                         subplots will be made.
 
 - n_invisible_dots      Number of auxiliary, initially invisible, dots to put up
@@ -251,7 +251,7 @@ requested to be plotted, in different colors.
 
 # RETURNS
 
-- SD::scatter_data      A structure, holindg information about the plot. See documentation for scatter_data   
+- SD::scatter_data      A structure, holindg information about the plot. See documentation for scatter_data
 
 
 # EXAMPLE
@@ -266,18 +266,18 @@ remove_all_BPs()  # delete any previous click handlers, for cleanliness
 SD = interactive_scatters(Data, string_IDs, fignum=20, user_callback=scatter_highlight);
 ```jldoctest
 
-""" 
-function interactive_scatters(Data, stringIDs; set_indices=nothing, 
+"""
+function interactive_scatters(Data, stringIDs; set_indices=nothing,
     plot_set2=false, axisDims = [2 1 ; 3 1], user_callback=nothing,
     n_invisible_dots = 3, invisible_colors = ["c"; "b"; "m"],
-    fignum = nothing, axisHandles = nothing, plot_colors = ["r"; "g"; "k"; "y" ; "m"; "r" ; "g" ; "k"], 
+    fignum = nothing, axisHandles = nothing, plot_colors = ["r"; "g"; "k"; "y" ; "m"; "r" ; "g" ; "k"],
     markersize=10, marker=".")
 
     @doc """
     scatter_event_callback(xy, r, linehandle, axhandle, SD::scatter_data)
 
     Internal function used by `interactive_scatters()` to enable GUI interactivity.
-    This function is responsible for turning the position of the 
+    This function is responsible for turning the position of the
     selected data point into the corresponding filename, and then
     calling the callback that was registered with `interactive_scatters()` (if any was)
 
@@ -289,30 +289,30 @@ function interactive_scatters(Data, stringIDs; set_indices=nothing,
         idx = nothing
         # Let's go through the axes finding our axis
         for i=1:length(SD.axisHandles)
-            if axhandle == SD.axisHandles[i]            
+            if axhandle == SD.axisHandles[i]
                 myX = SD.axisDims[i,1]; myY = SD.axisDims[i,2]
                 # and now find the index of the point at xy
                 idx = find((SD.Data[:, myX].==xy[1]) .& (SD.Data[:, myY].==xy[2]))
-                if length(idx)==0; 
-                    warn(@sprintf("scatter_event_callback: Couldn't find point (%.3f,%.3f), returning\n", 
-                        xy[1], xy[2]), bt=true); 
-                    return; 
+                if length(idx)==0;
+                    warn(@sprintf("scatter_event_callback: Couldn't find point (%.3f,%.3f), returning\n",
+                        xy[1], xy[2]), bt=true);
+                    return;
                 end
                 idx = idx[1]
             end
         end
 
-        @printf("You selected the point with ID %s\n", SD.stringIDs[idx]); 
+        @printf("You selected the point with ID %s\n", SD.stringIDs[idx]);
         pause(0.0001)  # just to get the above printed out
 
         # If there is a user callback, call it:
         if SD.callback != nothing
             SD.callback(SD.stringIDs[idx], SD)
-        end        
-    end 
+        end
+    end
 
     # ---------------  OK, now the actual interactive_scatters() function -------------
-    
+
     # Initialize a scatter_data structure
     SD = scatter_data([], [], [], [], [], [], nothing)
     SD.callback  = user_callback
@@ -323,17 +323,17 @@ function interactive_scatters(Data, stringIDs; set_indices=nothing,
     axisDims[find(axisDims.>size(Data,2))] = size(Data,2)
     axisDims = unique(axisDims, 1)
     nplots = axisHandles==nothing ? size(axisDims,1) : minimum((size(axisDims, 1), length(axisHandles)))
-    
+
     # Default is to plot data from all rows as set1
     if set_indices == nothing
         set_indices = [1:size(Data,1)]
     end
-    
+
     if length(plot_colors) < length(set_indices)
-        error(sprintf("Need at least as many plot_colors (%d) as there are different groups of set_indices (%d)", 
+        error(sprintf("Need at least as many plot_colors (%d) as there are different groups of set_indices (%d)",
             length(plot_colors), length(set_indices)))
     end
-    
+
     # Store indices in the SD structure that will be returned
     SD.I = I = set_indices
 
@@ -353,7 +353,7 @@ function interactive_scatters(Data, stringIDs; set_indices=nothing,
     else
         # We were given axes, get figure number from them:
         if nplots==1; fignum = axisHandles[1][:figure][:number]
-        else          
+        else
             fignum = [axisHandles[1][:figure][:number], axisHandles[2][:figure][:number]]
             if fignum[1]==fignum[2]; fignum=fignum[1]; end
         end
@@ -369,9 +369,9 @@ function interactive_scatters(Data, stringIDs; set_indices=nothing,
         myX = SD.axisDims[i,1]; myY = SD.axisDims[i,2]
         for i=length(set_indices):-1:1
             if i==1 || plot_set2
-                plot(Data[set_indices[i],myX],  Data[set_indices[i],myY], ".", color=plot_colors[i], 
+                plot(Data[set_indices[i],myX],  Data[set_indices[i],myY], ".", color=plot_colors[i],
                     markersize=markersize, marker=marker, linestyle="None")
-            end            
+            end
         end
         title(@sprintf("Dim %d vs %d", myY, myX))
     end
@@ -389,12 +389,12 @@ function interactive_scatters(Data, stringIDs; set_indices=nothing,
     end
     for h in hs; h[:set_markersize](markersize); h[:set_visible](false); end
     SD.dotHandles = hs
-        
+
     for f in fignum
         install_nearest_point_callback(figure(f), scatter_event_callback, user_data=SD)
     end
 
-    return SD 
+    return SD
 
 end
 
@@ -402,24 +402,24 @@ end
 """
     scatter_highlight(stringID, SD::scatter_data)
 
-A multidimensional set of data points is plotted in a set of scatterplots, each of which 
+A multidimensional set of data points is plotted in a set of scatterplots, each of which
 shows the scatterplot of one dimension against another. Each data point is identified
 by a unique string.  When the user clicks on one of the axes, the closest point to it
 is identified, and if defined, a callback function is called, with the string ID that
 datapoint passed as one of its parameters.
 
 The points can be divided into different subsets of them, with each set plotted
-in its own color. In addition, a series of initially invisible dots can also be 
+in its own color. In addition, a series of initially invisible dots can also be
 added to the plot. If scatter_highlight() is defined as the callback function, then
-these initially invidible points will become sequentially visible as the user clicks 
+these initially invidible points will become sequentially visible as the user clicks
 on the scatterplots.
 
-The main function that is called to set things up is `interactive_scatter()`. The 
-usual callback is `scatter_highlight()`. 
+The main function that is called to set things up is `interactive_scatter()`. The
+usual callback is `scatter_highlight()`.
 
 This function, 'scatter_highlight()`:
 Finds the row in SD.stringIDs that equals stringID, and then for each axis in SD.axisHandles,
-sets the first SD.dotHandle's x,y data to the positon of the corresponding row of SD.Data; 
+sets the first SD.dotHandle's x,y data to the positon of the corresponding row of SD.Data;
 moves the second SD.dotHandle to where the first used to be; moves the third to where the
 second used to be; and so on.
 
@@ -441,7 +441,7 @@ function scatter_highlight(stringID, SD::scatter_data)
     Data = SD.Data[idx,:]
 
     # Move our dots along:
-    if length(SD.dotHandles) > 0            
+    if length(SD.dotHandles) > 0
         # The dot in column X will get the coords of the dot in column X-1:
         for i=1:length(SD.axisHandles)
             for to=size(SD.dotHandles,2):-1:2
@@ -453,11 +453,11 @@ function scatter_highlight(stringID, SD::scatter_data)
             # And then the dot in column 1 gets the coords of the red dot closest to the clicked point:
             myX = SD.axisDims[i,1]; myY = SD.axisDims[i,2]
             SD.dotHandles[i,1][:set_xdata](Data[myX])
-            SD.dotHandles[i,1][:set_ydata](Data[myY])   
+            SD.dotHandles[i,1][:set_ydata](Data[myY])
             SD.dotHandles[i,1][:set_visible](true)
         end
     end
-    safe_axes(SD.axisHandles[end])    
+    safe_axes(SD.axisHandles[end])
     legend(SD.dotHandles[end,1:3], ["current", "1 ago", "2 ago"])
     pause(0.0001)
 end
@@ -488,7 +488,7 @@ type histo_data
     values::Array{Float64}
     axisHandles::Array{PyCall.PyObject}
     LineHandles::Array{PyCall.PyObject}
-    files::Array{String} 
+    files::Array{String}
 end
 
 
@@ -513,28 +513,28 @@ function histo_params(args, params, tcosts, costs, files; fignum=1, nbins=10, li
 
     pygui(true)
     figure(fignum); clf();
-    
+
     HD = histo_data([], [], [], [], [])
 
     nparams = size(params,2)
     nrows = ceil(nparams/3)+1
 
     for i=1:nparams;
-        HD.axisHandles = [HD.axisHandles ; subplot(nrows,3,i)]; 
+        HD.axisHandles = [HD.axisHandles ; subplot(nrows,3,i)];
         plt[:hist](params[:,i], nbins)
         title(args[i])
-        
+
         myrow = ceil(i/3)
         if myrow < (nrows+1)/2;     axisHeightChange(0.8, lock="t")
         elseif myrow > (nrows+1)/2; axisHeightChange(0.8, lock="b")
         else                        axisHeightChange(0.8, lock="c")
-        end    
+        end
     end
 
-    HD.axisHandles = [HD.axisHandles ; subplot(nrows, 2, nrows*2-1)]; axisHeightChange(0.8, lock="b"); 
+    HD.axisHandles = [HD.axisHandles ; subplot(nrows, 2, nrows*2-1)]; axisHeightChange(0.8, lock="b");
     axisMove(0, -0.025); plt[:hist](tcosts*1000, nbins); title("training cost*1000")
 
-    HD.axisHandles = [HD.axisHandles ; subplot(nrows, 2, nrows*2)];   axisHeightChange(0.8, lock="b"); 
+    HD.axisHandles = [HD.axisHandles ; subplot(nrows, 2, nrows*2)];   axisHeightChange(0.8, lock="b");
     axisMove(0, -0.025); plt[:hist](costs*1000, nbins); title("test cost*1000")
 
     for ax in HD.axisHandles
@@ -543,14 +543,14 @@ function histo_params(args, params, tcosts, costs, files; fignum=1, nbins=10, li
         h[1][:set_color]("m"); h[2][:set_color]("b"); h[3][:set_color]("c")
         HD.LineHandles = [HD.LineHandles ; reshape(h[end:-1:1], 1, 3)]
     end
-    
+
     args   = [args ; ["train cost" ; "test cost"]]
     params = [params tcosts*1000 costs*1000]
-    
+
     HD.names  = args
     HD.values = params
     HD.files  = files
-    
+
     return HD
 end
 
@@ -562,11 +562,11 @@ Wrapper that calls the other histo_params method, after first selecting for
 only  runs that have a test cost less than threshold.  further_params are passed
 on to the other histo_params method.
 
-- threshold             training costs below this value are considered "successful" (red dots), 
+- threshold             training costs below this value are considered "successful" (red dots),
                         above it are "unsuccessful" (blue dots)
 
-- cost_choice           String, used to indicate which cost will be used for thresholding. It 
-                        must be either "cost", indicating the testing cost, or "tcost", the training cost. 
+- cost_choice           String, used to indicate which cost will be used for thresholding. It
+                        must be either "cost", indicating the testing cost, or "tcost", the training cost.
 
 - fignum                The figure in which histograms will be plotted.
 
@@ -580,7 +580,7 @@ function histo_params(res; threshold=-0.0001, cost_choice="cost", further_params
     tcost  = res["tcost"]
     cost   = res["cost"]
     files  = res["files"]
-    
+
     if cost_choice=="cost"
         I = find(cost.<threshold)
     elseif cost_choice=="tcost"
@@ -588,7 +588,7 @@ function histo_params(res; threshold=-0.0001, cost_choice="cost", further_params
     else
         error("cost_choice MUST be one of \"tcost\" or \"cost\"")
     end
-    
+
     return histo_params(args, params[I,:], tcost[I], cost[I], files[I,:]; Dict(further_params)...)
 end
 
@@ -624,14 +624,14 @@ histo_highlight(res["files"][I[3]], HD)
 function histo_highlight(filename, HD::histo_data)
     idx = find(HD.files .== filename)
     if length(idx)==0; @printf("histo_highlight: Couldn't find filename %s, returning\n", filename); return; end
-    
+
     for i=1:length(HD.names)
         for to=size(HD.LineHandles,2):-1:2
             from=to-1
             HD.LineHandles[i,to][:set_xdata](HD.LineHandles[i,from][:get_xdata]())
             HD.LineHandles[i,to][:set_ydata](HD.LineHandles[i,from][:get_ydata]())
             HD.LineHandles[i,to][:set_visible](HD.LineHandles[i,from][:get_visible]())
-        end        
+        end
         HD.LineHandles[i,1][:set_xdata]([HD.values[idx,i], HD.values[idx,i]])
         HD.LineHandles[i,1][:set_visible](true)
     end
@@ -670,8 +670,8 @@ end
     PCA_highlight(filename, PC::PCAplot_data)
 
 Assuming that `PCA_plot()` was called, and returned the PC that is passed to this function,
-this function will put up a colored dot, across all axes, at the values corresponding to the run 
-indicated by filename. [Out of the entries in PC::PCAplot_data, this function uses files, 
+this function will put up a colored dot, across all axes, at the values corresponding to the run
+indicated by filename. [Out of the entries in PC::PCAplot_data, this function uses files,
 Vparams, axHandles, dothandles, and axisPCs]
 
 Will put up to three dots, blue for the most recent one asked for; green for one call ago
@@ -702,7 +702,7 @@ function PCA_highlight(fname, PC::PCAplot_data)
     Vparams = PC.Vparams[idx,:]
 
     # Move our non-red dots along:
-    if length(PC.dotHandles) > 0            
+    if length(PC.dotHandles) > 0
         # The dot in column X will get the coords of the dot in column X-1:
         for i=1:length(PC.axisHandles)
             for to=size(PC.dotHandles,2):-1:2
@@ -714,11 +714,11 @@ function PCA_highlight(fname, PC::PCAplot_data)
             # And then the dot in column 1 gets the coords of the red dot closest to the clicked point:
             myX = PC.axisPCs[i,1]; myY = PC.axisPCs[i,2]
             PC.dotHandles[i,1][:set_xdata](Vparams[end-(myX-1)])
-            PC.dotHandles[i,1][:set_ydata](Vparams[end-(myY-1)])   
+            PC.dotHandles[i,1][:set_ydata](Vparams[end-(myY-1)])
             PC.dotHandles[i,1][:set_visible](true)
         end
     end
-    safe_axes(PC.axisHandles[end])    
+    safe_axes(PC.axisHandles[end])
     legend(PC.dotHandles[end,1:3], ["current", "1 ago", "2 ago"])
     pause(0.001)
 end
@@ -728,7 +728,7 @@ end
     PCA_event_callback(xy, r, linehandle, axhandle, PC::PCAplot_data)
 
 Internal function used by `PCA_plot()` to enable GUI interactivity.
-This function is responsible for turning the position of the 
+This function is responsible for turning the position of the
 selected data point into the corresponding filename, and then
 calling the callback that was registered with `PCA_plot()` (if any was)
 
@@ -741,26 +741,26 @@ function PCA_event_callback(xy, r, linehandle, axhandle, PC::PCAplot_data)
     idx = nothing
     # Let's go through the axes finding our axis
     for i=1:length(PC.axisHandles)
-        if axhandle == PC.axisHandles[i]            
+        if axhandle == PC.axisHandles[i]
             myX = PC.axisPCs[i,1]; myY = PC.axisPCs[i,2]
             # and now find the index of the point at xy
             idx = find((PC.Vparams[:, end-(myX-1)].==xy[1]) .& (PC.Vparams[:, end-(myY-1)].==xy[2]))
-            if length(idx)==0; 
-                @printf("PCA_event_callback: Couldn't find point (%.3f,%.3f), returning\n", xy[1], xy[2]); 
-                return; 
+            if length(idx)==0;
+                @printf("PCA_event_callback: Couldn't find point (%.3f,%.3f), returning\n", xy[1], xy[2]);
+                return;
             end
             idx = idx[1]
         end
     end
-    
-    @printf("You selected file %s\n", PC.files[idx]); pause(0.0001)    
-    
+
+    @printf("You selected file %s\n", PC.files[idx]); pause(0.0001)
+
     # If there is a user callback, call it:
     if PC.callback != nothing
         PC.callback(PC.files[idx], PC)
-    end        
-end 
-    
+    end
+end
+
 
 
 
@@ -771,7 +771,7 @@ end
         user_callback=nothing)
 
 Computes the principal components for a matrix of parameter values across many runs, and puts
-up several scatterplots of the run parameter values projected onto these principal 
+up several scatterplots of the run parameter values projected onto these principal
 components. In addition, enables GUI interactivity: users can associate a callback function
 with buttonclicks on the figure.
 
@@ -792,8 +792,8 @@ with buttonclicks on the figure.
 - compute_good_only   If true, all runs, whether successful or not, are used to compute the PCs.
                         If false, only the successful runs.
 
-- cost_choice           String, used to indicate which cost will be used for thresholding. It 
-                        must be either "cost", indicating the testing cost, or "tcost", the training cost. 
+- cost_choice           String, used to indicate which cost will be used for thresholding. It
+                        must be either "cost", indicating the testing cost, or "tcost", the training cost.
 
 - pc_offset             Shows PCs from pc_offset+1 to pc_offset+4
 
@@ -802,7 +802,7 @@ with buttonclicks on the figure.
 
 - fignum                Figure number on which to plot the PC scatterplots
 
-""" 
+"""
 function plot_PCA(res; threshold=-0.0001, fignum=2, pc_offset=0, plot_unsuccessful=true,
     compute_good_only=true, unsuccessful_threshold=nothing, cost_choice="cost",
     user_callback=nothing)
@@ -817,8 +817,8 @@ function plot_PCA(res; threshold=-0.0001, fignum=2, pc_offset=0, plot_unsuccessf
     # Get the runs' costs and do selection on them:
     if ~((cost_choice=="tcost")  ||  (cost_choice=="cost"))
         error("cost_choice MUST be one of \"tcost\" or \"cost\"")
-    end    
-    mycost = res[cost_choice]; 
+    end
+    mycost = res[cost_choice];
     PC.I  = I  = find(mycost .< threshold)
     PC.nI = nI = find(mycost .>= unsuccessful_threshold)
 
@@ -851,7 +851,7 @@ function plot_PCA(res; threshold=-0.0001, fignum=2, pc_offset=0, plot_unsuccessf
     # parameters in the eigen-coords:
     PC.Vparams = Vparams = (inv(V)*params')'
 
-    figure(fignum); clf(); 
+    figure(fignum); clf();
     # ax1 = subplot(2,2,1); axisHeightChange(0.9, lock="t")
     # ax2 = subplot(2,2,2); axisMove(0.05, 0); axisHeightChange(0.9, lock="t")
     # ax3 = subplot(2,2,3); axisHeightChange(0.9, lock="b")
@@ -872,11 +872,11 @@ function plot_PCA(res; threshold=-0.0001, fignum=2, pc_offset=0, plot_unsuccessf
         title(@sprintf("PCA %d (%.2f%%) vs %d (%.2f%%)", myY, pv[end-(myY-1)], myX, pv[end-(myX-1)]))
     end
 
-        
+
     # Add the non-red dots:
     hs =Array{PyCall.PyObject}(0, 3)
     for i=1:length(PC.axisHandles)
-        safe_axes(PC.axisHandles[i]); 
+        safe_axes(PC.axisHandles[i]);
         hs = [hs ; reshape([plot(0, 0, "m.") plot(0, 0, "b.") plot(0, 0, "c.")][end:-1:1], 1, 3)]
         # order of handles gets reversed so the last one plotted -- goes on top -- is first handle
     end
@@ -885,15 +885,15 @@ function plot_PCA(res; threshold=-0.0001, fignum=2, pc_offset=0, plot_unsuccessf
     legend(hs[end,1:3], ["current", "1 ago", "2 ago"])
     PC.callback = user_callback
     PC.files = res["files"]
-        
+
     # safe_axes(ax3)
     # if plot_unsuccessful; legend(["unsuccessful", "successful"])
-    # else                   legend(["successful"]) 
+    # else                   legend(["successful"])
     # end
 
     install_nearest_point_callback(figure(fignum), PCA_event_callback, user_data=PC)
 
-    return PC 
+    return PC
 end
 
 
@@ -903,22 +903,22 @@ SV = plot_SVD(;threshold =-0.0002, plot_unsuccessful=false, compute_good_only=fa
         cost_choice="cost", user_callback=nothing, fignum=100)
 
 Uses the pre-computed SVD components for a matrix of parameter values across many runs, and puts
-up scatterplots of the run parameter values projected onto these SV components (columns of the U 
+up scatterplots of the run parameter values projected onto these SV components (columns of the U
 matrix. In addition, enables GUI interactivity: users can associate a callback function
 with buttonclicks on the figure.
 
 
 # OPTIONAL PARAMETERS:
 
-- threshold             training costs below this value are considered "successful" (red dots), 
+- threshold             training costs below this value are considered "successful" (red dots),
                         above it are "unsuccessful" (blue dots)
 
 - plot_unsuccessful     If true, dots for unsuccessful runs are shown, otherwise not.
 
 - compute_good_only     If true, only the successful runs are used to compute the SVD space
 
-- cost_choice           String, used to indicate which cost will be used for thresholding. It 
-                        must be either "cost", indicating the testing cost, or "tcost", the training cost. 
+- cost_choice           String, used to indicate which cost will be used for thresholding. It
+                        must be either "cost", indicating the testing cost, or "tcost", the training cost.
 
 - user_callback         If set, function that will be called, as `usercallback(filename, SV)` where
                         filename is the name of the run that corresponds to the selected point.
@@ -931,7 +931,7 @@ with buttonclicks on the figure.
 - SV     A structure of type PCAplot_data. (Only its files, Vparams, axHandles, dotHandles
          axisPCs and callback entries will have assigned values.)
 
-    
+
 """
 function plot_SVD(;threshold =-0.0001, plot_unsuccessful=false, compute_good_only=false,
     cost_choice="cost", user_callback=nothing, fignum=100)
@@ -944,26 +944,26 @@ function plot_SVD(;threshold =-0.0001, plot_unsuccessful=false, compute_good_onl
     # Get the runs' costs and do selection on them:
     if ~((cost_choice=="tcost")  ||  (cost_choice=="cost"))
         error("cost_choice MUST be one of \"tcost\" or \"cost\"")
-    end    
-    mycost = results[cost_choice]; 
+    end
+    mycost = results[cost_choice];
     if !compute_good_only
         mycost = mycost[.!vec(nanrows),:];
         disp_cost = copy(mycost);
     end
     badcost = mycost .>= threshold;
-    
+
     # if we are computing SVD only on the good farms, update nanrows and disp_cost
     if compute_good_only
         nanrows = nanrows .| badcost;
         disp_cost = mycost[.!vec(nanrows),:];
-    end    
+    end
 
     # Filter response matrix
     r_all = response[.!vec(nanrows),:];
     m = mean(r_all,1);
     r_all = r_all - repmat(m, size(r_all,1),1);
     F = svdfact(r_all);
-    u = copy(F[:U]); 
+    u = copy(F[:U]);
     u1 = u[:,1];
     u2 = u[:,2];
     u3 = u[:,3];
@@ -986,7 +986,7 @@ function plot_SVD(;threshold =-0.0001, plot_unsuccessful=false, compute_good_onl
     SV = PCAplot_data([], [], [], [], [], [], [], [], [], [], [], [], nothing, nothing)
     SV.files = files
     SV.Vparams = u[:,3:-1:1]  # The column vectors are expected in REVERSE order (i.e., as returned by eig(). )
-    
+
     pygui(true)
     figure(fignum); clf();
 
@@ -995,14 +995,14 @@ function plot_SVD(;threshold =-0.0001, plot_unsuccessful=false, compute_good_onl
     plot(u3good, u1good, "ro")
     title("SVD U columns 3 and 1")
     ylabel("SVD Dim 1")
-    xlabel("SVD Dim 3")   
+    xlabel("SVD Dim 3")
     plot(0, 0, "go")[1][:set_visible](false)
 
     ax2 = subplot(1,2,2)
     if plot_unsuccessful; plot(u[:,2],u[:,1],"bo"); end
     plot(u2good, u1good, "ro")
     title("SVD U columns 2 and 1")
-    xlabel("SVD Dim 2")   
+    xlabel("SVD Dim 2")
     remove_ytick_labels()
 
     SV.axisHandles = [ax1 ; ax2]
@@ -1010,7 +1010,7 @@ function plot_SVD(;threshold =-0.0001, plot_unsuccessful=false, compute_good_onl
 
     hs =Array{PyCall.PyObject}(0, 3)
     for i=1:length(SV.axisHandles)
-        safe_axes(SV.axisHandles[i]); 
+        safe_axes(SV.axisHandles[i]);
         hs = [hs ; reshape([plot(0, 0, "m.") plot(0, 0, "b.") plot(0, 0, "c.")][end:-1:1], 1, 3)]
         # order of handles gets reversed so the last one plotted -- goes on top -- is first handle
     end
@@ -1036,19 +1036,22 @@ plot_farm_trials = 10    #  The number of trials to be plotted per farm run
 
 
 """
-    params = plot_farm(filename; testruns=400, setup_file=nothing, fignum=3, 
-        plottables = ["V", "V[1,:]-V[4,:]"], ylabels=["V", "ProR-ProL"], 
-        ylims = [[-0.02, 1.02], [-1.02, 1.02]], plot_list = [1:20;],    
+    params = plot_farm(filename; testruns=400, setup_file=nothing, fignum=3,
+        plottables = ["V", "V[1,:]-V[4,:]"], ylabels=["V", "ProR-ProL"],
+        ylims = [[-0.02, 1.02], [-1.02, 1.02]], plot_list = [1:20;],
         hit_linestyle="-", err_linestyle="--", xlims=nothing,
+        do_plot = true, do_print  = true,
         overrideDict=Dict(), further_params...)
 
-    Plots multiple trials from a single run of a farm.
+    Plots multiple trials from a single run of a farm. ASSUMES that three different
+    types of conditions are run, control, delay opto, and choice opto; and within
+    each of these, Pro trials and Anti trials are run.
 
 # PARAMETERS
 
-- filename    Eithe a String, the filename of the .jld file containing the run, 
+- filename    Eithe a String, the filename of the .jld file containing the run,
 to be loaded; OR an Array{Float64} vector, containing the parameter values.
-In the later case, a setup_file must be defined, to set the other parameters 
+In the later case, a setup_file must be defined, to set the other parameters
 (see optional parameters below).
 
 # OPTIONAL PARAMETERS
@@ -1056,7 +1059,7 @@ In the later case, a setup_file must be defined, to set the other parameters
 - setup_file  if filename is actaually a parameter vector, then this optional parameter
               should be passed as a string pointing to a .jld file that when loaded, will contain
               variables "mypars", "extra_pars", and "search_conditions" -- the names of the arguments
-              corresponding to the different entries of the parameter vector will be taken to be 
+              corresponding to the different entries of the parameter vector will be taken to be
               the string versions of the keys of the dictionary "search_conditions".
 
 - testruns    Number of trials to run. Defaults to value of global variable plot_farm_trials.
@@ -1068,9 +1071,9 @@ In the later case, a setup_file must be defined, to set the other parameters
               `overrideDict = Dict(:sigma=>0.001)` will run with that value
               of sigma, no whater what the file said.
 
-- plottables   A vector of strings. Each of these strings indicates something to 
-            plot; the strings will be evaluated in a context where the variables "V", "U", 
-            and "t" are instantiated to have the values passed to `plot_PA()`. Thus 
+- plottables   A vector of strings. Each of these strings indicates something to
+            plot; the strings will be evaluated in a context where the variables "V", "U",
+            and "t" are instantiated to have the values passed to `plot_PA()`. Thus
             plottables=["V", "V[1,:]-V[4,:]"] indicates that two axes should be used, on
             the first one V will be plotted, on the second V[1,:]-V[4,:].
                 The strings can be any arbitrary Julia expression, with the condition that
@@ -1095,14 +1098,35 @@ In the later case, a setup_file must be defined, to set the other parameters
                If this is passed as the empty string, "", then errors are not plotted.
 
 - further_params    Any further keyword value params are passed on to run_ntrials.
-            Note that unilke entries in overrideDict, which take the highest precedence, 
+            Note that unilke entries in overrideDict, which take the highest precedence,
             keyword-value pairs here take the lowest-precedence: any kw-val pair that also
             appears in the farm's .jld file, or in overrideDict, will be ignored in favor
             of those higher precedence instances.
 
+- do_plot   If false, no plots of graphics calls are generated
+
+- do_print  If false, no printing of param values to the cosole is done.
+
+- pstrings  Vector of string titles for the different opto conditions in
+            extra_pars[:opto_periods]. Must be at least as long as there are rows
+            in extra_pars[:opto_periods]
+
+
 # RETURNS
 
 - params     The parameters of the farm that was plotted.
+
+- hBP_out    A vector with fraction of Pro hits; each element corresponds to one opto_period condition
+
+- hBA_out    A vector with fraction of Pro hits; each element corresponds to one opto_period condition
+
+- PV         nperiods-4-testruns matrix of final unit voltages in Pro trials
+
+- AV         nperiods-4-testruns matrix of final unit voltages in Anti trials
+
+- fPV        nperiods-4-nsteps-testruns matrix of unit voltages as a function of time in Pro trials
+
+- fAV        nperiods-4-nsteps-testruns patrix of unit voltages as a function of time in Anti trials
 
 # EXAMPLE CALL
 
@@ -1114,10 +1138,12 @@ plot_farm("MiniOptimized/farm_C17_Farms024_0058.jld", fignum=200, testruns=20, s
 
 ```jldoctest
 """
-function plot_farm(filename; testruns=400, setup_file=nothing, fignum=3, 
-    plottables = ["V", "V[1,:]-V[4,:]"], ylabels=["V", "ProR-ProL"], 
-    ylims = [[-0.02, 1.02], [-1.02, 1.02]], plot_list = [1:20;],    
+function plot_farm(filename; testruns=400, setup_file=nothing, fignum=3,
+    plottables = ["V", "V[1,:]-V[4,:]"], ylabels=["V", "ProR-ProL"],
+    ylims = [[-0.02, 1.02], [-1.02, 1.02]], plot_list = [1:20;],
     hit_linestyle="-", err_linestyle="--", xlims=nothing,
+    do_plot=true, do_print=true,
+    pstrings = ["CONTROL", "DELAY OPTO", "CHOICE OPTO"],
     overrideDict=Dict(), further_params...)
 
     mypars=extra_pars=args=pars3=[]  # define to be available outside if block
@@ -1136,73 +1162,105 @@ function plot_farm(filename; testruns=400, setup_file=nothing, fignum=3,
         if length(args) != length(pars3)
             error("If filename is not a string, it should be a vector with length equal to the number of keys in setup_file")
         end
-    end 
+    end
 
-    pygui(true)
-    figure(fignum); clf();
-    
-    pstrings = ["CONTROL", "DELAY OPTO", "CHOICE OPTO"]
-    for period = 1:3
+    if do_plot
+        pygui(true)
+        figure(fignum); clf();
+    else
+        plot_list = []
+    end
+
+    nperiods = size(extra_pars[:opto_periods],1)
+    if nperiods > length(pstrings)
+        error("need pstrings to be as long as there are rows in extra_pars[:opto_periods]")
+    end
+    hBP_out = zeros(1, nperiods)
+    hBA_out = zeros(1, nperiods)
+    PV_out = AV_out = fPV_out = fAV_out = []
+
+    for period = 1:nperiods
         these_pars = merge(mypars, extra_pars);
         these_pars = merge(these_pars, Dict(
             :opto_times=>reshape(extra_pars[:opto_periods][period,:], 1, 2),
         ))
         these_pars = merge(Dict(further_params), these_pars)
-        
+
         # The plot_list should be the one we give it below, not whatever was in the stored parameters
         delete!(these_pars, :plot_list)
-        
-        nplots  = length(plottables)
-        pax_set = Array{PyCall.PyObject}(nplots,1)
-        aax_set = Array{PyCall.PyObject}(nplots,1)
-        for i=1:nplots
-            pax_set[i] = subplot(2*nplots, 3, period + 3*(i-1));
-            if i<=nplots/2; axisHeightChange(0.9, lock="t")
-            else            axisHeightChange(0.9, lock="c")
+
+        if do_plot
+            nplots  = length(plottables)
+            pax_set = Array{PyCall.PyObject}(nplots,1)
+            aax_set = Array{PyCall.PyObject}(nplots,1)
+            for i=1:nplots
+                pax_set[i] = subplot(2*nplots, 3, period + 3*(i-1));
+                if i<=nplots/2; axisHeightChange(0.9, lock="t")
+                else            axisHeightChange(0.9, lock="c")
+                end
+
+                aax_set[i] = subplot(2*nplots, 3, period + 3*(nplots+i-1));
+                if i<=nplots/2; axisHeightChange(0.9, lock="c")
+                else            axisHeightChange(0.9, lock="b")
+                end
             end
-            
-            aax_set[i] = subplot(2*nplots, 3, period + 3*(nplots+i-1));
-            if i<=nplots/2; axisHeightChange(0.9, lock="c")
-            else            axisHeightChange(0.9, lock="b")
-            end
+        else
+            pax_set   = []
+            aax_set   = []
+            plot_list = []
         end
 
-        proVs, antiVs = run_ntrials(testruns, testruns; plot_list=plot_list, 
-            ax_set = [pax_set, aax_set], 
+        proVs, antiVs, pro_fullV, anti_fullV = run_ntrials(testruns, testruns; plot_list=plot_list,
+            ax_set = [pax_set, aax_set],
             plottables = plottables, ylabels=ylabels, ylims=ylims, xlims=xlims,
-            hit_linestyle=hit_linestyle, err_linestyle=err_linestyle, 
+            hit_linestyle=hit_linestyle, err_linestyle=err_linestyle,
             merge(make_dict(args, pars3, these_pars), overrideDict)...);
-        hBP = length(find(proVs[1,:]  .> proVs[4,:])) /size(proVs, 2)
-        hBA = length(find(antiVs[4,:] .> antiVs[1,:]))/size(antiVs,2)
+        hBP_out[period] = hBP = length(find(proVs[1,:]  .> proVs[4,:])) /size(proVs, 2)
+        hBA_out[period] = hBA = length(find(antiVs[4,:] .> antiVs[1,:]))/size(antiVs,2)
         # @printf("period %d:  hBP=%.2f%%, hBA=%.2f%%\n\n", period, 100*hBP, 100*hBA)
 
-        safe_axes(pax_set[1]); title(@sprintf("%s  PRO hits = %.2f%%", pstrings[period], 100*hBP))
-        safe_axes(aax_set[1]); title(@sprintf("ANTI hits = %.2f%%", 100*hBA))
-        for i=1:(nplots-1)
-            safe_axes(pax_set[i]); remove_xtick_labels(); xlabel("")
-            safe_axes(aax_set[i]); remove_xtick_labels(); xlabel("")
+        if length(PV_out) == 0
+            PV_out = zeros(nperiods, size(proVs,1), size(proVs,2))
+            AV_out = zeros(nperiods, size(proVs,1), size(proVs,2))
+            fPV_out = zeros(nperiods, size(pro_fullV,1),  size(pro_fullV, 2),  size(pro_fullV,3))
+            fAV_out = zeros(nperiods, size(anti_fullV,1), size(anti_fullV, 2), size(anti_fullV,3))
         end
-        safe_axes(pax_set[end]); remove_xtick_labels(); xlabel("")
-        if period > 1
-            remove_ytick_labels(pax_set)
-            remove_ytick_labels(aax_set)
-        end
+        PV_out[period,:,:]    = proVs
+        AV_out[period,:,:]    = antiVs
+        fPV_out[period,:,:,:] = pro_fullV
+        fAV_out[period,:,:,:] = anti_fullV
 
-        if period==2 && typeof(filename)<:String
-            safe_axes(pax_set[1])
-            text(mean(xlim()), ylim()[2] + 0.35*(ylim()[2]-ylim()[1]), filename,
-                fontsize=18, horizontalalignment="center")
+        if do_plot
+            safe_axes(pax_set[1]); title(@sprintf("%s  PRO hits = %.2f%%", pstrings[period], 100*hBP))
+            safe_axes(aax_set[1]); title(@sprintf("ANTI hits = %.2f%%", 100*hBA))
+            for i=1:(nplots-1)
+                safe_axes(pax_set[i]); remove_xtick_labels(); xlabel("")
+                safe_axes(aax_set[i]); remove_xtick_labels(); xlabel("")
+            end
+            safe_axes(pax_set[end]); remove_xtick_labels(); xlabel("")
+            if period > 1
+                remove_ytick_labels(pax_set)
+                remove_ytick_labels(aax_set)
+            end
+
+            if period==2 && typeof(filename)<:String
+                safe_axes(pax_set[1])
+                text(mean(xlim()), ylim()[2] + 0.35*(ylim()[2]-ylim()[1]), filename,
+                    fontsize=18, horizontalalignment="center")
+            end
+            figure(fignum)[:canvas][:draw]()
+            pause(0.0001)
         end
-        figure(fignum)[:canvas][:draw]()
-        pause(0.0001)
     end
 
-    for a=1:length(args)
-        myarg = args[a]; while length(myarg)<20; myarg=myarg*" "; end
-        @printf("%s\t\t%g\n", myarg, pars3[a])
+    if do_print
+        for a=1:length(args)
+            myarg = args[a]; while length(myarg)<20; myarg=myarg*" "; end
+            @printf("%s\t\t%g\n", myarg, pars3[a])
+        end
     end
 
-    return pars3
+    return pars3, hBP_out, hBA_out, PV_out, AV_out, fPV_out, fAV_out
 end
 
 
@@ -1210,14 +1268,14 @@ end
 
 
 """
-make_mini_farm(farmid ; fromdirs=["../Farms024", "../Farms025", "../Farms026"], 
-    todir="MiniFarms")    
+make_mini_farm(farmid ; fromdirs=["../Farms024", "../Farms025", "../Farms026"],
+    todir="MiniFarms")
 
 Takes all the  runs in directories fromdirs, (which might not be on git),
 and puts a small-size sumamry of them in todir. That todir directory will
 a reasonabale size for git (only MBytes compred to GBytes)
 
-The minifarm directory can be used for browsers in lieu of the original farms, but 
+The minifarm directory can be used for browsers in lieu of the original farms, but
 note that files in it do not include Hessian information.
 
 # PARAMETERS:
@@ -1226,8 +1284,8 @@ note that files in it do not include Hessian information.
 
 # OPTIONAL PARAMETERS:
 
-- fromdirs  Either a String, indicating a directory, or a vector of Strings, indicating multiple 
-            directories to be treated together.        
+- fromdirs  Either a String, indicating a directory, or a vector of Strings, indicating multiple
+            directories to be treated together.
 
 - todir     A String indicating the directory where the Mini files should go to. If the
             directory did not previously exist, creates it. If the directory was not previously
@@ -1240,19 +1298,19 @@ make_mini_farm("C17", fromdirs=["../Farms024], todir="MiniNew")
 ```jldoctest
 
 """
-function make_mini_farm(farmid; fromdirs=["../Farms024", "../Farms025", "../Farms026"], 
+function make_mini_farm(farmid; fromdirs=["../Farms024", "../Farms025", "../Farms026"],
         todir="MiniFarms")
-    
+
     res = farmload(farmid, verbose=true, farmdir=fromdirs)
 
     if ~isdir(todir); mkdir(todir); end;
 
     sdict = []; dirname=[]; filename=[]
 
-    for i in 1:length(res["tcost"])    
-        mypars, extra_pars, args, pars3 = load(res["files"][i], "mypars", "extra_pars", 
+    for i in 1:length(res["tcost"])
+        mypars, extra_pars, args, pars3 = load(res["files"][i], "mypars", "extra_pars",
             "args", "pars3")
-        sdict = Dict("mypars"=>mypars, "extra_pars"=>extra_pars, 
+        sdict = Dict("mypars"=>mypars, "extra_pars"=>extra_pars,
             "args"=>args, "pars3"=>pars3)
         for k in keys(res)
             if k=="tcost"
@@ -1286,24 +1344,20 @@ step on each other. The files to be copied HAVE to start with "farm_", all other
 
 """
 function make_maxi_farm(farm_id, fromdirs, todir)
-    
+
     if ~isdir(todir); mkdir(todir); end;
     if typeof(fromdirs)==String; fromdirs=[fromdirs]; end
-        
+
     for d in fromdirs
         fromname = split(d, "/")
         while fromname[1]==".." || fromname[1]==""; fromname=fromname[2:end]; end
         while fromname[end]==""; fromname=fromname[1:end-1]; end
         fromname = join(fromname)
         n = length("farm_"*farm_id*"_")
-        for f in filter(x -> startswith(x, "farm_" * farm_id * "_"), readdir(d))   
+        for f in filter(x -> startswith(x, "farm_" * farm_id * "_"), readdir(d))
             toname = todir*"/farm_"*farm_id*"_"*fromname*"_"*f[n+1:end]
             @printf("cp(%s, %s)\n", d*"/"*f, toname)
             cp(d*"/"*f, toname, remove_destination=true)
         end
     end
 end
-
-
-
-
