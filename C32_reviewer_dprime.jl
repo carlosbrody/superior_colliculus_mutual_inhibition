@@ -16,6 +16,24 @@ examples,results = load("MiniC32_C32_examples_feb.jld","examples","results");
 # plot_reviews(n1,n2,line_alpha=0.05,dot_alpha=.5);
 # plt[:savefig]
 
+if false
+    n1,n2 = iter_examples(examples, results;timestep=40);
+    plot_reviews(n1,n2,line_alpha=0.05,dot_alpha=.5);
+    plt[:savefig]("timestep_40.png")
+    n1,n2 = iter_examples(examples, results;timestep=45);
+    plot_reviews(n1,n2,line_alpha=0.05,dot_alpha=.5);
+    plt[:savefig]("timestep_45.png")
+    n1,n2 = iter_examples(examples, results;timestep=50);
+    plot_reviews(n1,n2,line_alpha=0.05,dot_alpha=.5);
+    plt[:savefig]("timestep_50.png")
+    n1,n2 = iter_examples(examples, results;timestep=55);
+    plot_reviews(n1,n2,line_alpha=0.05,dot_alpha=.5);
+    plt[:savefig]("timestep_55.png")
+    n1,n2 = iter_examples(examples, results;timestep=60);
+    plot_reviews(n1,n2,line_alpha=0.05,dot_alpha=.5);
+    plt[:savefig]("timestep_60.png")
+end
+
 function iter_examples(examples,results;timestep =55,threshold=10,line_alpha=.1,dot_alpha=.2,plot_line=true)
     # Then computes the dprime for each solution
     # Then plots each cell
