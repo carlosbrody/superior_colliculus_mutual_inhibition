@@ -51,9 +51,39 @@ function iter_examples(examples,results;timestep =55,threshold=10,line_alpha=.1,
     return n1,n2
 end
 
+function plot_dist(n1,n2)
+    pro_unit_choice = [x[2] for x in n1]
+    ant_unit_choice = [x[2] for x in n2]
+    pro_unit_proant = [x[1] for x in n1]
+    ant_unit_proant = [x[1] for x in n2]    
+    figure(figsize=(5,4))
+    plt[:hist](pro_unit_choice, bins=50,color="black",alpha=.5,label="Pro Unit");
+    plt[:hist](ant_unit_choice, bins=50, color="red",alpha=.5,label="Anti Unit");
+    plt[:xlim](-7,7)
+    plt[:xlabel]("Choice d'",fontsize=16)
+    plt[:ylabel]("Count", fontsize=16)
+    plt[:xticks](fontsize=12)
+    plt[:yticks](fontsize=12)
+    plt[:legend]()
+    plt[:tight_layout]()
+    plt[:axvline](0,color="k",linestyle="--")
+
+    figure(figsize=(5,4))
+    plt[:hist](pro_unit_proant, bins=50,color="black",alpha=.5,label="Pro Unit");
+    plt[:hist](ant_unit_proant, bins=50, color="red",alpha=.5,label="Anti Unit");
+    plt[:xlim](-10,10)
+    plt[:xlabel]("Pro/Anti d'",fontsize=16)
+    plt[:ylabel]("Count", fontsize=16)
+    plt[:xticks](fontsize=12)
+    plt[:yticks](fontsize=12)
+    plt[:legend]()
+    plt[:tight_layout]()
+    plt[:axvline](0,color="k",linestyle="--")
+
+end
+
 function plot_reviews(all_n1,all_n2; line_alpha=.1,dot_alpha=.2,plot_line=true)
     figure(figsize=(5,5))
-
     for i=1:size(all_n1)[1]
         n1 = all_n1[i]
         n2 = all_n2[i]
@@ -85,42 +115,43 @@ end
 
 function calc_example2(examples, index;timestep=55)
     # This verison merges cells across hemispheres because we only simulate left trials
+    # N Solutions, 3 opto, pro/anti, 4 nodes, 61 timesteps, 10 trials
 
     # Compute pro/anti dprime on the merged pro units
-    p1 = examples[index,1,1,1,timestep,:]
-    a1 = examples[index,1,2,1,timestep,:]
-    p4 = examples[index,1,1,4,timestep,:]
-    a4 = examples[index,1,2,4,timestep,:]
-    p14 = vcat(p1,p4) # Merge the two pro units is equivalent to simulating both sides of cues 
-    a14 = vcat(a1,a4) # Mering both sides...
-    pa14_dprime = calc_dprime(p14,a14)
+    pro_trials_unit1 = examples[index,1,1,1,timestep,:]
+    ant_trials_unit1 = examples[index,1,2,1,timestep,:]
+    pro_trials_unit4 = examples[index,1,1,4,timestep,:]
+    ant_trials_unit4 = examples[index,1,2,4,timestep,:]
+    pro_trials_units14 = vcat(pro_trials_unit1,pro_trials_unit4) # Merge the two pro units is equivalent to simulating both sides of cues 
+    ant_trials_units14 = vcat(ant_trials_unit1,ant_trials_unit4) # Mering both sides...
+    pa_units14_dprime = calc_dprime(pro_trials_units14,ant_trials_units14)
 
     # Compute pro/anti dprime on the merge anti units
-    p2 = examples[index,1,1,2,timestep,:]
-    a2 = examples[index,1,2,2,timestep,:]
-    p3 = examples[index,1,1,3,timestep,:]
-    a3 = examples[index,1,2,3,timestep,:]
-    p23 = vcat(p2,p3)
-    a23 = vcat(a2,a3)
-    pa23_dprime = calc_dprime(p23,a23)
+    pro_trials_unit2 = examples[index,1,1,2,timestep,:]
+    ant_trials_unit2 = examples[index,1,2,2,timestep,:]
+    pro_trials_unit3 = examples[index,1,1,3,timestep,:]
+    ant_trials_unit3 = examples[index,1,2,3,timestep,:]
+    pro_trials_units23 = vcat(pro_trials_unit2,pro_trials_unit3)
+    ant_trials_units23 = vcat(ant_trials_unit2,ant_trials_unit3)
+    pa_units23_dprime = calc_dprime(pro_trials_units23,ant_trials_units23)
 
     # Compute choice dprime on the merged pro units
     ipsi = examples[index,1,:,1,end,:] .>= examples[index,1,:,4,end,:]
     node1 = examples[index,1,:,1,timestep,:]
     node4 = examples[index,1,:,4,timestep,:]
-    pro_ipsi = vcat(node1[ipsi],node4[.~ipsi])
-    pro_contra = vcat(node1[.~ipsi], node4[ipsi])
-    ic14_dprime = calc_dprime(pro_ipsi,pro_contra)
+    ipsi_trials_units14 = vcat(node1[ipsi],node4[.~ipsi])
+    cont_trials_units14 = vcat(node1[.~ipsi], node4[ipsi])
+    ic_units14_dprime = calc_dprime(ipsi_trials_units14, cont_trials_units14)
     
     # Compute choice dprime on the merged anti units
     node2 = examples[index,1,:,2,timestep,:]
     node3 = examples[index,1,:,3,timestep,:]
-    anti_ipsi = vcat(node2[ipsi],node3[.~ipsi])
-    anti_contra = vcat(node2[.~ipsi], node3[ipsi])
-    ic23_dprime = calc_dprime(anti_ipsi,anti_contra)
+    ipsi_trials_units23 = vcat(node2[ipsi],node3[.~ipsi])
+    cont_trials_units23 = vcat(node2[.~ipsi], node3[ipsi])
+    ic_units23_dprime = calc_dprime(ipsi_trials_units23,cont_trials_units23)
     
     # Return pro/anti and choice dprime for the pro units, and then the anti units
-    return [pa14_dprime, ic14_dprime], [pa23_dprime, ic23_dprime]
+    return [pa_units14_dprime, ic_units14_dprime], [pa_units23_dprime, ic_units23_dprime]
 end
  
 
