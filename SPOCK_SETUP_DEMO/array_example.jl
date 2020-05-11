@@ -12,7 +12,7 @@ function array_example(farm_id, job_id, task_id)
 
     # save a data file with inputs and random number
     if !isdir(String(farm_id))
-        mkdri(String(farm_id))
+        mkdir(String(farm_id))
     end
     myfilename = String(farm_id)*"/"*string(farm_id)*"_"*string(task_id)*".mat"
     matwrite(myfilename, Dict("farm_id"=>farm_id, "job_id"=>job_id, "task_id"=>task_id,"random_seed"=>random_seed,"random_num"=>random_num))
