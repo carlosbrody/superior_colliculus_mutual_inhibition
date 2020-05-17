@@ -16,6 +16,7 @@ using Revise
 using GradientUtils
 using RateNetworks
 using ProAnti
+using TanhWalls
 
 ##
 
