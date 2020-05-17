@@ -1,12 +1,16 @@
-# DON'T MODIFY THIS FILE -- the source is in file ProAnti.ipynb. Look there for further documentation and examples of running the code.
+module ProAnti
+
+using Printf
+using Statistics
+using Random
+
+using GeneralUtils
+using GradientUtils
+using RateNetworks
 
 
-include("rate_networks.jl")  # that will also include general_utils.jl, constrained_parabolic_minimization.jl, and hessian_utils.jl
-
-
-
-# DON'T MODIFY THIS FILE -- the source is in file ProAnti.ipynb. Look there for further documentation and examples of running the code.
-
+export plot_PA, parse_opto_times, make_input, run_ntrials, JJ, load_run
+export model_params
 
 """
     plot_PA(t, U, V; fignum=1, clearfig=true, rule_and_delay_period=1, target_period=1,
@@ -188,8 +192,6 @@ end
 
 
 
-# DON'T MODIFY THIS FILE -- the source is in file ProAnti.ipynb. Look there for further documentation and examples of running the code.
-
 
 """
 parsed_times = parse_opto_times(opto_times, model_params)
@@ -242,18 +244,11 @@ function parse_opto_times(opto_times2, model_params)
         target_end   = target_start + model_params[:target_period]
         trial_end    = target_end   + model_params[:post_target_period]
     catch y
-        @printf("\n\nwhoa, are you sure your model_params had all three of :rule_and_delay_period, :target_period, and :post_target_period?\n\n")
+        println("\n\nwhoa, are you sure your model_params had all three of :rule_and_delay_period, :target_period, and :post_target_period?\n\n")
         error(y)
     end
 
-    function replacer(P)   # run through an expression tree, replacing known symbols with their values, then evaluate
-        if typeof(P)<:Symbol
-            if P == :trial_start;  P = trial_start; end;
-            if P == :target_start; P = target_start; end;
-            if P == :target_end;   P = target_end; end;
-            if P == :trial_end;    P = trial_end; end;
-            return P
-        end
+    function replacer(P::Expr)   # run through an expression tree, replacing known symbols with their values, then evaluate
         for i=1:length(P.args)
             if typeof(P.args[i])<:Expr
                 P.args[i] = replacer(P.args[i])
@@ -266,13 +261,21 @@ function parse_opto_times(opto_times2, model_params)
         end
         return eval(P)
     end
+    function replacer(P::Symbol)
+        if P == :trial_start;  P = trial_start; end;
+        if P == :target_start; P = target_start; end;
+        if P == :target_end;   P = target_end; end;
+        if P == :trial_end;    P = trial_end; end;
+        return P
+    end
+
 
     for i=1:length(opto_times)
         if typeof(opto_times[i])==String
             # @printf("Got a string, and it is: %s\n", opto_times[i])
             # @printf("Parsing turned it into: ");  print(parse(opto_times[i])); print("\n")
             # @printf("Replacer turned it into: "); print(replacer(parse(opto_times[i]))); print("\n")
-            opto_times[i] = replacer(parse(opto_times[i]))
+            opto_times[i] = replacer(Meta.parse(opto_times[i]))
         elseif typeof(opto_times[i])==Int64
             if opto_times[i]==100; opto_times[i] = target_start; end;
             if opto_times[i]==200; opto_times[i] = target_end;   end;
@@ -283,7 +286,6 @@ function parse_opto_times(opto_times2, model_params)
 end
 
 
-# DON'T MODIFY THIS FILE -- the source is in file ProAnti.ipynb. Look there for further documentation and examples of running the code.
 
 
 model_params = Dict(
@@ -314,7 +316,7 @@ model_params = Dict(
 :const_add => 0,  # from rate_networks.jl, unused here
 :init_add  => 0,  # from rate_networks.jl, unused here
 :opto_strength            => 1,      # fraction by which to scale V outputs
-:opto_times               => [],     # n-by-2 matrix, indicating start and stop times for opto_strength effect, all within the same trial
+:opto_times               => ["trial_start", "trial_start"],     # n-by-2 matrix, indicating start and stop times for opto_strength effect, all within the same trial
 :opto_units               => 1:4,    # ids of the units that will be affected by opto_strength effect
 )
 
@@ -330,44 +332,32 @@ function make_input(trial_type; dt=0.02, nderivs=0, difforder=0, constant_excita
     rule_and_delay_period=0.4, target_period=0.1, post_target_period=0.4, const_pro_bias=0,
     other_unused_params...)
 
-    if FDversion() >= 0.6
-        # All the variables that we MIGHT choose to differentiate w.r.t. go into this bag -- further down
-        # we'll use get_eltype(varbag) to check for any of them being ForwardDiff.Dual.
-        # That is how we'll tell whether new matrices should be regular numbers of ForwardDiff.Dual's.
-        # *** if you add a new variable you'll want to differentiate w.r.t., it should be added here too ***
-        varbag = (dt, constant_excitation, anti_rule_strength, pro_rule_strength, target_period_excitation,
+    # All the variables that we MIGHT choose to differentiate w.r.t. go into this bag -- further down
+    # we'll use get_eltype(varbag) to check for any of them being ForwardDiff.Dual.
+    # That is how we'll tell whether new matrices should be regular numbers of ForwardDiff.Dual's.
+    # *** if you add a new variable you'll want to differentiate w.r.t., it should be added here too ***
+    varbag = (dt, constant_excitation, anti_rule_strength, pro_rule_strength, target_period_excitation,
         right_light_excitation, right_light_pro_extra, rule_and_delay_period, target_period, post_target_period,
         const_pro_bias)
-    end
 
     T = rule_and_delay_period + target_period + post_target_period
     t = 0:dt:T
     nsteps = length(t)
 
-    if FDversion() < 0.6
-        input = constant_excitation + ForwardDiffZeros(4, nsteps, nderivs=nderivs, difforder=difforder)
-    else
-        input = constant_excitation + zeros(get_eltype(varbag), 4, nsteps)
-    end
+    input = constant_excitation .+ zeros(get_eltype(varbag), 4, nsteps)
 
     if trial_type=="Anti"
-        input[2:3, t.<rule_and_delay_period] += anti_rule_strength
+        input[2:3, t.<rule_and_delay_period] .+= anti_rule_strength
     elseif trial_type=="Pro"
-        input[[1,4], t.<rule_and_delay_period] += pro_rule_strength
+        input[[1,4], t.<rule_and_delay_period] .+= pro_rule_strength
     else
         error("make_input: I don't recognize input type \"" * trial_type * "\"")
     end
 
-    if VERSION.major + 0.1*VERSION.minor < 0.6
-        input[:,     (rule_and_delay_period.<=t) & (t.<rule_and_delay_period+target_period)] += target_period_excitation
-        input[1:2,   (rule_and_delay_period.<=t) & (t.<rule_and_delay_period+target_period)] += right_light_excitation
-        input[1,     (rule_and_delay_period.<=t) & (t.<rule_and_delay_period+target_period)] += right_light_pro_extra
-    else
-        input[:,     (rule_and_delay_period.<=t) .& (t.<rule_and_delay_period+target_period)] += target_period_excitation
-        input[1:2,   (rule_and_delay_period.<=t) .& (t.<rule_and_delay_period+target_period)] += right_light_excitation
-        input[1,     (rule_and_delay_period.<=t) .& (t.<rule_and_delay_period+target_period)] += right_light_pro_extra
-    end
-    input[[1,4],:] += const_pro_bias
+    input[:,     (rule_and_delay_period.<=t) .& (t.<rule_and_delay_period+target_period)] .+= target_period_excitation
+    input[1:2,   (rule_and_delay_period.<=t) .& (t.<rule_and_delay_period+target_period)] .+= right_light_excitation
+    input[1,     (rule_and_delay_period.<=t) .& (t.<rule_and_delay_period+target_period)] .+= right_light_pro_extra
+    input[[1,4],:] .+= const_pro_bias
 
     return input, t, nsteps
 end
@@ -501,14 +491,12 @@ function run_ntrials(nPro, nAnti; plot_list=[], start_pro=[-0.5,-0.5,-0.5,-0.5],
     profig=1, antifig=2, clearfig=true, ax_set = nothing, hit_linestyle="-", err_linestyle="-",
     opto_units = 1:4, nderivs=0, difforder=0, selectize=true, symmetrized_W=true, model_params...)
 
-    if FDversion() >= 0.6
-        # All the variables that we MIGHT choose to differentiate w.r.t. go into this bag -- further down
-        # we'll use get_eltype(varbag) to check for any of them being ForwardDiff.Dual.
-        # That is how we'll tell whether new matrices should be regular numbers of ForwardDiff.Dual's.
-        # *** if you add a new variable you'll want to differentiate w.r.t., it should be added here too ***
-        varbag = (start_pro, start_anti, model_params)
-        # print("get_eltype(varbag)="); print(get_eltype(varbag)); print("\n")
-    end
+    # All the variables that we MIGHT choose to differentiate w.r.t. go into this bag -- further down
+    # we'll use get_eltype(varbag) to check for any of them being ForwardDiff.Dual.
+    # That is how we'll tell whether new matrices should be regular numbers of ForwardDiff.Dual's.
+    # *** if you add a new variable you'll want to differentiate w.r.t., it should be added here too ***
+    varbag = (start_pro, start_anti, model_params)
+    # print("get_eltype(varbag)="); print(get_eltype(varbag)); print("\n")
 
     pro_ax_set  = nothing
     anti_ax_set = nothing
@@ -545,7 +533,7 @@ function run_ntrials(nPro, nAnti; plot_list=[], start_pro=[-0.5,-0.5,-0.5,-0.5],
         vW = model_params[:vW]
         dW = model_params[:dW]
         model_params = make_dict(["W"], [[sW vW dW hW; vW sW hW dW; dW hW sW vW; hW dW vW sW]], model_params)
-        print(size(model_params[:W])); print("\n");
+        # println(size(model_params[:W]));
     else
         sW_P  = model_params[:sW_P]
         sW_A  = model_params[:sW_A]
@@ -566,13 +554,10 @@ function run_ntrials(nPro, nAnti; plot_list=[], start_pro=[-0.5,-0.5,-0.5,-0.5],
         model_params[:Iperturb_times] = parse_opto_times(model_params[:Iperturb_times], model_params)
     end
 
-    if FDversion()<0.6
-        proVs  = ForwardDiffZeros(4, nPro, nderivs=nderivs, difforder=difforder)
-        antiVs = ForwardDiffZeros(4, nAnti, nderivs=nderivs, difforder=difforder)
-    else
-        proVs  = zeros(get_eltype(varbag), 4, nPro)
-        antiVs = zeros(get_eltype(varbag), 4, nAnti)
-    end
+    proVs  = zeros(get_eltype(varbag), 4, nPro)
+    antiVs = zeros(get_eltype(varbag), 4, nAnti)
+    # println(varbag)
+
     proVall  = zeros(4, nsteps, nPro);
     antiVall = zeros(4, nsteps, nAnti);
     proUall  = zeros(4, nsteps, nPro);
@@ -580,13 +565,13 @@ function run_ntrials(nPro, nAnti; plot_list=[], start_pro=[-0.5,-0.5,-0.5,-0.5],
     # --- PRO ---
     if length(plot_list)>0; figure(profig); if (pro_ax_set==nothing) && clearfig; clf(); end; end
     model_params = make_dict(["input"], [pro_input], model_params)
-    sel_vector = Array{Bool}(nPro)
-    hit_vector = Array{Bool}(nPro)
-    plt_vector = Array{Bool}(nPro)
+    sel_vector = fill(true, nPro)
+    hit_vector = fill(true, nPro)
+    plt_vector = fill(true, nPro)
     for i=1:nPro
         Uend, Vend, tempU, tempV = forwardModel(start_pro, do_plot=false, opto_units=opto_units; model_params...)
-        if FDversion() < 0.6; proVall[:,:,i] = tempV; else proVall[:,:,i] = get_value(tempV); end
-        if FDversion() < 0.6; proUall[:,:,i] = tempU; else proUall[:,:,i] = get_value(tempU); end
+        proVall[:,:,i] = get_value(tempV);
+        proUall[:,:,i] = get_value(tempU);
 
         proVs[:,i] = Vend
         sDict = Dict("t"=>t, "V"=>proVall[:,:,i], "U"=>proUall[:,:,i], "Vend"=>Vend,
@@ -600,7 +585,7 @@ function run_ntrials(nPro, nAnti; plot_list=[], start_pro=[-0.5,-0.5,-0.5,-0.5],
         plt_vector[i] = any(plot_list.==i)
     end
     if hit_linestyle==err_linestyle && hit_linestyle!=""
-        uI = find(plt_vector .& sel_vector)
+        uI = findall(plt_vector .& sel_vector)
         plot_PA(t, get_value(proUall[:,:,uI]), get_value(proVall[:,:,uI]); clearfig=false,
             fignum=profig, ax_set=pro_ax_set, linestyle=hit_linestyle, model_params...)
     else
@@ -619,15 +604,15 @@ function run_ntrials(nPro, nAnti; plot_list=[], start_pro=[-0.5,-0.5,-0.5,-0.5],
     # --- ANTI ---
     if length(plot_list)>0; figure(antifig); if (anti_ax_set==nothing) && clearfig; clf(); end; end
     model_params = make_dict(["input"], [anti_input], model_params)
-    sel_vector = Array{Bool}(nAnti)
-    hit_vector = Array{Bool}(nAnti)
-    plt_vector = Array{Bool}(nAnti)
+    sel_vector = fill(true, nAnti)
+    hit_vector = fill(true, nAnti)
+    plt_vector = fill(true, nAnti)
 
     for i=1:nAnti
         Uend, Vend, tempU, tempV = forwardModel(start_anti, do_plot=false, opto_units=opto_units; model_params...)
-        if FDversion() < 0.6; antiVall[:,:,i] = tempV; else antiVall[:,:,i] = get_value(tempV); end
-        if FDversion() < 0.6; antiUall[:,:,i] = tempU; else antiUall[:,:,i] = get_value(tempV); end
-        antiVs[:,i] = Vend
+        antiVall[:,:,i] .= get_value(tempV);
+        antiUall[:,:,i] .= get_value(tempV);
+        antiVs[:,i] .= Vend
         sDict = Dict("t"=>t, "V"=>antiVall[:,:,i], "U"=>antiUall[:,:,i], "Vend"=>Vend,
             "rule" =>0.5*(antiVall[1,:,i]+antiVall[4,:,i]-antiVall[2,:,i]-antiVall[3,:,i]),
             "decis"=>antiVall[1,:,i] - antiVall[4,:,i],
@@ -639,7 +624,7 @@ function run_ntrials(nPro, nAnti; plot_list=[], start_pro=[-0.5,-0.5,-0.5,-0.5],
         plt_vector[i] = any(plot_list.==i)
     end
     if hit_linestyle==err_linestyle && hit_linestyle!=""
-        uI = find(plt_vector .& sel_vector)
+        uI = findall(plt_vector .& sel_vector)
         plot_PA(t, get_value(antiUall[:,:,uI]), get_value(antiVall[:,:,uI]); clearfig=false,
             fignum=antifig, ax_set=anti_ax_set, linestyle=hit_linestyle, model_params...)
     else
@@ -665,15 +650,13 @@ function run_ntrials(nPro, nAnti; plot_list=[], start_pro=[-0.5,-0.5,-0.5,-0.5],
 end
 
 
-# DON'T MODIFY THIS FILE -- the source is in file ProAnti.ipynb. Look there for further documentation and examples of running the code.
-
 
 """
 cost, cost1s, cost2s, hP, hA, dP, dA, hBP, hBA, [proValls, antiValls, opto_fraction, pro_input, anti_input] =
-    JJ(nPro, nAnti; pro_target=0.9, anti_target=0.7,
+    JJ(nPro, nAnti; asDict = false, pro_target=0.9, anti_target=0.7,
         opto_targets = Array{Float64}(0,2), opto_periods = Array{Float64}(0,2),
         model_details = false,
-        theta1=0.025, theta2=0.035, cbeta=0.003, verbose=false, verbose_file = STDOUT,
+        theta1=0.025, theta2=0.035, cbeta=0.003, verbose=false, verbose_file = stdout,
         pre_string="", zero_last_sigmas=0, seedrand=NaN,
         rule_and_delay_periods = nothing, target_periods = nothing, post_target_periods = nothing,
         plot_conditions=false, plot_list = [],
@@ -689,6 +672,9 @@ target_period is different, for backwards compatibility it defaults to 0.1.
 # PARAMETERS (INCOMPLETE DOCS!!!):
 
 - nPro, nAnti    The number of Pro and the number of Anti trials to run
+
+- asDict         If true, returns a Dict with String=>result pairs, instead of a
+                 Tuple of unnamed results
 
 - pro_target     The target %correct for Pro trials
 
@@ -718,11 +704,11 @@ target_period is different, for backwards compatibility it defaults to 0.1.
                 getting close to its target value (and so its cost gets small, approaching zero) then the
                 theta2 term becomes, relatively speaking, important.
 
-- seedrand      If sets, calls srand() on the value to initialize the random number generator.
+- seedrand      If set, calls srand() on the value to initialize the random number generator.
 
 - verbose       If true, prints out diagnostic information to the console.
 
-- verbose_file  If other than STDOUT, should be a string indicating a filename that verbose
+- verbose_file  If other than stdout, should be a string indicating a filename that verbose
                 output will be written to.
 
 - pre_string    Relevant only under verbose=true, a string that gets printed out before the rest of the verbose info.
@@ -785,23 +771,21 @@ If model_details is set to true, also returns the following (nopto is number of 
 
 """
 
-function JJ(nPro, nAnti; pro_target=0.9, anti_target=0.7,
-    opto_targets = Array{Float64}(0,2), opto_periods = Array{Float64}(0,2),
+function JJ(nPro, nAnti; asDict=false, pro_target=0.9, anti_target=0.7,
+    opto_targets = Array{Float64}(undef,0,2), opto_periods = Array{Float64}(undef, 0,2),
     model_details = false,
-    theta1=0.025, theta2=0.035, cbeta=0.003, verbose=false, verbose_file = STDOUT,
+    theta1=0.025, theta2=0.035, cbeta=0.003, verbose=false, verbose_file = stdout,
     pre_string="", zero_last_sigmas=0, seedrand=NaN,
     rule_and_delay_periods = nothing, target_periods = nothing, post_target_periods = nothing,
     plot_conditions=false, plot_list = [],
     nderivs=0, difforder=0, model_params...)
 
-    if FDversion() >= 0.6
-        # All the variables that we MIGHT choose to differentiate w.r.t. go into this bag -- further down
-        # we'll use get_eltype(varbag) to check for any of them being ForwardDiff.Dual.
-        # That is how we'll tell whether new matrices should be regular numbers of ForwardDiff.Dual's.
-        # *** if you add a new variable you'll want to differentiate w.r.t., it should be added here too ***
-        varbag = (pro_target, anti_target, opto_targets, opto_periods, theta1, theta2, cbeta,model_params)
-        # print("get_eltype(varbag)="); print(get_eltype(varbag)); print("\n")
-    end
+    # All the variables that we MIGHT choose to differentiate w.r.t. go into this bag -- further down
+    # we'll use get_eltype(varbag) to check for any of them being ForwardDiff.Dual.
+    # That is how we'll tell whether new matrices should be regular numbers of ForwardDiff.Dual's.
+    # *** if you add a new variable you'll want to differentiate w.r.t., it should be added here too ***
+    varbag = (pro_target, anti_target, opto_targets, opto_periods, theta1, theta2, cbeta,model_params)
+    # print("get_eltype(varbag)="); print(get_eltype(varbag)); print("\n")
 
     # If the plurals of the periods are not passed in, then use the singular in model_params as the default:
     if rule_and_delay_periods==nothing
@@ -809,10 +793,10 @@ function JJ(nPro, nAnti; pro_target=0.9, anti_target=0.7,
     end
     if target_periods==nothing
         target_periods = [0.1]
-        if verbose_file==STDOUT; ostr=STDOUT else ostr=open(verbose_file, "a"); end
+        if verbose_file==stdout; ostr=stdout else ostr=open(verbose_file, "a"); end
         @printf(ostr, "\n\nWARNING: JJ() was not given a target_periods parameter, I will *IGNORE* the\n")
         @printf(ostr, "    model_params[:target_period] entry and will use a default of 0.1\n\n")
-        if verbose_file!=STDOUT; close(ostr); end
+        if verbose_file!=stdout; close(ostr); end
     end
     if post_target_periods==nothing
          post_target_periods = model_params[:post_target_period]
@@ -850,13 +834,8 @@ function JJ(nPro, nAnti; pro_target=0.9, anti_target=0.7,
     # --- WARNING!!!! BUG HERE, Should have been nruns_each, not nruns. Keeping
     # it as is for backwards compatibility, but all final costs will come out divided
     # by noptos (because there will be that factor of columns of untouched zeros)
-    if FDversion() < 0.6
-        cost1s = ForwardDiffZeros(noptos, nruns, nderivs=nderivs, difforder=difforder)
-        cost2s = ForwardDiffZeros(noptos, nruns, nderivs=nderivs, difforder=difforder)
-    else
-        cost1s = zeros(get_eltype(varbag), noptos, nruns)
-        cost2s = zeros(get_eltype(varbag), noptos, nruns)
-    end
+    cost1s = zeros(get_eltype(varbag), noptos, nruns)
+    cost2s = zeros(get_eltype(varbag), noptos, nruns)
 
     hP  = zeros(noptos, nruns_each);   # Pro "hits", as computed with the theta1 sigmoid
     hA  = zeros(noptos, nruns_each);   # Anti "hits"
@@ -865,8 +844,8 @@ function JJ(nPro, nAnti; pro_target=0.9, anti_target=0.7,
     hBP = zeros(noptos, nruns_each);   # Pro binarized hits, as computed by binarizing (equivalent to theta1->0)
     hBA = zeros(noptos, nruns_each);   # Anti binarized hits
 
-    proValls         = Array{Array{Float64}}(noptos, nruns_each);
-    antiValls        = Array{Array{Float64}}(noptos, nruns_each);
+    proValls         = Array{Array{Float64}}(undef, noptos, nruns_each);
+    antiValls        = Array{Array{Float64}}(undef, noptos, nruns_each);
     opto_fraction    = [];
     pro_input        = [];
     anti_input       = [];
@@ -875,7 +854,7 @@ function JJ(nPro, nAnti; pro_target=0.9, anti_target=0.7,
         # @printf(ostr, "size(hBP) is %d, %d\n", size(hBP,1), size(hBP,2))
 
         # reset random number generator for each opto period, so it cant over fit noise samples
-        if ~isnan(seedrand); srand(seedrand); end
+        if ~isnan(seedrand); Random.seed!(seedrand); end
 
         n = 0  # n is a counter over all period duration conditions
         totHitsP = totHitsA = totDiffsP = totDiffsA = 0
@@ -915,10 +894,10 @@ function JJ(nPro, nAnti; pro_target=0.9, anti_target=0.7,
                     proValls[nopto,  n] = proVall
                     antiValls[nopto, n] = antiVall
 
-                    hitsP  = 0.5*(1 + tanh.((proVs[1,:]-proVs[4,:,])/theta1))
-                    diffsP = tanh.((proVs[1,:,]-proVs[4,:])/theta2).^2
-                    hitsA  = 0.5*(1 + tanh.((antiVs[4,:]-antiVs[1,:,])/theta1))
-                    diffsA = tanh.((antiVs[4,:,]-antiVs[1,:])/theta2).^2
+                    hitsP  = 0.5*(1 .+ tanh.((proVs[1,:] .- proVs[4,:,])/theta1))
+                    diffsP = tanh.((proVs[1,:,] .- proVs[4,:])/theta2).^2
+                    hitsA  = 0.5*(1 .+ tanh.((antiVs[4,:] .- antiVs[1,:,])/theta1))
+                    diffsA = tanh.((antiVs[4,:,] .- antiVs[1,:])/theta2).^2
 
                     # set up storage  -- we do get_value() to make sure to from ForwardDiff.Dual into Float64 if necessary
                     hP[nopto, n] = mean(get_value(hitsP));
@@ -949,7 +928,7 @@ function JJ(nPro, nAnti; pro_target=0.9, anti_target=0.7,
         hitsP = totHitsP/n; hitsA = totHitsA/n; diffsP = totDiffsP/n; diffsA = totDiffsA/n
 
         if verbose
-            if verbose_file==STDOUT; ostr=STDOUT else ostr=open(verbose_file, "a"); end
+            if verbose_file==stdout; ostr=stdout else ostr=open(verbose_file, "a"); end
             pcost1 = mean(cost1s[nopto,:])   # partial costs
             pcost2 = mean(cost2s[nopto,:])
 
@@ -969,7 +948,7 @@ function JJ(nPro, nAnti; pro_target=0.9, anti_target=0.7,
                 @printf(ostr, "     - %d - (nPro=0) mean(hitsA)=%g, mean(diffsA)=%g\n", nopto,
                     get_value(mean(hitsA)), get_value(mean(diffsA)))
             end
-            if verbose_file!=STDOUT; close(ostr); end
+            if verbose_file!=stdout; close(ostr); end
         end
     end
 
@@ -979,19 +958,28 @@ function JJ(nPro, nAnti; pro_target=0.9, anti_target=0.7,
     cost2 = mean(cost2s)
 
     if verbose
-        if verbose_file==STDOUT; ostr=STDOUT else ostr=open(verbose_file, "a"); end
+        if verbose_file==stdout; ostr=stdout else ostr=open(verbose_file, "a"); end
         @printf(ostr, "%s", pre_string)
         @printf(ostr, "OVERALL\n")
         @printf(ostr, "     -- cost=%g, cost1=%g, cost2=%g\n",
             get_value(cost1+cost2), get_value(cost1), get_value(cost2))
-        if verbose_file!=STDOUT; close(ostr); end
+        if verbose_file!=stdout; close(ostr); end
     end
 
-    if model_details
+    if model_details && !asDict
         return cost1 + cost2, cost1s, cost2s, hP,hA,dP,dA,hBP,hBA,
             proValls, antiValls, opto_fraction, pro_input, anti_input
-    else
+    elseif model_details && asDict
+        return Dict("cost"=>cost1 + cost2, "cost1s"=>cost1s, "cost2s"=>cost2s,
+            "hP"=>hP, "hA"=>hA, "dP"=>dP, "dA"=>dA, "hBP"=>hBP, "hBA"=>hBA,
+            "proValls"=>proValls, "antiValls"=>antiValls,
+            "opto_fraction"=>opto_fraction, "pro_input"=>pro_input,
+            "anti_input"=>anti_input)
+    elseif !model_details && !asDict
         return cost1 + cost2, cost1s, cost2s, hP,hA,dP,dA,hBP,hBA
+    elseif !model_details && asDict
+        return Dict("cost"=>cost1 + cost2, "cost1s"=>cost1s, "cost2s"=>cost2s,
+            "hP"=>hP, "hA"=>hA, "dP"=>dP, "dA"=>dA, "hBP"=>hBP, "hBA"=>hBA)
     end
 end
 
@@ -1080,3 +1068,5 @@ function load_run(run_name; farmdir="FarmFields")
 
     return model_params, F, nPro, nAnti
 end
+
+end # END MODULE
