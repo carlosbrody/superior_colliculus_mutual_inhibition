@@ -144,46 +144,59 @@ search_conditions = Dict(   # :param    default_start   search_box  bound_box
 :anti_rule_strength       => [mypars[:anti_rule_strength],       [0,   0.5,],  [0,   30]],
 )
 
-args   = Array{String}(undef, 0)
-seed   = Array{Float64}(undef, 0)
-lower  = Array{Float64}(undef, 0)
-upper  = Array{Float64}(undef, 0)
+for looper=1:4
+    args   = Array{String}(undef, 0)
+    seed   = Array{Float64}(undef, 0)
+    lower  = Array{Float64}(undef, 0)
+    upper  = Array{Float64}(undef, 0)
 
-for k in keys(search_conditions)
-    sbox = search_conditions[k][2]
-    bbox = search_conditions[k][3]
+    for k in keys(search_conditions)
+        sbox = search_conditions[k][2]
+        bbox = search_conditions[k][3]
 
-    global args  = vcat(args, string(k))
-    global seed  = vcat(seed, sbox[1] + rand()*(diff(sbox)[1]))
-    global lower = vcat(lower, bbox[1])
-    global upper = vcat(upper, bbox[2])
+        args  = vcat(args, string(k))
+        seed  = vcat(seed, sbox[1] + rand()*(diff(sbox)[1]))
+        lower = vcat(lower, bbox[1])
+        upper = vcat(upper, bbox[2])
+    end
+
+    ResultsStash = ["seedrand"             "cost"      "minimizer" ;
+                     extra_pars[:seedrand] func(seed)  [seed]]
+
+    println("\n\n**************************\n\n")
+    println("\nStarting seed on loop $looper for ResultsStash:")
+    display(ResultsStash)
+    println("\nInitial cost is ", func(seed))
+    println()
+
+
+
+    result = optimize(
+        func, g, # h, seems overall faster without?
+        lower, upper,
+        seed, # NewtonTrustRegion();  seems overall faster without?
+        Fminbox(),
+        Optim.Options(store_trace=true, show_trace=true,
+            outer_iterations=4, iterations=500,
+            time_limit=28800);
+        inplace=false);
+
+    truecost = func(Optim.minimizer(result))
+    if truecost < 0
+        println("------> NEGATIVE TRUE COST <-------")
+    end
+    println("With seedrand ", extra_pars[:seedrand], " true cost was ", truecost)
+
+    ResultsStash = vcat(ResultsStash,
+        [extra_pars[:seedrand] Optim.minimum(result) [Optim.minimizer(result)]])
+
+    println("\nResultsStash:")
+    display(ResultsStash)
+    println()
+
+    println("\nJJ:")
+    display(JJ(extra_pars[:nPro], extra_pars[:nAnti]; asDict=true, verbose=false,
+        make_dict(G["args"], Optim.minimizer(result), merge(mypars, extra_pars))...))
+
+    println()
 end
-
-ResultsStash = ["seedrand" "cost" "minimizer" ;
-                 0        func(seed)  [seed]]
-
-
-
-result = optimize(
-    func, g, # h, seems overall faster without?
-    lower, upper,
-    seed, # NewtonTrustRegion();  seems overall faster without?
-    Fminbox(),
-    Optim.Options(store_trace=true, show_trace=true, time_limit=28800);
-    inplace=false);
-
-println("With seedrand ", extra_pars[:seedrand], " true cost was ",
-    func(Optim.minimizer(result)))
-
-ResultsStash = vcat(ResultsStash,
-    [extra_pars[:seedrand] Optim.minimum(result) [Optim.minimizer(result)]])
-
-println("\nResultsStash:")
-display(ResultsStash)
-println()
-
-println("\nJJ:")
-display(JJ(extra_pars[:nPro], extra_pars[:nAnti]; asDict=true, verbose=false,
-    make_dict(G["args"], Optim.minimizer(result), merge(mypars, extra_pars))...))
-
-println()
