@@ -1,0 +1,43 @@
+
+
+WARNING: JJ() was not given a target_periods parameter, I will *IGNORE* the
+    model_params[:target_period] entry and will use a default of 0.1
+
+Fminbox
+-------
+Initial mu = 1.29516e-11
+
+Fminbox iteration 1
+-------------------
+Calling inner optimizer with mu = 1.29516e-11
+
+(numbers below include barrier contribution)
+Iter     Function value   Gradient norm 
+     0     2.902779e-02     7.355746e-08
+ * time: 1.0967254638671875e-5
+     1     2.902778e-02     1.865682e-10
+ * time: 33.43892312049866
+
+Exiting inner optimizer with x = [0.325241, 0.24049, 0.249973, 0.0341584, -0.022508, 1.00547, 0.825946, 0.802528, 0.534227, 0.976149, 1.06642, 0.0277102, 0.0910099, 0.0692429, 1.44059, -0.129906]
+Current distance to box: 0.0341584
+Decreasing barrier term μ.
+
+With seedrand 4769089913379 true cost was 0.02902777776501055
+
+ResultsStash:
+3×3 Array{Any,2}:
+              "seedrand"   "cost"    "minimizer"                                                                                                                                                          
+             0            0.0290278  [0.325105, 0.167029, 0.249671, 0.293285, -0.0228133, 0.786553, 0.606656, 0.798445, 0.533855, 0.757403, 0.847556, 0.0223542, 0.0907059, 0.0685063, 1.22098, -0.348748]
+ 4769089913379            0.0290278  [0.325241, 0.24049, 0.249973, 0.0341584, -0.022508, 1.00547, 0.825946, 0.802528, 0.534227, 0.976149, 1.06642, 0.0277102, 0.0910099, 0.0692429, 1.44059, -0.129906]   
+
+JJ:
+Dict{String,Any} with 9 entries:
+  "cost2s" => [-1.55845e-22 0.0 0.0; -1.56262e-22 0.0 0.0; -1.7373e-22 0.0 0.0]
+  "cost" => 0.0290278
+  "cost1s" => [0.1 0.0 0.0; 0.06125 0.0 0.0; 0.1 0.0 0.0]
+  "dP" => [1.55744e-19; 1.56161e-19; 1.73625e-19]
+  "dA" => [1.55946e-19; 1.56364e-19; 1.73836e-19]
+  "hA" => [0.5; 0.5; 0.5]
+  "hBA" => [0.3; 0.3; 0.3]
+  "hP" => [0.5; 0.5; 0.5]
+  "hBP" => [0.7; 0.7; 0.7]
