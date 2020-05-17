@@ -1,6 +1,9 @@
 # Run this file in julia, and it will add and build all the necessary packages for cost function minimization
 
 ENV["PYTHON"]="/usr/bin/python"
+
+import Pkg
+
 Pkg.add("PyCall")
 Pkg.build("PyCall")
 Pkg.add("PyPlot")

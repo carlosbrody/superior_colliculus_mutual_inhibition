@@ -72,4 +72,4 @@ git clone "http://carlosbrody:gungaDID90&@github.com/carlosbrody/superior_collic
 julia julia_start.jl
 
 # Grow the ForwardDiff chunks *after* ForwardDiff is installed:
-./grow_ForwardDiffChunks.sh
+# ./grow_ForwardDiffChunks.sh

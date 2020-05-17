@@ -1,3 +1,16 @@
+if length(ARGS)>0  &&  tryparse(Int64, ARGS[1]) != nothing
+   my_run_number = parse(Int64, ARGS[1]);
+else
+   my_run_number = 1; # I am process my_run_number
+end
+if length(ARGS)>0  &&  tryparse(Int64, ARGS[2]) != nothing
+   tot_n_runs    = parse(Int64, ARGS[2]);
+else
+   tot_n_runs = 1;   # I'm being run as part of tot_n_run processes
+end
+
+include("startup.jl")
+
 mypars = Dict(
 :init_add               =>          0,
 :const_add              =>          0,
@@ -80,7 +93,7 @@ extra_pars = Dict(
                         ],
 )
 
-extra_pars[:seedrand]                  = Int64(round(time()*1000))
+extra_pars[:seedrand]                  = Int64(my_run_number*round(time()*1000))
 extra_pars[:maxiter]                   = 1000
 extra_pars[:testruns]                  = 10000
 extra_pars[:few_trials]                = 50
@@ -92,6 +105,8 @@ extra_pars[:pro_better_than_anti]      = true   # if true, in each condition pro
 extra_pars[:nPro]  = 50
 extra_pars[:nAnti] = 50
 
+using Random
+Random.seed!(extra_pars[:seedrand])
 
 ##
 
@@ -102,76 +117,6 @@ func =  x -> JJ(extra_pars[:nPro], extra_pars[:nAnti]; verbose=false,
 
 g = x->ForwardDiff.gradient(func, x)
 h = x->ForwardDiff.hessian(func, x)
-
-# result = optimize(func, g, h, seed; inplace=false, show_every=1); Optim.minimum(result)
-
-##
-
-count=0;
-cost = Inf
-while cost > 0.01;
-    extra_pars[:seedrand] = Int64(round(time()*1000));
-    global result = optimize(func, g, h, G["pars3"], # NewtonTrustRegion();
-        Optim.Options(store_trace=true, show_trace=true, time_limit=60);
-        inplace=false);
-    global cost = Optim.minimum(result)
-
-    global count += 1;
-    println("Run # ", count, " : ", cost);
-end
-
-
-# ====   I didn't understand this part-- did not seem to speed things up.
-#        maybe we need to use g!() instead of g() ?  (inplace graduient and hessian)
-
-# using DiffResults
-# diffres = DiffResults.HessianResult(G["pars3"])
-# # @time ForwardDiff.hessian!(result, func, G["pars3"]);
-#
-# #
-#
-# function calculate_common(x, lastx, resbuff, f)
-#     if x != lastx
-#         copyto!(lastx, x)
-#         ForwardDiff.hessian!(resbuff, f, x)
-#     end
-# end
-#
-# function myf(x, lastx, resbuff, f)
-#     calculate_common(x, lastx, resbuff, f)
-#     return DiffResults.value(resbuff)
-# end
-#
-# function myg(x, lastx, resbuff, f)
-#     calculate_common(x, lastx, resbuff, f)
-#     return DiffResults.gradient(resbuff)
-# end
-#
-# function myh(x, lastx, resbuff, f)
-#     calculate_common(x, lastx, resbuff, f)
-#     return DiffResults.hessian(resbuff)
-# end
-#
-# x = G["pars3"]
-# lastx = similar(x)
-#
-# ff = x -> myf(x, lastx, diffres, func)
-# gg = x -> myg(x, lastx, diffres, func)
-# hh = x -> myh(x, lastx, diffres, func)
-
-##
-
-# result = optimize(
-#     ff, gg, hh,
-#     G["pars3"], # NewtonTrustRegion();
-#     Optim.Options(store_trace=true, show_trace=true, time_limit=60);
-#     inplace=false);
-
-result = optimize(
-    func, g, # h, seems overall faster without?
-    G["pars3"], # NewtonTrustRegion();  seems overall faster without?
-    Optim.Options(store_trace=true, show_trace=true, time_limit=60);
-    inplace=false);
 
 
 ## ======================================================
@@ -199,19 +144,10 @@ search_conditions = Dict(   # :param    default_start   search_box  bound_box
 :anti_rule_strength       => [mypars[:anti_rule_strength],       [0,   0.5,],  [0,   30]],
 )
 
-##
-
 args   = Array{String}(undef, 0)
 seed   = Array{Float64}(undef, 0)
 lower  = Array{Float64}(undef, 0)
 upper  = Array{Float64}(undef, 0)
-
-ResultsStash = ["seedrand" "cost" "minimizer"]
-
-extra_pars[:seedrand] = Int64(round(time()*1000))
-using Random
-Random.seed!(extra_pars[:seedrand])
-
 
 for k in keys(search_conditions)
     sbox = search_conditions[k][2]
@@ -223,13 +159,17 @@ for k in keys(search_conditions)
     global upper = vcat(upper, bbox[2])
 end
 
+ResultsStash = ["seedrand" "cost" "minimizer" ;
+                 0        func(seed)  [seed]]
+
+
 
 result = optimize(
     func, g, # h, seems overall faster without?
     lower, upper,
     seed, # NewtonTrustRegion();  seems overall faster without?
     Fminbox(),
-    Optim.Options(store_trace=true, show_trace=true, time_limit=14400);
+    Optim.Options(store_trace=true, show_trace=true, time_limit=30000);
     inplace=false);
 
 println("With seedrand ", extra_pars[:seedrand], " true cost was ",
@@ -238,7 +178,12 @@ println("With seedrand ", extra_pars[:seedrand], " true cost was ",
 ResultsStash = vcat(ResultsStash,
     [extra_pars[:seedrand] Optim.minimum(result) [Optim.minimizer(result)]])
 
+println("\nResultsStash:")
+display(ResultsStash)
 println()
 
+println("\nJJ:")
 display(JJ(extra_pars[:nPro], extra_pars[:nAnti]; asDict=true, verbose=false,
     make_dict(G["args"], Optim.minimizer(result), merge(mypars, extra_pars))...))
+
+println()
