@@ -169,7 +169,7 @@ result = optimize(
     lower, upper,
     seed, # NewtonTrustRegion();  seems overall faster without?
     Fminbox(),
-    Optim.Options(store_trace=true, show_trace=true, time_limit=30000);
+    Optim.Options(store_trace=true, show_trace=true, time_limit=28800);
     inplace=false);
 
 println("With seedrand ", extra_pars[:seedrand], " true cost was ",
