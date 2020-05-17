@@ -20,6 +20,7 @@ Pkg.add("MultivariateStats")
 Pkg.add("Clustering")
 Pkg.add("Optim")
 Pkg.add("Revise")
+Pkg.add("Debugger")
 
 using ForwardDiff
 using MAT
