@@ -19,6 +19,7 @@ Pkg.add("JLD")
 Pkg.add("MultivariateStats")
 Pkg.add("Clustering")
 Pkg.add("Optim")
+Pkg.add("Revise")
 
 using ForwardDiff
 using MAT
@@ -26,6 +27,7 @@ using JLD
 using MultivariateStats
 using Clustering
 using Optim
+using Revise
 
 if isfile("/usr/bin/lspci") && contains(readchomp(`lspci`), "NVIDIA")
     Pkg.add("CUDAnative")
