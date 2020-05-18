@@ -12,6 +12,8 @@ if ( $#argv != 2 ) then
     exit
 endif
 
+setenv HOST `hostname`
+
 set j=1
 while ( $j <= $argv[2] )
    echo "Will run:  julia $argv[1] $j $argv[2] > julia_outs_${HOST}_$j &"
