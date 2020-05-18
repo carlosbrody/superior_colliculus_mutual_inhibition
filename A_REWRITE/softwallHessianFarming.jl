@@ -42,7 +42,7 @@ for looper=1:400
     if truecost < 0
         println("------> NEGATIVE TRUE COST <-------")
         hostname = chomp(read(`hostname`, String))
-        fp = open("negCosts_$hostname", "a")
+        fp = open("negCosts_$hostname.csv", "a")
         println(fp, extra_pars[:seedrand], ", ", truecost, ", ")
         writedlm(fp, new2old(Optim.minimizer(result))[:]', ',')
         close(fp)
