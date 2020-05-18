@@ -34,14 +34,14 @@ for looper=1:400
         bfunc, g, # h, seems overall faster without?
         old2new(seed), # NewtonTrustRegion();  seems overall faster without?
         Optim.Options(store_trace=true, show_trace=true,
-            iterations=15000, time_limit=10800);
+            iterations=2, time_limit=10800);
         inplace=false);
 
     truecost = func(new2old(Optim.minimizer(result)))
-    if truecost < 0
+    if truecost < 100
         println("------> NEGATIVE TRUE COST <-------")
         hostname = chomp(read(`hostname`, String))
-        fp = open("negCosts_$hostname", "a")
+        fp = open("trash_negCosts_$hostname.csv", "a")
         println(fp, extra_pars[:seedrand], ", ", truecost, ", ")
         writedlm(fp, new2old(Optim.minimizer(result))[:]', ',')
         close(fp)

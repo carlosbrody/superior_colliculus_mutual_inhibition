@@ -5,6 +5,7 @@ using MAT
 using Random
 using Optim
 using JLD
+using DelimitedFiles
 
 JLD.translate("Core.Bool", "oldbool")
 
