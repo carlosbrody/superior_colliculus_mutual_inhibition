@@ -39,7 +39,7 @@ for looper=1:400
         bfunc, g, h, # seems overall faster without?
         old2new(seed), NewtonTrustRegion(), # seems overall faster without?
         Optim.Options(store_trace=true, show_trace=true,
-        iterations=2);
+        iterations=extra_pars[:firstPassNIter]);
         inplace=false);
 
     truecost = func(new2old(Optim.minimizer(result)))
@@ -59,7 +59,7 @@ for looper=1:400
             bfunc, g, h, # seems overall faster without?
             old2new(seed), NewtonTrustRegion(), # seems overall faster without?
             Optim.Options(store_trace=true, show_trace=true,
-            iterations=2);
+            iterations=extra_pars[:secondPassNIter]);
             inplace=false);
 
         truecost = func(new2old(Optim.minimizer(result)))
