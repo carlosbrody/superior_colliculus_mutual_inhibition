@@ -1,10 +1,12 @@
 include("startup.jl")
 include("commonSetup.jl")
 
-extra_pars[:seedrand] = Int64(my_run_number*round(time()*1000))
-Random.seed!(extra_pars[:seedrand])
+# extra_pars[:seedrand] = Int64(my_run_number*round(time()*1000))
+#Random.seed!(extra_pars[:seedrand])
+# args, seed, bounder = argsSeedBounder();
 
-args, seed, bounder = argsSeedBounder();
+extra_pars[:nPro]  = extra_pars[:few_trials]
+extra_pars[:nAnti] = extra_pars[:few_trials]
 
 func =  x -> JJ(extra_pars[:nPro], extra_pars[:nAnti]; verbose=false,
     make_dict(args, x, merge(mypars, extra_pars))...)[1]
@@ -35,12 +37,12 @@ for looper=1:400
         bfunc, g, h, # seems overall faster without?
         old2new(seed), NewtonTrustRegion(), # seems overall faster without?
         Optim.Options(store_trace=true, show_trace=true,
-            iterations=15000, time_limit=10800);
+            iterations=500);
         inplace=false);
 
     truecost = func(new2old(Optim.minimizer(result)))
-    if truecost < 0
-        println("------> NEGATIVE TRUE COST <-------")
+    if truecost < extra_pars[:first_pass_cost_threshold]
+        println("------> BELOW THRESHOLD COST <-------")
         hostname = chomp(read(`hostname`, String))
         fp = open("negCosts_$hostname.csv", "a")
         println(fp, extra_pars[:seedrand], ", ", truecost, ", ")

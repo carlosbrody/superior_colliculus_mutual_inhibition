@@ -9,6 +9,8 @@ using DelimitedFiles
 
 JLD.translate("Core.Bool", "oldbool")
 
+println("\n     finished loading system modules in startup.jl ---")
+
 # G = load("farm_C30_Farms_C30_spock-brody01-03_0064.jld")
 
 push!(LOAD_PATH, ".")
@@ -18,10 +20,14 @@ using GradientUtils
 using RateNetworks
 using ProAnti
 using TanhWalls
+using ResultsAnalysis
 
 ##
 
 model_params[:opto_times] =["trial_start", "trial_start"]
+
+println("     finished loading user modules in startup.jl ---")
+println("\n--- finished loading startup.jl ---\n")
 
 # fun = x -> begin;
 #    Random.seed!(20);

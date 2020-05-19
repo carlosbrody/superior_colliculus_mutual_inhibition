@@ -10,7 +10,7 @@ using RateNetworks
 
 
 export plot_PA, parse_opto_times, make_input, run_ntrials, JJ, load_run
-export model_params
+export model_params, makeWeightMatrix
 
 """
     plot_PA(t, U, V; fignum=1, clearfig=true, rule_and_delay_period=1, target_period=1,
@@ -322,12 +322,15 @@ model_params = Dict(
 
 
 """
-input, t, nsteps = make_input(trial_type; dt=0.02, nderivs=0, difforder=0, constant_excitation=0.19, anti_rule_strength=0.1,
+input, t, nsteps = make_input(trial_type; nAntiNodes=2,
+    dt=0.02, constant_excitation=0.19, anti_rule_strength=0.1,
     pro_rule_strength=0.1, target_period_excitation=1, right_light_excitation=0.5, right_light_pro_extra=0,
     rule_and_delay_period=0.4, target_period=0.1, post_target_period=0.4, const_pro_bias=0,
     other_unused_params...)
 """
-function make_input(trial_type; dt=0.02, nderivs=0, difforder=0, constant_excitation=0.19, anti_rule_strength=0.1,
+function make_input(trial_type; AntiNodeID=[2,3], ProNodeID=setdiff(1:4, AntiNodeID),
+    RightNodeID=[1,2], LeftNodeID=setdiff(1:4, RightNodeID),
+    dt=0.02, constant_excitation=0.19, anti_rule_strength=0.1,
     pro_rule_strength=0.1, target_period_excitation=1, right_light_excitation=0.5, right_light_pro_extra=0,
     rule_and_delay_period=0.4, target_period=0.1, post_target_period=0.4, const_pro_bias=0,
     other_unused_params...)
@@ -344,20 +347,26 @@ function make_input(trial_type; dt=0.02, nderivs=0, difforder=0, constant_excita
     t = 0:dt:T
     nsteps = length(t)
 
-    input = constant_excitation .+ zeros(get_eltype(varbag), 4, nsteps)
+    # total number of units in the simulation: (usually 4 or 6)
+    nUnits = maximum(union(AntiNodeID, ProNodeID, RightNodeID, LeftNodeID))
+
+    input = constant_excitation .+ zeros(get_eltype(varbag), nUnits, nsteps)
 
     if trial_type=="Anti"
-        input[2:3, t.<rule_and_delay_period] .+= anti_rule_strength
+        input[AntiNodeID, t.<rule_and_delay_period] .+= anti_rule_strength
     elseif trial_type=="Pro"
-        input[[1,4], t.<rule_and_delay_period] .+= pro_rule_strength
+        input[ProNodeID, t.<rule_and_delay_period] .+= pro_rule_strength
     else
         error("make_input: I don't recognize input type \"" * trial_type * "\"")
     end
 
-    input[:,     (rule_and_delay_period.<=t) .& (t.<rule_and_delay_period+target_period)] .+= target_period_excitation
-    input[1:2,   (rule_and_delay_period.<=t) .& (t.<rule_and_delay_period+target_period)] .+= right_light_excitation
-    input[1,     (rule_and_delay_period.<=t) .& (t.<rule_and_delay_period+target_period)] .+= right_light_pro_extra
-    input[[1,4],:] .+= const_pro_bias
+    input[:,
+        (rule_and_delay_period.<=t) .& (t.<rule_and_delay_period+target_period)] .+= target_period_excitation
+    input[RightNodeID,
+        (rule_and_delay_period.<=t) .& (t.<rule_and_delay_period+target_period)] .+= right_light_excitation
+    input[intersect(RightNodeID, ProNodeID),
+        (rule_and_delay_period.<=t) .& (t.<rule_and_delay_period+target_period)] .+= right_light_pro_extra
+    input[ProNodeID,:] .+= const_pro_bias
 
     return input, t, nsteps
 end
@@ -365,11 +374,114 @@ end
 
 
 """
+    makeWeightMatrix(model_params, symmetrized_W)
+
+    = PARAMETERS
+
+    - model_params     Dict
+
+    - symmetrized_W    Boolean
+
+    = RETURNS
+
+    - W                Square weight matrix
+"""
+function makeWeightMatrix(model_params, symmetrized_W)
+
+    global AntiNodeID  = model_params[:AntiNodeID]
+    global ProNodeID   = model_params[:ProNodeID]
+    global LeftNodeID  = model_params[:LeftNodeID]
+    global RightNodeID = model_params[:RightNodeID]
+    nUnits = maximum(union(AntiNodeID, ProNodeID, RightNodeID, LeftNodeID))
+
+    W = [];
+    if symmetrized_W
+        @assert nUnits==4  "only know how to do symmetrized W for 4-unit simulations"
+        sW = model_params[:sW]
+        hW = model_params[:hW]
+        vW = model_params[:vW]
+        dW = model_params[:dW]
+
+        W = [sW vW dW hW; vW sW hW dW; dW hW sW vW; hW dW vW sW]
+        # println(size(model_params[:W]));
+    elseif nUnits==4
+        sW_P  = model_params[:sW_P]
+        sW_A  = model_params[:sW_A]
+        hW_P  = model_params[:hW_P]
+        hW_A  = model_params[:hW_A]
+        vW_PA = model_params[:vW_PA]
+        vW_AP = model_params[:vW_AP]
+        dW_PA = model_params[:dW_PA]
+        dW_AP = model_params[:dW_AP]
+        W = [sW_P  vW_PA dW_PA hW_P ;
+             vW_AP sW_A  hW_A  dW_AP ;
+             dW_AP hW_A  sW_A  vW_AP ;
+             hW_P  dW_PA vW_PA sW_P]
+    elseif nUnits==6
+        W = fill("",6,6)
+        global numAnti = Int64(length(AntiNodeID)/2) # divide by 2 for two sides of brain
+        global numPro  = Int64(length(ProNodeID)/2)
+        for fromSide in ["Left", "Right"]
+            for fromType in ["Pro", "Anti"]
+                for fromNum = 1:eval(Meta.parse("num$fromType"))
+                    sideIDs = eval(Meta.parse("$(fromSide)NodeID"))
+                    typeIDs = eval(Meta.parse("$(fromType)NodeID"))
+                    myIDset = intersect(sideIDs, typeIDs)
+                    fromID = myIDset[fromNum]
+                    for toSide in ["Left", "Right"]
+                        for toType in ["Pro", "Anti"]
+                            for toNum = 1:eval(Meta.parse("num$toType"))
+                                sideIDs = eval(Meta.parse("$(toSide)NodeID"))
+                                typeIDs = eval(Meta.parse("$(toType)NodeID"))
+                                myIDset = intersect(sideIDs, typeIDs)
+                                toID = myIDset[toNum]
+                                if fromType==toType && fromSide==toSide
+                                    if fromNum==toNum
+                                        println("[$toID,$fromID] is sW_$(fromType[1])$(fromNum)")
+                                        W[toID,fromID] = "sW_$(fromType[1])$(fromNum)"
+                                    else
+                                        println("[$toID,$fromID] is "*
+                                            "cW_$(toType[1])$(toNum)$(fromType[1])$(fromNum)")
+                                        W[toID,fromID] = "cW_$(toType[1])$(toNum)$(fromType[1])$(fromNum)"
+                                    end
+                                elseif fromSide==toSide
+                                    println("[$toID,$fromID] is "*
+                                        "vW_$(toType[1])$(toNum)$(fromType[1])$(fromNum)")
+                                    W[toID,fromID] = "vW_$(toType[1])$(toNum)$(fromType[1])$(fromNum)"
+                                elseif fromType==toType
+                                    println("[$toID,$fromID] is "*
+                                        "hW_$(toType[1])$(toNum)$(fromType[1])$(fromNum)")
+                                    W[toID,fromID] = "hW_$(toType[1])$(toNum)$(fromType[1])$(fromNum)"
+                                else
+                                    println("[$toID,$fromID] is "*
+                                        "dW_$(toType[1])$(toNum)$(fromType[1])$(fromNum)")
+                                    W[toID,fromID] = "dW_$(toType[1])$(toNum)$(fromType[1])$(fromNum)"
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+
+    else
+        error("nUnits=$nUnits, don't know how to set weight matrix for that")
+    end
+
+    return W
+end
+
+
+
+
+"""
 proVs, antiVs, pro_fullV, anti_fullV, opto_fraction, pro_input, anti_input =
-        run_ntrials(nPro, nAnti; plot_list=[], selectize =  "true",
-        start_pro=[-0.5,-0.5,-0.5,-0.5], start_anti=[-0.5,-0.5,-0.5,-0.5],
-        profig=1, antifig=2, clearfig=true, ax_set = nothing, hit_linestyle="-", err_linestyle="-",
-        opto_units = 1:4, nderivs=0, difforder=0, symmetrized_W=true, model_params...)
+        run_ntrials(nPro, nAnti; AntiNodeID=[2,3], ProNodeID=setdiff(1:4, AntiNodeID),
+            RightNodeID=[1,2], LeftNodeID=setdiff(1:4, RightNodeID),
+            plot_list=[], selectize =  "true",
+            start_pro=[-0.5,-0.5,-0.5,-0.5], start_anti=[-0.5,-0.5,-0.5,-0.5],
+            profig=1, antifig=2, clearfig=true, ax_set = nothing, hit_linestyle="-", err_linestyle="-",
+            opto_units = 1:4, nderivs=0, difforder=0, symmetrized_W=true, model_params...)
 
 Runs a set of proAnti model trials.  See model_params above for definition of all the parameters. In addition,
 
@@ -487,7 +599,9 @@ proVs, antiVs, pro_fullV, anti_fullV, opto_strength, pro_input, anti_input =
     my_params...)
 ```
 """
-function run_ntrials(nPro, nAnti; plot_list=[], start_pro=[-0.5,-0.5,-0.5,-0.5], start_anti=[-0.5,-0.5,-0.5,-0.5],
+function run_ntrials(nPro, nAnti; AntiNodeID=[2,3], ProNodeID=setdiff(1:4, AntiNodeID),
+    RightNodeID=[1,2], LeftNodeID=setdiff(1:4, RightNodeID),
+    plot_list=[], start_pro=[-0.5,-0.5,-0.5,-0.5], start_anti=[-0.5,-0.5,-0.5,-0.5],
     profig=1, antifig=2, clearfig=true, ax_set = nothing, hit_linestyle="-", err_linestyle="-",
     opto_units = 1:4, nderivs=0, difforder=0, selectize=true, symmetrized_W=true, model_params...)
 
@@ -497,6 +611,9 @@ function run_ntrials(nPro, nAnti; plot_list=[], start_pro=[-0.5,-0.5,-0.5,-0.5],
     # *** if you add a new variable you'll want to differentiate w.r.t., it should be added here too ***
     varbag = (start_pro, start_anti, model_params)
     # print("get_eltype(varbag)="); print(get_eltype(varbag)); print("\n")
+
+    # total number of units in the simulation: (usually 4 or 6)
+    nUnits = maximum(union(AntiNodeID, ProNodeID, RightNodeID, LeftNodeID))
 
     pro_ax_set  = nothing
     anti_ax_set = nothing
@@ -527,26 +644,11 @@ function run_ntrials(nPro, nAnti; plot_list=[], start_pro=[-0.5,-0.5,-0.5,-0.5],
     anti_input, t, nsteps = make_input("Anti"; nderivs=nderivs, difforder=difforder, model_params...)
 
     model_params = make_dict(["nsteps"], [nsteps], model_params)
-    if symmetrized_W
-        sW = model_params[:sW]
-        hW = model_params[:hW]
-        vW = model_params[:vW]
-        dW = model_params[:dW]
-        model_params = make_dict(["W"], [[sW vW dW hW; vW sW hW dW; dW hW sW vW; hW dW vW sW]], model_params)
-        # println(size(model_params[:W]));
-    else
-        sW_P  = model_params[:sW_P]
-        sW_A  = model_params[:sW_A]
-        hW_P  = model_params[:hW_P]
-        hW_A  = model_params[:hW_A]
-        vW_PA = model_params[:vW_PA]
-        vW_AP = model_params[:vW_AP]
-        dW_PA = model_params[:dW_PA]
-        dW_AP = model_params[:dW_AP]
-        model_params = make_dict(["W"], [[sW_P vW_PA dW_PA hW_P ; vW_AP sW_A hW_A dW_AP ;
-                                          dW_AP hW_A sW_A vW_AP ; hW_P dW_PA vW_PA sW_P]], model_params)
-    end
-    model_params = make_dict(["nderivs", "difforder"], [nderivs, difforder], model_params)
+    model_params = make_dict(["AntiNodeID", "ProNodeID", "LeftNodeID", "RightNodeID"],
+        [AntiNodeID, ProNodeID, LeftNodeID, RightNodeID], model_params)
+    model_params = make_dict(["W"], [makeWeightMatrix(model_params, symmetrized_W)],
+        model_params)
+
     if haskey(model_params, :opto_times)
         model_params[:opto_times] = parse_opto_times(model_params[:opto_times], model_params)
     end
@@ -554,14 +656,14 @@ function run_ntrials(nPro, nAnti; plot_list=[], start_pro=[-0.5,-0.5,-0.5,-0.5],
         model_params[:Iperturb_times] = parse_opto_times(model_params[:Iperturb_times], model_params)
     end
 
-    proVs  = zeros(get_eltype(varbag), 4, nPro)
-    antiVs = zeros(get_eltype(varbag), 4, nAnti)
+    proVs  = zeros(get_eltype(varbag), nUnits, nPro)
+    antiVs = zeros(get_eltype(varbag), nUnits, nAnti)
     # println(varbag)
 
-    proVall  = zeros(4, nsteps, nPro);
-    antiVall = zeros(4, nsteps, nAnti);
-    proUall  = zeros(4, nsteps, nPro);
-    antiUall = zeros(4, nsteps, nAnti);
+    proVall  = zeros(nUnits, nsteps, nPro);
+    antiVall = zeros(nUnits, nsteps, nAnti);
+    proUall  = zeros(nUnits, nsteps, nPro);
+    antiUall = zeros(nUnits, nsteps, nAnti);
     # --- PRO ---
     if length(plot_list)>0; figure(profig); if (pro_ax_set==nothing) && clearfig; clf(); end; end
     model_params = make_dict(["input"], [pro_input], model_params)
@@ -648,6 +750,7 @@ function run_ntrials(nPro, nAnti; plot_list=[], start_pro=[-0.5,-0.5,-0.5,-0.5],
 
     return proVs, antiVs, proVall, antiVall, opto_fraction, pro_input, anti_input
 end
+
 
 
 
