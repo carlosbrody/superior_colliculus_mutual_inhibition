@@ -86,8 +86,8 @@ extra_pars = Dict(
 
 extra_pars[:maxiter]                   = 1000
 extra_pars[:testruns]                  = 10000
-extra_pars[:few_trials]                = 50
-extra_pars[:many_trials]               = 1600
+extra_pars[:few_trials]                = 5
+extra_pars[:many_trials]               = 16
 extra_pars[:binarized_delta_threshold] = 0.1    # average frac correct must be within this of target
 extra_pars[:anti_perf_delta]           = 0.05   # delay anti must be at least this worse off than control or choice anti
 extra_pars[:pro_better_than_anti]      = true   # if true, in each condition pro hits must be > anti hits
