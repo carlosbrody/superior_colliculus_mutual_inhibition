@@ -81,7 +81,7 @@ for looper=1:400
 
     println("\nJJ:")
     display(JJ(extra_pars[:nPro], extra_pars[:nAnti]; asDict=true, verbose=false,
-    make_dict(G["args"], new2old(Optim.minimizer(result)), merge(mypars, extra_pars))...))
+        make_dict(args, new2old(Optim.minimizer(result)), merge(mypars, extra_pars))...))
 
     println()
 end
