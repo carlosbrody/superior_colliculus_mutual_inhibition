@@ -9,10 +9,12 @@ extra_pars[:nPro]  = extra_pars[:few_trials]
 extra_pars[:nAnti] = extra_pars[:few_trials]
 
 func =  x -> JJ(extra_pars[:nPro], extra_pars[:nAnti]; verbose=false,
-    make_dict(args, x, merge(mypars, extra_pars))...)[1]
+make_dict(args, x, merge(mypars, extra_pars))...)[1]
 
 for looper=1:400
 
+    extra_pars[:nPro]  = extra_pars[:few_trials]
+    extra_pars[:nAnti] = extra_pars[:few_trials]
     extra_pars[:seedrand] = Int64(my_run_number*round(time()*1000))
     Random.seed!(extra_pars[:seedrand])
     args, seed, bounder = argsSeedBounder();
@@ -23,7 +25,7 @@ for looper=1:400
     h = x -> ForwardDiff.hessian(bfunc, x)
 
     ResultsStash = ["seedrand"             "cost"      "minimizer" ;
-                     extra_pars[:seedrand] func(seed)  [seed]]
+    extra_pars[:seedrand] func(seed)  [seed]]
 
     println("\n\n**************************\n\n")
     println("\nStarting seed on loop $looper for ResultsStash:")
@@ -37,24 +39,41 @@ for looper=1:400
         bfunc, g, h, # seems overall faster without?
         old2new(seed), NewtonTrustRegion(), # seems overall faster without?
         Optim.Options(store_trace=true, show_trace=true,
-            iterations=500);
+        iterations=2);
         inplace=false);
 
     truecost = func(new2old(Optim.minimizer(result)))
     if truecost < extra_pars[:first_pass_cost_threshold]
-        println("------> BELOW THRESHOLD COST <-------")
+        println("------> BELOW THRESHOLD FIRST PASS COST <-------")
         hostname = chomp(read(`hostname`, String))
-        fp = open("negCosts_$hostname.csv", "a")
-        println(fp, extra_pars[:seedrand], ", ", truecost, ", ")
+        fp = open("neg50Costs_$hostname.csv", "a")
+        print(fp, extra_pars[:seedrand], ", ", truecost, ", ")
         writedlm(fp, new2old(Optim.minimizer(result))[:]', ',')
         close(fp)
-    end
+
+        extra_pars[:nPro]  = extra_pars[:many_trials]
+        extra_pars[:nAnti] = extra_pars[:many_trials]
+        seed = new2old(Optim.minimizer(result))
+
+        result = optimize(
+            bfunc, g, h, # seems overall faster without?
+            old2new(seed), NewtonTrustRegion(), # seems overall faster without?
+            Optim.Options(store_trace=true, show_trace=true,
+            iterations=2);
+            inplace=false);
+
+        truecost = func(new2old(Optim.minimizer(result)))
+        hostname = chomp(read(`hostname`, String))
+        fp = open("neg1600Costs_$hostname.csv", "a")
+        print(fp, extra_pars[:seedrand], ", ", truecost, ", ")
+        writedlm(fp, new2old(Optim.minimizer(result))[:]', ',')
+        close(fp)
 
     end
     println("With seedrand ", extra_pars[:seedrand], " true cost was ", truecost)
 
     ResultsStash = vcat(ResultsStash,
-        [extra_pars[:seedrand] Optim.minimum(result) [new2old(Optim.minimizer(result))]])
+    [extra_pars[:seedrand] Optim.minimum(result) [new2old(Optim.minimizer(result))]])
 
     println("\nResultsStash:")
     display(ResultsStash)
@@ -62,7 +81,7 @@ for looper=1:400
 
     println("\nJJ:")
     display(JJ(extra_pars[:nPro], extra_pars[:nAnti]; asDict=true, verbose=false,
-        make_dict(G["args"], new2old(Optim.minimizer(result)), merge(mypars, extra_pars))...))
+    make_dict(G["args"], new2old(Optim.minimizer(result)), merge(mypars, extra_pars))...))
 
     println()
 end
