@@ -374,7 +374,7 @@ end
 
 
 """
-    makeWeightMatrix(model_params, symmetrized_W)
+    makeWeightMatrix(model_params, symmetrized_W=false; asString=false)
 
     = PARAMETERS
 
@@ -386,7 +386,7 @@ end
 
     - W                Square weight matrix
 """
-function makeWeightMatrix(model_params, symmetrized_W)
+function makeWeightMatrix(model_params, symmetrized_W=false; asString=false)
 
     global AntiNodeID  = model_params[:AntiNodeID]
     global ProNodeID   = model_params[:ProNodeID]
@@ -418,7 +418,7 @@ function makeWeightMatrix(model_params, symmetrized_W)
              dW_AP hW_A  sW_A  vW_AP ;
              hW_P  dW_PA vW_PA sW_P]
     elseif nUnits==6
-        W = fill("",6,6)
+        W = fill(asString ? "" : 0.0, 6, 6)
         global numAnti = Int64(length(AntiNodeID)/2) # divide by 2 for two sides of brain
         global numPro  = Int64(length(ProNodeID)/2)
         for fromSide in ["Left", "Right"]
@@ -437,26 +437,19 @@ function makeWeightMatrix(model_params, symmetrized_W)
                                 toID = myIDset[toNum]
                                 if fromType==toType && fromSide==toSide
                                     if fromNum==toNum
-                                        println("[$toID,$fromID] is sW_$(fromType[1])$(fromNum)")
-                                        W[toID,fromID] = "sW_$(fromType[1])$(fromNum)"
+                                        str = "sW_$(fromType[1])$(fromNum)"
                                     else
-                                        println("[$toID,$fromID] is "*
-                                            "cW_$(toType[1])$(toNum)$(fromType[1])$(fromNum)")
-                                        W[toID,fromID] = "cW_$(toType[1])$(toNum)$(fromType[1])$(fromNum)"
+                                        str = "cW_$(toType[1])$(toNum)$(fromType[1])$(fromNum)"
                                     end
                                 elseif fromSide==toSide
-                                    println("[$toID,$fromID] is "*
-                                        "vW_$(toType[1])$(toNum)$(fromType[1])$(fromNum)")
-                                    W[toID,fromID] = "vW_$(toType[1])$(toNum)$(fromType[1])$(fromNum)"
+                                    str = "vW_$(toType[1])$(toNum)$(fromType[1])$(fromNum)"
                                 elseif fromType==toType
-                                    println("[$toID,$fromID] is "*
-                                        "hW_$(toType[1])$(toNum)$(fromType[1])$(fromNum)")
-                                    W[toID,fromID] = "hW_$(toType[1])$(toNum)$(fromType[1])$(fromNum)"
+                                    str = "hW_$(toType[1])$(toNum)$(fromType[1])$(fromNum)"
                                 else
-                                    println("[$toID,$fromID] is "*
-                                        "dW_$(toType[1])$(toNum)$(fromType[1])$(fromNum)")
-                                    W[toID,fromID] = "dW_$(toType[1])$(toNum)$(fromType[1])$(fromNum)"
+                                    str = "dW_$(toType[1])$(toNum)$(fromType[1])$(fromNum)"
                                 end
+                                W[toID,fromID] = asString ? str : model_params[Symbol(str)]
+
                             end
                         end
                     end
@@ -603,7 +596,7 @@ function run_ntrials(nPro, nAnti; AntiNodeID=[2,3], ProNodeID=setdiff(1:4, AntiN
     RightNodeID=[1,2], LeftNodeID=setdiff(1:4, RightNodeID),
     plot_list=[], start_pro=[-0.5,-0.5,-0.5,-0.5], start_anti=[-0.5,-0.5,-0.5,-0.5],
     profig=1, antifig=2, clearfig=true, ax_set = nothing, hit_linestyle="-", err_linestyle="-",
-    opto_units = 1:4, nderivs=0, difforder=0, selectize=true, symmetrized_W=true, model_params...)
+    opto_units = 1:4, selectize=true, symmetrized_W=true, model_params...)
 
     # All the variables that we MIGHT choose to differentiate w.r.t. go into this bag -- further down
     # we'll use get_eltype(varbag) to check for any of them being ForwardDiff.Dual.
@@ -640,14 +633,15 @@ function run_ntrials(nPro, nAnti; AntiNodeID=[2,3], ProNodeID=setdiff(1:4, AntiN
     end
 
     model_params = Dict(model_params)
-    pro_input,  t, nsteps = make_input("Pro" ; nderivs=nderivs, difforder=difforder, model_params...)
-    anti_input, t, nsteps = make_input("Anti"; nderivs=nderivs, difforder=difforder, model_params...)
-
-    model_params = make_dict(["nsteps"], [nsteps], model_params)
     model_params = make_dict(["AntiNodeID", "ProNodeID", "LeftNodeID", "RightNodeID"],
         [AntiNodeID, ProNodeID, LeftNodeID, RightNodeID], model_params)
     model_params = make_dict(["W"], [makeWeightMatrix(model_params, symmetrized_W)],
         model_params)
+
+    pro_input,  t, nsteps = make_input("Pro" ; model_params...)
+    anti_input, t, nsteps = make_input("Anti"; model_params...)
+    model_params = make_dict(["nsteps"], [nsteps], model_params)
+
 
     if haskey(model_params, :opto_times)
         model_params[:opto_times] = parse_opto_times(model_params[:opto_times], model_params)
