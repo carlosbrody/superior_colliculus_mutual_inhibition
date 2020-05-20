@@ -36,8 +36,8 @@ for looper=1:400
 
 
     result = optimize(
-        bfunc, g, h, # seems overall faster without?
-        old2new(seed), NewtonTrustRegion(), # seems overall faster without?
+        bfunc, g, h,
+        old2new(seed), NewtonTrustRegion(),
         Optim.Options(store_trace=true, show_trace=true,
         iterations=extra_pars[:firstPassNIter]);
         inplace=false);
