@@ -86,10 +86,10 @@ extra_pars = Dict(
 
 # Enough trials, iters for a real run:
 extra_pars[:few_trials]                = 50       # number of trials to use in first pass
-extra_pars[:firstPassNIter]            = 500      # maximum iterations in first pass
+extra_pars[:firstPassNIter]            = 1500      # maximum iterations in first pass
 extra_pars[:many_trials]               = 1600     # of trials to use in further pass
-extra_pars[:secondPassNIter]           = 50       # maximum iterations in further pass
-extra_pars[:first_pass_cost_threshold] = -0.0002  # maximum cost threshold for a first pass run to seed a second pass run
+extra_pars[:secondPassNIter]           = 150       # maximum iterations in further pass
+extra_pars[:first_pass_cost_threshold] = -0.0001  # maximum cost threshold for a first pass run to seed a second pass run
 extra_pars[:stoppingCostThreshold]     = -0.00028  # if below this cost, stop the minimization
 extra_pars[:nFurtherPasses]            = 2        # after one further pass at many_trials and secondPassNIter, how many more of those to do before giving up
 
