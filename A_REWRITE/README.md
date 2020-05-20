@@ -1,5 +1,22 @@
 ### 2020-05-20 : old 4-node circuit was on C30 settings, not C32
 
+#### extending nIter on proanti001 and proanti002
+
+Looks like the C32 settings are much harder to train -- indeed, now I remember that!  So in addition to running as below on `proanti002` and `proanti003` VMs, have now revived `proanti001` and `proanti004`, and am running on them with the following parameters, bigger nIter and easier threshold from going from few trials to many trials.
+
+```julia
+# Enough trials, iters for a real run:
+extra_pars[:few_trials]                = 50       # number of trials to use in first pass
+extra_pars[:firstPassNIter]            = 1500      # maximum iterations in first pass
+extra_pars[:many_trials]               = 1600     # of trials to use in further pass
+extra_pars[:secondPassNIter]           = 150       # maximum iterations in further pass
+extra_pars[:first_pass_cost_threshold] = -0.0001  # maximum cost threshold for a first pass run to seed a second pass run
+extra_pars[:stoppingCostThreshold]     = -0.00028  # if below this cost, stop the minimization
+extra_pars[:nFurtherPasses]            = 2        # after one further pass at many_trials and secondPassNIter, how many more of those to do before giving up
+```
+
+#### fits on proanti002 and proanti003
+
 Unbelievable. Was running on C30 settings, not C32. The difference is critical "Farm C32: Just like C30, but with variable delay periods, variable target periods, and no post-target periods".  The results for the 4-node circuit were not matching previous results, this was a possible reason. Now rerunning.
 
 Output goes into `neg50Costs_$hostname.csv` after the first pass with 50 trials, and then passes with 1600 trials go into `neg1600Costs_hostname.csv`, set to do several passes of 50 iters each, replacing output as it goes, and stopping if the cost falls below -0.00028.  Won't do more than 150 iters on the 1600 trials.
