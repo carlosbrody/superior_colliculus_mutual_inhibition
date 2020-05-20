@@ -47,7 +47,7 @@ for looper=1:400
         println("------> BELOW THRESHOLD FIRST PASS COST <-------")
         hostname = chomp(read(`hostname`, String))
         fp = open("neg50Costs_$hostname.csv", "a")
-        print(fp, extra_pars[:seedrand], ", ", truecost, ", ")
+        print(fp, Int64(extra_pars[:seedrand]), ", ", truecost, ", ")
         writedlm(fp, new2old(Optim.minimizer(result))[:]', ',')
         close(fp)
 
@@ -64,11 +64,32 @@ for looper=1:400
 
         truecost = func(new2old(Optim.minimizer(result)))
         hostname = chomp(read(`hostname`, String))
-        fp = open("neg1600Costs_$hostname.csv", "a")
-        print(fp, extra_pars[:seedrand], ", ", truecost, ", ")
+        costsfile = "neg1600Costs_$hostname.csv"
+        fp = open(costsfile, "a")
+        print(fp, Int64(extra_pars[:seedrand]), ", ", truecost, ", ")
         writedlm(fp, new2old(Optim.minimizer(result))[:]', ',')
         close(fp)
 
+        furtherPassesDoneCounter = 0
+        while truecost > extra_pars[:stoppingCostThreshold] && furtherPassesDoneCounter<extra_pars[:nFurtherPasses]
+            newseed = new2old(Optim.minimizer(result))
+            result = optimize(
+                bfunc, g, h, # seems overall faster without?
+                old2new(newseed), NewtonTrustRegion(), # seems overall faster without?
+                Optim.Options(store_trace=true, show_trace=true,
+                iterations=extra_pars[:secondPassNIter]);
+                inplace=false);
+
+            truecost = func(new2old(Optim.minimizer(result)))
+            Z = readCostsFile(fname=costsfile)
+            u = findfirst(Array{Int64}(Z[2:end,1]) .== extra_pars[:seedrand]) + 1
+            @assert u != nothing   "Could not find run ID $(extra_pars[:seedrand])"
+            Z[u,2] = truecost; Z[u,3:end] = new2old(Optim.minimizer(result))
+            cp(costsfile, next_file("BACKUPS/$costsfile", 4))  # backup just in case
+            writeCostsFile(costsfile, Z)
+
+            furtherPassesDoneCounter += 1
+        end
     end
     println("With seedrand ", extra_pars[:seedrand], " true cost was ", truecost)
 

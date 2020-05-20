@@ -30,11 +30,11 @@ mypars = Dict(
 :start_anti             =>          [-0.5, -0.5, -0.5, -0.5],
 :start_pro              =>          [-0.5, -0.5, -0.5, -0.5],
 :rule_and_delay_period  =>          1.2,
-:rule_and_delay_periods =>          [1.2],
-:target_period          =>          0.3,
-:target_periods         =>          [0.3],
-:post_target_period     =>          0.3,
-:post_target_periods    =>          [0.3],
+:rule_and_delay_periods =>          [1.0 1.2],
+:target_period          =>          0.6,
+:target_periods         =>          [0.45 0.6],
+:post_target_period     =>          0,
+:post_target_periods    =>          [0],
 :right_light_pro_extra  =>          0,
 :U_rest                 =>          0,
 :theta                  =>          0.05,
@@ -73,7 +73,7 @@ extra_pars = Dict(
 :opto_periods     =>   String[
                               "trial_start-0.1"     "trial_start-0.2" ;
                               "target_start-0.4"    "target_start" ;
-                               "target_start+0.016"  "target_end" ;
+                               "target_start+0.016"  "trial_end" ;
                               ],
 :opto_targets     =>   [
                         0.9   0.7  ;
@@ -84,11 +84,23 @@ extra_pars = Dict(
 
 ##
 
-extra_pars[:few_trials]                = 50       # number of trials to use in first pass
-extra_pars[:firstPassNIter]            = 500      # maximum iterations in first pass
-extra_pars[:many_trials]               = 1600     # of trials to use in second pass
-extra_pars[:secondPassNIter]           = 40       # maximum iterations in second pass
-extra_pars[:first_pass_cost_threshold] = -0.0002  # maximum cost threshold for a first pass run to seed a second pass run
+# extra_pars[:few_trials]                = 50       # number of trials to use in first pass
+# extra_pars[:firstPassNIter]            = 500      # maximum iterations in first pass
+# extra_pars[:many_trials]               = 1600     # of trials to use in further pass
+# extra_pars[:secondPassNIter]           = 50       # maximum iterations in further pass
+# extra_pars[:first_pass_cost_threshold] = -0.0002  # maximum cost threshold for a first pass run to seed a second pass run
+# extra_pars[:stoppingCostThreshold]     = -0.00028  # if below this cost, stop the minimization
+# extra_pars[:nFurtherPasses]            = 2        # after one further pass at many_trials and secondPassNIter, how many more of those to do before giving up
+
+
+extra_pars[:few_trials]                = 5       # number of trials to use in first pass
+extra_pars[:firstPassNIter]            = 2      # maximum iterations in first pass
+extra_pars[:many_trials]               = 16     # of trials to use in further pass
+extra_pars[:secondPassNIter]           = 2       # maximum iterations in further pass
+extra_pars[:first_pass_cost_threshold] = 2  # maximum cost threshold for a first pass run to seed a second pass run
+extra_pars[:stoppingCostThreshold]     = -0.00028  # if below this cost, stop the minimization
+extra_pars[:nFurtherPasses]            = 2        # after one further pass at many_trials and secondPassNIter, how many more of those to do before giving up
+
 extra_pars[:binarized_delta_threshold] = 0.1    # average frac correct must be within this of target
 extra_pars[:anti_perf_delta]           = 0.05   # delay anti must be at least this worse off than control or choice anti
 extra_pars[:pro_better_than_anti]      = true   # if true, in each condition pro hits must be > anti hits

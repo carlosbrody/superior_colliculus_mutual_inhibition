@@ -1,6 +1,8 @@
 module GeneralUtils
 
-export replacer
+
+
+export replacer, next_file
 
 using Printf
 
@@ -383,12 +385,12 @@ function next_file(fbasename, ndigits)
     else
         fnames = readdir()
     end
-    matched_filenames = Array{Bool}(length(fnames))
+    matched_filenames = fill(true, length(fnames))
     for i=1:length(fnames)
-        matched_filenames[i] = ismatch(Regex(@sprintf("^%s", myfile)), fnames[i])
+        matched_filenames[i] = occursin(Regex(@sprintf("^%s", myfile)), fnames[i])
     end
 
-    mynum = length(find(matched_filenames))+1
+    mynum = length(findall(matched_filenames))+1
     myname = @sprintf("%d", mynum)
     while length(myname)<ndigits
         myname = "0" * myname

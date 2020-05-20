@@ -16,6 +16,7 @@ println("\n     finished loading system modules in startup.jl ---")
 push!(LOAD_PATH, ".")
 
 using Revise
+using GeneralUtils
 using GradientUtils
 using RateNetworks
 using ProAnti
