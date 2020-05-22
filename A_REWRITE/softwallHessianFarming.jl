@@ -11,7 +11,23 @@ extra_pars[:nAnti] = extra_pars[:few_trials]
 func =  x -> JJ(extra_pars[:nPro], extra_pars[:nAnti]; verbose=false,
     make_dict(args, x, merge(mypars, extra_pars))...)[1]
 
-for looper=1:400
+
+function firstPassCallback(x)
+    if typeof(x) <: Array
+        x = x[end]
+    end
+    return x.value <= extra_pars[:first_pass_cost_threshold]
+end
+
+function secondPassCallback(x)
+    if typeof(x) <: Array
+        x = x[end]
+    end
+    return x.value <= extra_pars[:stoppingCostThreshold]
+end
+
+
+for looper=1  # :400
 
     extra_pars[:nPro]  = extra_pars[:few_trials]
     extra_pars[:nAnti] = extra_pars[:few_trials]
@@ -39,6 +55,7 @@ for looper=1:400
         bfunc, g, h,
         old2new(seed), NewtonTrustRegion(),
         Optim.Options(store_trace=true, show_trace=true,
+        callback  = firstPassCallback,
         iterations=extra_pars[:firstPassNIter]);
         inplace=false);
 
@@ -59,6 +76,7 @@ for looper=1:400
             bfunc, g, h, # seems overall faster without?
             old2new(seed), NewtonTrustRegion(), # seems overall faster without?
             Optim.Options(store_trace=true, show_trace=true,
+            callback = secondPassCallback,
             iterations=extra_pars[:secondPassNIter]);
             inplace=false);
 
@@ -70,26 +88,6 @@ for looper=1:400
         writedlm(fp, new2old(Optim.minimizer(result))[:]', ',')
         close(fp)
 
-        furtherPassesDoneCounter = 0
-        while truecost > extra_pars[:stoppingCostThreshold] && furtherPassesDoneCounter<extra_pars[:nFurtherPasses]
-            newseed = new2old(Optim.minimizer(result))
-            result = optimize(
-                bfunc, g, h, # seems overall faster without?
-                old2new(newseed), NewtonTrustRegion(), # seems overall faster without?
-                Optim.Options(store_trace=true, show_trace=true,
-                iterations=extra_pars[:secondPassNIter]);
-                inplace=false);
-
-            truecost = func(new2old(Optim.minimizer(result)))
-            Z = readCostsFile(fname=costsfile)
-            u = findfirst(Array{Int64}(Z[2:end,1]) .== extra_pars[:seedrand]) + 1
-            @assert u != nothing   "Could not find run ID $(extra_pars[:seedrand])"
-            Z[u,2] = truecost; Z[u,3:end] = new2old(Optim.minimizer(result))
-            cp(costsfile, next_file("BACKUPS/$costsfile", 4))  # backup just in case
-            writeCostsFile(costsfile, Z)
-
-            furtherPassesDoneCounter += 1
-        end
     end
     println("With seedrand ", extra_pars[:seedrand], " true cost was ", truecost)
 

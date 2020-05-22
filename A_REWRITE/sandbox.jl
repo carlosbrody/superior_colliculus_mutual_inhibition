@@ -1,3 +1,32 @@
+##
+
+using Optim
+
+function fu(x)
+    return sum((x.-3).^2) + sum(x.^3)
+end
+
+g = x->ForwardDiff.gradient(fu, x)
+
+function mycallback(x)
+    if typeof(x) <: Array
+        x = x[end]
+    end
+    println("Cost now is ", x.value)
+    return false
+end
+
+println("---")
+result = optimize(
+    fu, # g, # seems overall faster without?
+    randn(4), # NewtonTrustRegion(), # seems overall faster without?
+    Optim.Options(show_trace=true, callback=mycallback, iterations=10);
+    inplace=false)
+##
+#callback = mycallback,
+#    store_trace=true, show_trace=true,
+#    iterations=extra_pars[:secondPassNIter
+
 include("commonSetup.jl")
 args = argsSeedBounder()[1]
 
