@@ -3,6 +3,14 @@
 #### Update
 
 After 282 attempts on `proanti003`, not a single one went into second pass.  Also, on `proanti005`, where we now look at parameter values as they evolve, some suggestion that we might be hitting a boundary at `sigma=0`. Old C32 settings had bounds on `sigma` of `[-2 2]`. Will try those, with only 25 trials, and 200 nIters on first pass so we can see evolution better, on `proanti003`.
+```julia
+extra_pars[:few_trials]                = 25       # number of trials to use in first pass
+extra_pars[:firstPassNIter]            = 200      # maximum iterations in first pass
+extra_pars[:many_trials]               = 1600     # of trials to use in further pass
+extra_pars[:secondPassNIter]           = 200       # maximum iterations in further pass
+extra_pars[:first_pass_cost_threshold] = 0         # maximum cost threshold for a first pass run to seed a second pass run
+extra_pars[:stoppingCostThreshold]     = -0.00028  # if below this cost, stop the minimization
+```
 
 #### Morning
 
