@@ -85,23 +85,23 @@ extra_pars = Dict(
 ##
 
 # Enough trials, iters for a real run:
-# extra_pars[:few_trials]                = 50       # number of trials to use in first pass
-# extra_pars[:firstPassNIter]            = 250      # maximum iterations in first pass
-# extra_pars[:many_trials]               = 1600     # of trials to use in further pass
-# extra_pars[:secondPassNIter]           = 200       # maximum iterations in further pass
-# extra_pars[:first_pass_cost_threshold] = -0.0001  # maximum cost threshold for a first pass run to seed a second pass run
-# extra_pars[:stoppingCostThreshold]     = -0.00028  # if below this cost, stop the minimization
+extra_pars[:few_trials]                = 50       # number of trials to use in first pass
+extra_pars[:firstPassNIter]            = 250      # maximum iterations in first pass
+extra_pars[:many_trials]               = 1600     # of trials to use in further pass
+extra_pars[:secondPassNIter]           = 200       # maximum iterations in further pass
+extra_pars[:first_pass_cost_threshold] = -0.0001  # maximum cost threshold for a first pass run to seed a second pass run
+extra_pars[:stoppingCostThreshold]     = -0.00028  # if below this cost, stop the minimization
 
 # extra_pars[:nFurtherPasses]            = 2        # after one further pass at many_trials and secondPassNIter, how many more of those to do before giving up
 
 
 # Few trials, iters for testing:
-extra_pars[:few_trials]                = 5       # number of trials to use in first pass
-extra_pars[:firstPassNIter]            = 2      # maximum iterations in first pass
-extra_pars[:many_trials]               = 16     # of trials to use in further pass
-extra_pars[:secondPassNIter]           = 2       # maximum iterations in further pass
-extra_pars[:first_pass_cost_threshold] = 2  # maximum cost threshold for a first pass run to seed a second pass run
-extra_pars[:stoppingCostThreshold]     = -0.00028  # if below this cost, stop the minimization
+# extra_pars[:few_trials]                = 5       # number of trials to use in first pass
+# extra_pars[:firstPassNIter]            = 2      # maximum iterations in first pass
+# extra_pars[:many_trials]               = 16     # of trials to use in further pass
+# extra_pars[:secondPassNIter]           = 2       # maximum iterations in further pass
+# extra_pars[:first_pass_cost_threshold] = 2  # maximum cost threshold for a first pass run to seed a second pass run
+# extra_pars[:stoppingCostThreshold]     = -0.00028  # if below this cost, stop the minimization
 
 # extra_pars[:nFurtherPasses]            = 2        # after one further pass at many_trials and secondPassNIter, how many more of those to do before giving up
 
