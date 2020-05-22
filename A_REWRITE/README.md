@@ -1,3 +1,13 @@
+### 2020-05-21 : C32 settings make finding solutions much harder
+
+Ran on `proanti002` and `proanti003` doing 500 first pass iterations and 150 second pass; on `proanti001` and `proanti005` doing 1500 first pass iters; found only one potential solution, still running (`proanti001:julia_outs_proanti001_13`). In that one, cost had gone negative by 100th initial iter. Another potential solution on `proanti005` did not get to negative until more than 1000 first pass iters.
+
+Now running with 250 first pass maximum iters (`proanti002`, cost threshold for second pass -0.0001) and only 100 first pass maximum iters (`proanti003`, cost threshold 0), trying to quickly eliminate fruitless attempts on first pass. Still using Hessian and NewtonTrustRegion(). Now using Optim's callback function, and using `constantFarm.sh` to start processes; this latter script runs in the background, respawning processes when they are missing. Using this because there is some bug that causes OpenBLAS to crash if to many calls to `Optim.optimize` are made. (Each one can run for a long time, it seems to be the number of outer calls.)
+
+Output goes to `neg50Costs_$hostname` (successful first pass) and `neg1600Costs_$hostname` (result of second pass).
+
+**TO-DO:** Considering (a) look at minimizer values as they evolve, for a diagnostic (are we hitting walls?); (b) doing a two-tiered stopping callback, e.g., must reach certain cost by 60 iters but continues with few trials even if that first threshold is reached, so as not to jump into slow 1600 trial version too soon.
+
 ### 2020-05-20 : old 4-node circuit was on C30 settings, not C32
 
 #### extending nIter on proanti001 and proanti002
