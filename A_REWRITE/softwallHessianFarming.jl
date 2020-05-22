@@ -8,14 +8,25 @@ args, seed, bounder = argsSeedBounder();
 extra_pars[:nPro]  = extra_pars[:few_trials]
 extra_pars[:nAnti] = extra_pars[:few_trials]
 
-func =  x -> JJ(extra_pars[:nPro], extra_pars[:nAnti]; verbose=false,
-    make_dict(args, x, merge(mypars, extra_pars))...)[1]
+global latest_minimizer
+global latest_minimum = Inf
+
+func = x -> begin
+    answer = JJ(extra_pars[:nPro], extra_pars[:nAnti]; verbose=false,
+        make_dict(args, x, merge(mypars, extra_pars))...)[1]
+    if answer < latest_minimum
+        global latest_minimum = answer
+        global latest_minimizer = x
+    end
+    return answer
+end
 
 
 function firstPassCallback(x)
     if typeof(x) <: Array
         x = x[end]
     end
+    println("$(x.iteration): pars=", get_value(latest_minimizer))
     return x.value <= extra_pars[:first_pass_cost_threshold]
 end
 

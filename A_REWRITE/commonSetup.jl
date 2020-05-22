@@ -93,6 +93,7 @@ extra_pars[:first_pass_cost_threshold] = 0         # maximum cost threshold for 
 extra_pars[:stoppingCostThreshold]     = -0.00028  # if below this cost, stop the minimization
 
 # extra_pars[:nFurtherPasses]            = 2        # after one further pass at many_trials and secondPassNIter, how many more of those to do before giving up
+# by the time you reach 100, have reached 2e-03, and by the time you reach 250 be negative?
 
 
 # Few trials, iters for testing:

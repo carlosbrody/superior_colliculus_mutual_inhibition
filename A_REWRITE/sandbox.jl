@@ -2,8 +2,18 @@
 
 using Optim
 
+global latest_minimizer
+global latest_minimum = Inf
+
+println("\n\n")
+
 function fu(x)
-    return sum((x.-3).^2) + sum(x.^3)
+    answer = sum((x.-3).^2) + sum(x.^3)
+    if answer < latest_minimum
+        global latest_minimum = answer
+        global latest_minimizer = x
+    end
+    return answer
 end
 
 g = x->ForwardDiff.gradient(fu, x)
@@ -12,13 +22,15 @@ function mycallback(x)
     if typeof(x) <: Array
         x = x[end]
     end
-    println("Cost now is ", x.value)
+    println("$(x.iteration): pars=", get_value(latest_minimizer))
+    # println("Cost now is ", x.value)
+    # println("fu(latest_minimizer) = ", fu(latest_minimizer))
     return false
 end
 
 println("---")
 result = optimize(
-    fu, # g, # seems overall faster without?
+    fu, g, # seems overall faster without?
     randn(4), # NewtonTrustRegion(), # seems overall faster without?
     Optim.Options(show_trace=true, callback=mycallback, iterations=10);
     inplace=false)
