@@ -6,7 +6,7 @@ Now running with 250 first pass maximum iters (`proanti002`, cost threshold for 
 
 Output goes to `neg50Costs_$hostname` (successful first pass) and `neg1600Costs_$hostname` (result of second pass).
 
-Considering (a) look at minimizer values as they evolve, for a diagnostic (are we hitting walls?); (b) doing a two-tiered stopping callback, e.g., must reach certain cost by 60 iters but continues with few trials even if that first threshold is reached, so as not to jump into slow 1600 trial version too soon.
+**TO-DO:** Considering (a) look at minimizer values as they evolve, for a diagnostic (are we hitting walls?); (b) doing a two-tiered stopping callback, e.g., must reach certain cost by 60 iters but continues with few trials even if that first threshold is reached, so as not to jump into slow 1600 trial version too soon.
 
 ### 2020-05-20 : old 4-node circuit was on C30 settings, not C32
 
