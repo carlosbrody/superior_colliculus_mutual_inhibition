@@ -2,7 +2,7 @@
 
 #### Update
 
-After 282 attempts on `proanti003`, not a single one went into second pass.  On `proanti005`, some suggestion that we might be hitting a boundary at `sigma=0`. Old C32 settings had bounds on `sigma` of `[-2 2]`. Will try those, with 200 nIters on first pass so we can see evolution better, on `proanti003`.
+After 282 attempts on `proanti003`, not a single one went into second pass.  Also, on `proanti005`, where we now look at parameter values as they evolve, some suggestion that we might be hitting a boundary at `sigma=0`. Old C32 settings had bounds on `sigma` of `[-2 2]`. Will try those, with only 25 trials, and 200 nIters on first pass so we can see evolution better, on `proanti003`.
 
 #### Morning
 
