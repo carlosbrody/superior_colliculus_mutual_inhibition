@@ -17,8 +17,9 @@ setenv HOST `hostname`
 
 set j=1
 while ( $j <= $argv[2] )
-   echo "Will run:  julia $argv[1] $j $argv[2] > julia_outs_${HOST}_$j &"
-   julia $argv[1] $j $argv[2] > julia_outs_${HOST}_$j &
+   echo "Will run: rm julia_outs_${HOST}_$j ; julia $argv[1] $j $argv[2] >> julia_outs_${HOST}_$j &"
+   rm julia_outs_${HOST}_$j
+   julia $argv[1] $j $argv[2] >> julia_outs_${HOST}_$j &
    sleep 3
    @ j++
 end
@@ -28,8 +29,8 @@ while ( 2 > 1 )  # permanently
    while ( $j <= $argv[2] )  # go through all started processes
       set myproc=`ps aux | grep "julia $argv[1] $j $argv[2]" | grep -v grep | wc -l`
       if ( $myproc == 0 ) then  # if we couldn't find one
-         echo "    Respawning :  julia $argv[1] $j $argv[2] > julia_outs_${HOST}_$j &"
-         julia $argv[1] $j $argv[2] > julia_outs_${HOST}_$j &
+         echo "    Respawning :  julia $argv[1] $j $argv[2] >> julia_outs_${HOST}_$j &"
+         julia $argv[1] $j $argv[2] >> julia_outs_${HOST}_$j &
          sleep 3
       endif
       @ j++
