@@ -7,7 +7,15 @@ Now running with 250 first pass maximum iters (`proanti002`, cost threshold for 
 Output goes to `neg50Costs_$hostname` (successful first pass) and `neg1600Costs_$hostname` (result of second pass).
 
 **TO-DO:** Considering 
-- (a) look at minimizer values as they evolve, for a diagnostic (are we hitting walls?); 
+- (a) look at minimizer values as they evolve, for a diagnostic (are we hitting walls?); *Done: running on proanti005* with params:
+```julia
+extra_pars[:few_trials]                = 50       # number of trials to use in first pass
+extra_pars[:firstPassNIter]            = 100      # maximum iterations in first pass
+extra_pars[:many_trials]               = 1600     # of trials to use in further pass
+extra_pars[:secondPassNIter]           = 200       # maximum iterations in further pass
+extra_pars[:first_pass_cost_threshold] = 0         # maximum cost threshold for a first pass run to seed a second pass run
+extra_pars[:stoppingCostThreshold]     = -0.00028  # if below this cost, stop the minimization
+```
 - (b) doing a two-tiered stopping callback, e.g., must reach certain cost by 60 iters but continues with few trials even if that first threshold is reached, so as not to jump into slow 1600 trial version too soon.
 - (c) do a sanity check on running on C30 settings to see whether those are still easy
 - (d) stepwise go from C30 settings to C32 settings to see where the hard part comes in
