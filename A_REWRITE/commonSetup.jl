@@ -85,8 +85,8 @@ extra_pars = Dict(
 ##
 
 # Enough trials, iters for a real run:
-extra_pars[:few_trials]                = 50       # number of trials to use in first pass
-extra_pars[:firstPassNIter]            = 100      # maximum iterations in first pass
+extra_pars[:few_trials]                = 25       # number of trials to use in first pass
+extra_pars[:firstPassNIter]            = 200      # maximum iterations in first pass
 extra_pars[:many_trials]               = 1600     # of trials to use in further pass
 extra_pars[:secondPassNIter]           = 200       # maximum iterations in further pass
 extra_pars[:first_pass_cost_threshold] = 0         # maximum cost threshold for a first pass run to seed a second pass run
@@ -134,7 +134,7 @@ search_conditions = Dict(   # :param    default_start   search_box  bound_box
 :dW_AP  =>                   [mypars[:dW_AP],                    [-1,     1],  [-3,   3]],
 :sW_P   =>                   [mypars[:sW_P],                     [0,      1],  [0,    3]],
 :sW_A   =>                   [mypars[:sW_A],                     [0,      1],  [0,    3]],
-:sigma  =>                   [mypars[:sigma],                    [0.05, 0.3],  [0,   2]],
+:sigma  =>                   [mypars[:sigma],                    [0.05, 0.3],  [-2,   2]],
 :constant_excitation      => [mypars[:constant_excitation],      [-2,     2],  [-30, 30]],
 :target_period_excitation => [mypars[:target_period_excitation], [-1,     1],  [-30  30]],
 :right_light_excitation   => [mypars[:right_light_excitation],   [-1,     1],  [-30, 30]],
