@@ -1,5 +1,11 @@
 ### 2020-05-21 : C32 settings make finding solutions much harder
 
+#### Update
+
+After 282 attempts on `proanti003`, not a single one went into second pass.  On `proanti005`, some suggestion that we might be hitting a boundary at `sigma=0`. Old C32 settings had bounds on `sigma` of `[-2 2]`. Will try those, with 200 nIters on first pass so we can see evolution better, on `proanti003`.
+
+#### Morning
+
 Ran on `proanti002` and `proanti003` doing 500 first pass iterations and 150 second pass; on `proanti001` and `proanti005` doing 1500 first pass iters; found only one potential solution, still running (`proanti001:julia_outs_proanti001_13`). In that one, cost had gone negative by 100th initial iter. Another potential solution on `proanti005` did not get to negative until more than 1000 first pass iters.
 
 Now running with 250 first pass maximum iters (`proanti002`, cost threshold for second pass -0.0001) and only 100 first pass maximum iters (`proanti003`, cost threshold 0), trying to quickly eliminate fruitless attempts on first pass. Still using Hessian and NewtonTrustRegion(). Now using Optim's callback function, and using `constantFarm.sh` to start processes; this latter script runs in the background, respawning processes when they are missing. Using this because there is some bug that causes OpenBLAS to crash if to many calls to `Optim.optimize` are made. (Each one can run for a long time, it seems to be the number of outer calls.)
