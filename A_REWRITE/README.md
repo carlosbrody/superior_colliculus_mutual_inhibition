@@ -1,5 +1,14 @@
 ### 2020-05-23
 
+#### 2:52pm
+
+`proanti003` restarted, variability in delay rule now halved to
+```julia
+:rule_and_delay_period  =>          1.1,
+:rule_and_delay_periods =>          [1.075 1.125],
+```
+and old results saved in `failed003.tz`
+
 #### Current status:
 
 * `proanti001`
