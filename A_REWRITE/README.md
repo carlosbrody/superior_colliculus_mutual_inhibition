@@ -1,4 +1,4 @@
-### 2020-05-22
+### 2020-05-23
 
 #### Current status:
 
@@ -44,6 +44,8 @@ second pass changes threshold, keeps trials and iters: 200iters/25trials/-0.0001
 ```julia
    mypars[:rule_and_delay_periods] = [1.0 1.2]
 ```
+
+### 2020-05-22
 
 #### Current summary C32 settings:
 
