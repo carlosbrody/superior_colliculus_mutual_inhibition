@@ -2,7 +2,8 @@
 
 #### Current status:
 
-* full C32 settings `proanti001`
+* `proanti001`
+First word count is number of runs that passed first pass; second word count is number of attempted first passes.
 ```julia
 date; gcloud compute ssh --command "cd A_REWRITE; grep BELOW ju* | wc ; grep loop ju* | wc" carlosbrody@proanti001
 Sat May 23 14:22:55 EDT 2020
