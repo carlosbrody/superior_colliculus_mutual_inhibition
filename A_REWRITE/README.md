@@ -1,6 +1,6 @@
 ### 2020-05-22
 
-#### Current summary close to C32: githash: [89f2e5c](https://github.com/carlosbrody/superior_colliculus_mutual_inhibition/commit/89f2e5cd4278bbcf6a5ab4058af78acd1134504f)
+#### Current summary close to C32: [githash](https://github.com/carlosbrody/superior_colliculus_mutual_inhibition/commit/01481cda6b20902f8a3a5f929d4c0326f9099c8e)
 
 - `proanti003` to see whether starting with smaller variability can let us get to a good regime in full variability, is on 200iters/25trials/0threshold/sigma[-2 2] first pass has smaller variability rule and delay:
 ```julia
