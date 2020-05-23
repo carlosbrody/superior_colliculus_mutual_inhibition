@@ -1,6 +1,58 @@
+### 2020-05-22
+
+#### Current summary close to C32:
+
+- `proanti003` on 200iters/25trials/0threshold/sigma[-2 2] first pass, smaller variability rule and delay:
+```julia
+:rule_and_delay_period  =>          1.1,
+:rule_and_delay_periods =>          [1.05 1.15],
+:target_period          =>          0.6,
+:target_periods         =>          [0.45 0.6],
+:post_target_period     =>          0,
+:post_target_periods    =>          [0],
+```
+
+#### Current summary C32 settings:
+
+- `proanti001` on 1500iters/50trials/-0.0001threshold/sigma[0 2] first pass, out of 257 attempts 1 made it to 2nd pass.
+- `proanti002` on 200iters/25trials/0threshold/sigma[-2 2] first pass, out of 342 attempts 1 made it to 2nd pass.
+- `proanti005` on 100iters/50trials/0threshold/sigma[0 2] first pass, out of 576 attempts 3 made it to 2nd pass.
+
+All of these use full C32 settings
+```julia
+:rule_and_delay_period  =>          1.2,
+:rule_and_delay_periods =>          [1.0 1.2],
+:target_period          =>          0.6,
+:target_periods         =>          [0.45 0.6],
+:post_target_period     =>          0,
+:post_target_periods    =>          [0],
+```
+
+
+
+
 ### 2020-05-21 : C32 settings make finding solutions much harder
 
-#### Update
+#### Update 2
+
+Using `proanti002` to step from C30 settings to C32 settings. Everything up to but not including variable delay periods seems to work fine in terms of finding solutions within a reasonable time. Using only 25 trials in first pass for speed.
+```julia
+:rule_and_delay_period  =>          1.2,
+:rule_and_delay_periods =>          [1.2],
+:target_period          =>          0.6,
+:target_periods         =>          [0.45 0.6],
+:post_target_period     =>          0,
+:post_target_periods    =>          [0],
+
+extra_pars[:few_trials]                = 25       # number of trials to use in first pass
+extra_pars[:firstPassNIter]            = 200      # maximum iterations in first pass
+extra_pars[:many_trials]               = 400     # of trials to use in further pass
+extra_pars[:secondPassNIter]           = 200       # maximum iterations in further pass
+extra_pars[:first_pass_cost_threshold] = 0         # maximum cost threshold for a first pass run to seed a second pass run
+extra_pars[:stoppingCostThreshold]     = -0.00028  # if below this cost, stop the minimization
+```
+
+#### Update 1
 
 After 282 attempts on `proanti003`, not a single one went into second pass.  Also, on `proanti005`, where we now look at parameter values as they evolve, some suggestion that we might be hitting a boundary at `sigma=0`. Old C32 settings had bounds on `sigma` of `[-2 2]`. Killing the useless `proanti003` attempts, and now using that VM to try the `[-2 2]` bounds, with only 25 trials, and 200 nIters on first pass so we can see evolution better, on `proanti003`.
 ```julia
