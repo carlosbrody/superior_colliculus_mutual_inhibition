@@ -88,7 +88,7 @@ extra_pars = Dict(
 extra_pars[:pass1NTrials]              = 25       # number of trials to use in first pass
 extra_pars[:pass1NIter]                = 400      # maximum iterations in first pass
 extra_pars[:pass1CostThreshold]        = 0        # maximum cost threshold for a first pass run to seed a second pass run
-extra_pars[:pass1RnD]                  = [1.075 1.125]    # rule and delay period range
+extra_pars[:pass1RnD]                  = [1.1]    # rule and delay period range
 
 extra_pars[:pass2NTrials]              = 25       # number of trials to use in first pass
 extra_pars[:pass2NIter]                = 200      # maximum iterations in first pass
