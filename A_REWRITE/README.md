@@ -1,10 +1,22 @@
 ### 2020-05-22
 
-#### Summary:
+#### Current summary close to C32:
 
-- `proanti001` ran with 1500iters/50trials/-0.0001threshold/sigma[0 2] first pass, out of 257 attempts 1 made it to 2nd pass.
-- `proanti002` ran with 200iters/25trials/0threshold/sigma[-2 2] first pass, out of 342 attempts 1 made it to 2nd pass.
-- `proanti005` ran with 100iters/50trials/0threshold/sigma[0 2] first pass, out of 576 attempts 3 made it to 2nd pass.
+- `proanti003` on 200iters/25trials/0threshold/sigma[-2 2] first pass, smaller variability rule and delay:
+```julia
+:rule_and_delay_period  =>          1.1,
+:rule_and_delay_periods =>          [1.05 1.15],
+:target_period          =>          0.6,
+:target_periods         =>          [0.45 0.6],
+:post_target_period     =>          0,
+:post_target_periods    =>          [0],
+```
+
+#### Current summary C32 settings:
+
+- `proanti001` on 1500iters/50trials/-0.0001threshold/sigma[0 2] first pass, out of 257 attempts 1 made it to 2nd pass.
+- `proanti002` on 200iters/25trials/0threshold/sigma[-2 2] first pass, out of 342 attempts 1 made it to 2nd pass.
+- `proanti005` on 100iters/50trials/0threshold/sigma[0 2] first pass, out of 576 attempts 3 made it to 2nd pass.
 
 All of these use full C32 settings
 ```julia
@@ -15,6 +27,9 @@ All of these use full C32 settings
 :post_target_period     =>          0,
 :post_target_periods    =>          [0],
 ```
+
+
+
 
 ### 2020-05-21 : C32 settings make finding solutions much harder
 
