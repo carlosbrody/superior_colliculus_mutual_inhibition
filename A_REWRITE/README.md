@@ -2,7 +2,7 @@
 
 #### Update
 
-After 282 attempts on `proanti003`, not a single one went into second pass.  Also, on `proanti005`, where we now look at parameter values as they evolve, some suggestion that we might be hitting a boundary at `sigma=0`. Old C32 settings had bounds on `sigma` of `[-2 2]`. Will try those, with only 25 trials, and 200 nIters on first pass so we can see evolution better, on `proanti003`.
+After 282 attempts on `proanti003`, not a single one went into second pass.  Also, on `proanti005`, where we now look at parameter values as they evolve, some suggestion that we might be hitting a boundary at `sigma=0`. Old C32 settings had bounds on `sigma` of `[-2 2]`. Killing the useless `proanti003` attempts, and now using that VM to try the `[-2 2]` bounds, with only 25 trials, and 200 nIters on first pass so we can see evolution better, on `proanti003`.
 ```julia
 extra_pars[:few_trials]                = 25       # number of trials to use in first pass
 extra_pars[:firstPassNIter]            = 200      # maximum iterations in first pass
