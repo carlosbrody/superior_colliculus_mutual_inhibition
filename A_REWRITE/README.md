@@ -1,6 +1,25 @@
 ### 2020-05-21 : C32 settings make finding solutions much harder
 
-#### Update
+#### Update 2
+
+Using `proanti002` to step from C30 settings to C32 settings. Everything up to but not including variable delay periods seems to work fine in terms of finding solutions within a reasonable time. Using only 25 trials in first pass for speed.
+```julia
+:rule_and_delay_period  =>          1.2,
+:rule_and_delay_periods =>          [1.2],
+:target_period          =>          0.6,
+:target_periods         =>          [0.45 0.6],
+:post_target_period     =>          0,
+:post_target_periods    =>          [0],
+
+extra_pars[:few_trials]                = 25       # number of trials to use in first pass
+extra_pars[:firstPassNIter]            = 200      # maximum iterations in first pass
+extra_pars[:many_trials]               = 400     # of trials to use in further pass
+extra_pars[:secondPassNIter]           = 200       # maximum iterations in further pass
+extra_pars[:first_pass_cost_threshold] = 0         # maximum cost threshold for a first pass run to seed a second pass run
+extra_pars[:stoppingCostThreshold]     = -0.00028  # if below this cost, stop the minimization
+```
+
+#### Update 1
 
 After 282 attempts on `proanti003`, not a single one went into second pass.  Also, on `proanti005`, where we now look at parameter values as they evolve, some suggestion that we might be hitting a boundary at `sigma=0`. Old C32 settings had bounds on `sigma` of `[-2 2]`. Killing the useless `proanti003` attempts, and now using that VM to try the `[-2 2]` bounds, with only 25 trials, and 200 nIters on first pass so we can see evolution better, on `proanti003`.
 ```julia
