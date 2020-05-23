@@ -81,6 +81,8 @@ for looper=1  # :400
 
         extra_pars[:nPro]  = extra_pars[:many_trials]
         extra_pars[:nAnti] = extra_pars[:many_trials]
+        mypars[:rule_and_delay_periods] = [1.0 1.2]
+
         seed = new2old(Optim.minimizer(result))
 
         result = optimize(
