@@ -2,7 +2,7 @@
 
 #### 4:24pm
 
-Stopping `proanti005`, will focus on setpwise broadening of rule-and-delay variability. First pass, on [1.075 1.125], will have 400 iters, it doesn't make it to 0 otherwise. After killing processes on `proanti002`, `proanti003`, and `proanti005`, `proanti005` will be stopped (save some money) and both of `proanti002` and `proanti003` will run the following, with the focus at first on whether anything gets past the first pass:
+Stopping `proanti005`, will focus on stepwise broadening of rule-and-delay variability. First pass, on [1.075 1.125], will have 400 iters, it doesn't make it to 0 otherwise. After killing processes on `proanti002`, `proanti003`, and `proanti005`, `proanti005` will be stopped (save some money) and both of `proanti002` and `proanti003` will run the following, with the focus at first on whether anything gets past the first pass:
 ```julia
 extra_pars[:pass1NTrials]              = 25       # number of trials to use in first pass
 extra_pars[:pass1NIter]                = 400      # maximum iterations in first pass
