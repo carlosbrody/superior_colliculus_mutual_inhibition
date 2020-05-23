@@ -1,5 +1,25 @@
 ### 2020-05-23
 
+#### 4:24pm
+
+Stopping `proanti005`, will focus on setpwise broadening of rule-and-delay variability. First pass, on [1.075 1.125], will have 400 iters, it doesn't make it to 0 otherwise. After killing processes on `proanti002`, `proanti003`, and `proanti005`, `proanti005` will be stopped (save some money) and both of `proanti002` and `proanti003` will run the following, with the focus at first on whether anything gets past the first pass:
+```julia
+extra_pars[:pass1NTrials]              = 25       # number of trials to use in first pass
+extra_pars[:pass1NIter]                = 400      # maximum iterations in first pass
+extra_pars[:pass1CostThreshold]        = 0        # maximum cost threshold for a first pass run to seed a second pass run
+extra_pars[:pass1RnD]                  = [1.075 1.125]    # rule and delay period range
+
+extra_pars[:pass2NTrials]              = 25       # number of trials to use in first pass
+extra_pars[:pass2NIter]                = 200      # maximum iterations in first pass
+extra_pars[:pass2CostThreshold]        = 0        # maximum cost threshold for a first pass run to seed a second pass run
+extra_pars[:pass2RnD]                  = [1.05  1.1]    # rule and delay period range
+
+extra_pars[:pass3NTrials]              = 25       # number of trials to use in first pass
+extra_pars[:pass3NIter]                = 200      # maximum iterations in first pass
+extra_pars[:pass3CostThreshold]        = 0        # maximum cost threshold for a first pass run to seed a second pass run
+extra_pars[:pass3RnD]                  = [1.0   1.2]    # rule and delay period range
+```
+
 #### 2:52pm
 
 `proanti003` restarted, variability in delay rule now halved to
