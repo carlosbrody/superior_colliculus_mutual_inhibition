@@ -1,5 +1,38 @@
 ### 2020-05-22
 
+#### Current status:
+
+* full C32 settings `proanti00`
+```julia
+date; gcloud compute ssh --command "cd A_REWRITE; grep BELOW ju* | wc ; grep loop ju* | wc" carlosbrody@proanti001
+Sat May 23 14:22:55 EDT 2020
+      1       7      74
+    275    1916   18331
+
+```
+* `proanti002`
+```julia
+date; gcloud compute ssh --command "cd A_REWRITE; grep BELOW ju* | wc ; grep loop ju* | wc" carlosbrody@proanti002
+Sat May 23 14:23:13 EDT 2020
+      4      28     295
+    603    4221   40314
+```
+* `proanti003`
+```julia
+date; gcloud compute ssh --command "cd A_REWRITE; grep BELOW ju* | wc ; grep loop ju* | wc" carlosbrody@proanti003
+Sat May 23 14:23:55 EDT 2020
+      0       0       0
+    271    1897   18116
+```
+* `proanti005`
+```julia
+date; gcloud compute ssh --command "cd A_REWRITE; grep BELOW ju* | wc ; grep loop ju* | wc" carlosbrody@proanti005
+Sat May 23 14:24:32 EDT 2020
+      5      35     370
+    852    5964   56955
+```
+
+
 #### Current summary close to C32: [githash](https://github.com/carlosbrody/superior_colliculus_mutual_inhibition/commit/01481cda6b20902f8a3a5f929d4c0326f9099c8e)
 
 - `proanti003` to see whether starting with smaller variability can let us get to a good regime in full variability, is on 200iters/25trials/0threshold/sigma[-2 2] first pass has smaller variability rule and delay:
