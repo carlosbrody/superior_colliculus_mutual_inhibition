@@ -2,14 +2,14 @@
 
 #### Current summary close to C32:
 
-- `proanti003` on 200iters/25trials/0threshold/sigma[-2 2] first pass, smaller variability rule and delay:
+- `proanti003` to see whether starting with smaller variability can let us get to a good regime in full variability, is on 200iters/25trials/0threshold/sigma[-2 2] first pass has smaller variability rule and delay:
 ```julia
 :rule_and_delay_period  =>          1.1,
 :rule_and_delay_periods =>          [1.05 1.15],
-:target_period          =>          0.6,
-:target_periods         =>          [0.45 0.6],
-:post_target_period     =>          0,
-:post_target_periods    =>          [0],
+```
+second pass changes threshold, keeps trials and iters: 200iters/25trials/-0.0001threshold/sigma[-2 2] and changes to full C32 variability:
+```julia
+   mypars[:rule_and_delay_periods] = [1.0 1.2]
 ```
 
 #### Current summary C32 settings:
