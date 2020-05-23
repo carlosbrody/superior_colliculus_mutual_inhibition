@@ -2,7 +2,7 @@
 
 #### Current status:
 
-* full C32 settings `proanti00`
+* full C32 settings `proanti001`
 ```julia
 date; gcloud compute ssh --command "cd A_REWRITE; grep BELOW ju* | wc ; grep loop ju* | wc" carlosbrody@proanti001
 Sat May 23 14:22:55 EDT 2020
