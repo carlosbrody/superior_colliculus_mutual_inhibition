@@ -29,8 +29,8 @@ mypars = Dict(
 :input                  =>          0,
 :start_anti             =>          [-0.5, -0.5, -0.5, -0.5],
 :start_pro              =>          [-0.5, -0.5, -0.5, -0.5],
-:rule_and_delay_period  =>          1.1,
-:rule_and_delay_periods =>          [1.075 1.125],
+:rule_and_delay_period  =>          1.2,
+:rule_and_delay_periods =>          [1.15 1.2],
 :target_period          =>          0.6,
 :target_periods         =>          [0.45 0.6],
 :post_target_period     =>          0,
@@ -90,22 +90,22 @@ extra_pars[:nPasses]                   =  8       # of pass blocks below
 extra_pars[:pass1NTrials]              = 25       # number of trials to use in first pass
 extra_pars[:pass1NIter]                = 400      # maximum iterations in first pass
 extra_pars[:pass1CostThreshold]        = 0        # maximum cost threshold for a first pass run to seed a second pass run
-extra_pars[:pass1RnD]                  = [1.1]    # rule and delay period range
+extra_pars[:pass1RnD]                  = [1.2]    # rule and delay period range
 
 extra_pars[:pass2NTrials]              = 25       # number of trials to use in first pass
 extra_pars[:pass2NIter]                = 200      # maximum iterations in first pass
 extra_pars[:pass2CostThreshold]        = 0        # maximum cost threshold for a first pass run to seed a second pass run
-extra_pars[:pass2RnD]                  = [1.075  1.125]    # rule and delay period range
+extra_pars[:pass2RnD]                  = [1.15  1.2]    # rule and delay period range
 
 extra_pars[:pass3NTrials]              = 25       # number of trials to use in first pass
 extra_pars[:pass3NIter]                = 200      # maximum iterations in first pass
 extra_pars[:pass3CostThreshold]        = 0        # maximum cost threshold for a first pass run to seed a second pass run
-extra_pars[:pass3RnD]                  = [1.05   1.15]    # rule and delay period range
+extra_pars[:pass3RnD]                  = [1.1   1.2]    # rule and delay period range
 
 extra_pars[:pass4NTrials]              = 25       # number of trials to use in first pass
 extra_pars[:pass4NIter]                = 200      # maximum iterations in first pass
 extra_pars[:pass4CostThreshold]        = 0        # maximum cost threshold for a first pass run to seed a second pass run
-extra_pars[:pass4RnD]                  = [1.025   1.175]    # rule and delay period range
+extra_pars[:pass4RnD]                  = [1.05   1.2]    # rule and delay period range
 
 extra_pars[:pass5NTrials]              = 25       # number of trials to use in first pass
 extra_pars[:pass5NIter]                = 400      # maximum iterations in first pass
