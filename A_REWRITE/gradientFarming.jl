@@ -1,13 +1,17 @@
 include("startup.jl")
 include("commonSetup.jl")
 
-extra_pars[:nPasses]                   =  1       # of pass blocks below
+extra_pars[:nPasses]                   =  2       # of pass blocks below
+
+extra_pars[:pass1NTrials]              = 50       # number of trials to use in first pass
+extra_pars[:pass1NIter]                = 5000      # maximum iterations in first pass
+extra_pars[:pass1CostThreshold]        = -0.0001        # maximum cost threshold for a first pass run to seed a second pass run
+extra_pars[:pass1RnD]                  = [1.0 1.2]    # rule and delay period range
 
 extra_pars[:pass1NTrials]              = 50       # number of trials to use in first pass
 extra_pars[:pass1NIter]                = 5000      # maximum iterations in first pass
 extra_pars[:pass1CostThreshold]        = -0.0028        # maximum cost threshold for a first pass run to seed a second pass run
 extra_pars[:pass1RnD]                  = [1.0 1.2]    # rule and delay period range
-
 
 # extra_pars[:seedrand] = Int64(my_run_number*round(time()*1000))
 #Random.seed!(extra_pars[:seedrand])
@@ -75,7 +79,7 @@ function passNOptimization(seed, n)
         old2new(seed), # NewtonTrustRegion(),
         Optim.Options(store_trace=true, show_trace=true,
             callback  = x -> passNCallback(x, n), # iterations=extra_pars[Symbol("pass$(n)NIter")]);
-            time_limit = 28800);
+            time_limit = 10800);
         inplace=false);
 
     truecost = func(new2old(Optim.minimizer(result)))
