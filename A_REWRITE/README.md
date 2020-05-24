@@ -1,5 +1,56 @@
 ### 2020-05-23
 
+#### 11:58pm
+
+Latest approach seemed an improvement, will now turn over both `proanti002` and `proanti003` to it.
+```julia
+extra_pars[:nPasses]                   =  8       # of pass blocks below
+
+extra_pars[:pass1NTrials]              = 25       # number of trials to use in first pass
+extra_pars[:pass1NIter]                = 400      # maximum iterations in first pass
+extra_pars[:pass1CostThreshold]        = 0        # maximum cost threshold for a first pass run to seed a second pass run
+extra_pars[:pass1RnD]                  = [1.1]    # rule and delay period range
+
+extra_pars[:pass2NTrials]              = 25       # number of trials to use in first pass
+extra_pars[:pass2NIter]                = 200      # maximum iterations in first pass
+extra_pars[:pass2CostThreshold]        = 0        # maximum cost threshold for a first pass run to seed a second pass run
+extra_pars[:pass2RnD]                  = [1.075  1.125]    # rule and delay period range
+
+extra_pars[:pass3NTrials]              = 25       # number of trials to use in first pass
+extra_pars[:pass3NIter]                = 200      # maximum iterations in first pass
+extra_pars[:pass3CostThreshold]        = 0        # maximum cost threshold for a first pass run to seed a second pass run
+extra_pars[:pass3RnD]                  = [1.05   1.15]    # rule and delay period range
+
+extra_pars[:pass4NTrials]              = 25       # number of trials to use in first pass
+extra_pars[:pass4NIter]                = 200      # maximum iterations in first pass
+extra_pars[:pass4CostThreshold]        = 0        # maximum cost threshold for a first pass run to seed a second pass run
+extra_pars[:pass4RnD]                  = [1.025   1.175]    # rule and delay period range
+
+extra_pars[:pass5NTrials]              = 25       # number of trials to use in first pass
+extra_pars[:pass5NIter]                = 400      # maximum iterations in first pass
+extra_pars[:pass5CostThreshold]        = -0.0001  # maximum cost threshold for a first pass run to seed a second pass run
+extra_pars[:pass5RnD]                  = [1.0   1.2]    # rule and delay period range
+
+extra_pars[:pass6NTrials]              = 100      # number of trials to use in first pass
+extra_pars[:pass6NIter]                = 400      # maximum iterations in first pass
+extra_pars[:pass6CostThreshold]        = -0.0001  # maximum cost threshold for a first pass run to seed a second pass run
+extra_pars[:pass6RnD]                  = [1.0   1.2]    # rule and delay period range
+
+extra_pars[:pass7NTrials]              = 400       # number of trials to use in first pass
+extra_pars[:pass7NIter]                = 400       # maximum iterations in first pass
+extra_pars[:pass7CostThreshold]        = -0.00015  # maximum cost threshold for a first pass run to seed a second pass run
+extra_pars[:pass7RnD]                  = [1.0   1.2]    # rule and delay period range
+
+extra_pars[:pass8NTrials]              = 1600       # number of trials to use in first pass
+extra_pars[:pass8NIter]                = 400        # maximum iterations in first pass
+extra_pars[:pass8CostThreshold]        = -0.00028   # maximum cost threshold for a first pass run to seed a second pass run
+extra_pars[:pass8RnD]                  = [1.0   1.2]    # rule and delay period range
+```
+
+#### 7:00pm
+
+The initial [1.075 1.125] rule and delay period variability still seemed too much. Ran a trial on `proanti003`, doing an initial *no* variability pass [1.1], and then adding variability. 
+
 #### 4:24pm
 
 Stopping `proanti005`, will focus on stepwise broadening of rule-and-delay variability. First pass, on [1.075 1.125], will have 400 iters, it doesn't make it to 0 otherwise. After killing processes on `proanti002`, `proanti003`, and `proanti005`, `proanti005` will be stopped (save some money) and both of `proanti002` and `proanti003` will run the following, with the focus at first on whether anything gets past the first pass:
