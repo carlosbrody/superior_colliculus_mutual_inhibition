@@ -57,6 +57,10 @@ function passNOptimization(seed, n)
     extra_pars[:nPro]  = extra_pars[Symbol("pass$(n)NTrials")]
     extra_pars[:nAnti] = extra_pars[Symbol("pass$(n)NTrials")]
 
+    println("\nWill now do $(extra_pars[Symbol("pass$(n)NIter")]) iterations "*
+        "with $(extra_pars[:nPro]) trials, up to a threshold cost " *
+        "$(extra_pars[Symbol("pass$(n)CostThreshold")])." )
+    println("rule and delay period range is $(extra_pars[Symbol("pass$(n)RnD")]).\n")
 
     result = optimize(
         bfunc, g, h,
@@ -69,7 +73,7 @@ function passNOptimization(seed, n)
     truecost = func(new2old(Optim.minimizer(result)))
     stopFlag = truecost > extra_pars[Symbol("pass$(n)CostThreshold")]
     if !stopFlag
-        println("------> BELOW THRESHOLD COST for PASS $n <-------")
+        println("------> BELOW $n THRESHOLD COST for PASS $n <-------")
         hostname = chomp(read(`hostname`, String))
         fp = open("negPass$(n)Costs_$hostname.csv", "a")
         print(fp, Int64(extra_pars[:seedrand]), ", ", truecost, ", ")
@@ -83,28 +87,19 @@ end
 ##
 
 global truecost, seed, result
-for looper=1  # :400
+
+println("\n\n**************************\n\n")
+println("\nStarting seedrand $(extra_pars[:seedrand]) on main loop for ResultsStash:")
+display(ResultsStash)
+
+
+for passnum=1:extra_pars[:nPasses]
     global truecost, seed, result
-    println(seed)
-    println("\n\n**************************\n\n")
-    println("\nStarting seed on loop $looper for ResultsStash:")
-    display(ResultsStash)
-    println("\nInitial cost is ", func(seed))
-    println()
-    mypars[:rule_and_delay_periods] = [1.075 1.125]
-    result, truecost, stopFlag = passNOptimization(seed, 1)
+
+    result, truecost, stopFlag = passNOptimization(seed, passnum)
     if stopFlag; break; end
 
-    mypars[:rule_and_delay_periods] = [1.05 1.15]
     seed = new2old(Optim.minimizer(result))
-    result, truecost, stopFlag = passNOptimization(seed, 2)
-    if stopFlag; break; end
-
-    mypars[:rule_and_delay_periods] = [1.0 1.2]
-    seed = new2old(Optim.minimizer(result))
-    result, truecost, stopFlag = passNOptimization(seed, 3)
-    if stopFlag; break; end
-
 end
 
 println("With seedrand ", extra_pars[:seedrand], " true cost was ", truecost)
