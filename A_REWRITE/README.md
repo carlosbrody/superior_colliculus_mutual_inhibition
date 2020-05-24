@@ -1,5 +1,11 @@
 ### 2020-05-23
 
+#### 1:00am
+
+Running a pure gradient, no Hessian attempt on `proanti004`.
+
+### 2020-05-23
+
 #### 11:58pm
 
 Latest approach seemed an improvement, will now turn over both `proanti002` and `proanti003` to it.
