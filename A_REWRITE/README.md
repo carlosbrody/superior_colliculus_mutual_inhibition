@@ -1,5 +1,9 @@
 ### 2020-05-23
 
+#### 4pm
+
+Pure gradient on `proanti004` definitely not cutting it. Closing that down, turning off VM.
+
 #### 7:30am
 
 Pure gradient seems extremely slow. `proanti002` and `proanti003`, with Hessian and gradual growth, also slow but kind of coming along. Switched `proanti002` to not expand rule-and-delay variability centered, but from long towards shorter:
