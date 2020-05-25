@@ -1,5 +1,53 @@
 ### 2020-05-24
 
+#### 10am
+
+Not clear old code is faster. Startup `proanti006`, `proanti007`, and `proanti008` on the grow-backwards settings from `proanti002`:
+```julia
+# Enough trials, iters for a real run:
+extra_pars[:nPasses]                   =  8       # of pass blocks below
+
+extra_pars[:pass1NTrials]              = 25       # number of trials to use in first pass
+extra_pars[:pass1NIter]                = 400      # maximum iterations in first pass
+extra_pars[:pass1CostThreshold]        = 0        # maximum cost threshold for a first pass run to seed a second pass run
+extra_pars[:pass1RnD]                  = [1.2]    # rule and delay period range
+
+extra_pars[:pass2NTrials]              = 25       # number of trials to use in first pass
+extra_pars[:pass2NIter]                = 200      # maximum iterations in first pass
+extra_pars[:pass2CostThreshold]        = 0        # maximum cost threshold for a first pass run to seed a second pass run
+extra_pars[:pass2RnD]                  = [1.15  1.2]    # rule and delay period range
+
+extra_pars[:pass3NTrials]              = 25       # number of trials to use in first pass
+extra_pars[:pass3NIter]                = 200      # maximum iterations in first pass
+extra_pars[:pass3CostThreshold]        = 0        # maximum cost threshold for a first pass run to seed a second pass run
+extra_pars[:pass3RnD]                  = [1.1   1.2]    # rule and delay period range
+
+extra_pars[:pass4NTrials]              = 25       # number of trials to use in first pass
+extra_pars[:pass4NIter]                = 200      # maximum iterations in first pass
+extra_pars[:pass4CostThreshold]        = 0        # maximum cost threshold for a first pass run to seed a second pass run
+extra_pars[:pass4RnD]                  = [1.05   1.2]    # rule and delay period range
+
+extra_pars[:pass5NTrials]              = 25       # number of trials to use in first pass
+extra_pars[:pass5NIter]                = 400      # maximum iterations in first pass
+extra_pars[:pass5CostThreshold]        = -0.0001  # maximum cost threshold for a first pass run to seed a second pass run
+extra_pars[:pass5RnD]                  = [1.0   1.2]    # rule and delay period range
+
+extra_pars[:pass6NTrials]              = 100      # number of trials to use in first pass
+extra_pars[:pass6NIter]                = 400      # maximum iterations in first pass
+extra_pars[:pass6CostThreshold]        = -0.0001  # maximum cost threshold for a first pass run to seed a second pass run
+extra_pars[:pass6RnD]                  = [1.0   1.2]    # rule and delay period range
+
+extra_pars[:pass7NTrials]              = 400       # number of trials to use in first pass
+extra_pars[:pass7NIter]                = 400       # maximum iterations in first pass
+extra_pars[:pass7CostThreshold]        = -0.00015  # maximum cost threshold for a first pass run to seed a second pass run
+extra_pars[:pass7RnD]                  = [1.0   1.2]    # rule and delay period range
+
+extra_pars[:pass8NTrials]              = 1600       # number of trials to use in first pass
+extra_pars[:pass8NIter]                = 400        # maximum iterations in first pass
+extra_pars[:pass8CostThreshold]        = -0.00028   # maximum cost threshold for a first pass run to seed a second pass run
+extra_pars[:pass8RnD]                  = [1.0   1.2]    # rule and delay period range
+```
+
 #### 2am
 
 When we run only one process, it runs at 3 min/10 iters. 32 processes, 6 min/10 iters.  48 processes, 9 min/10 iters. 56 processes, 11 min/10 iters.  Increasing memory does not appear to make a difference.
