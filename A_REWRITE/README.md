@@ -1,3 +1,9 @@
+### 2020-05-24
+
+#### 2am
+
+When we run only one process, it runs at 3 min/10 iters. 32 processes, 6 min/10 iters.  48 processes, 9 min/10 iters. 56 processes, 11 min/10 iters.  Increasing memory does not appear to make a difference.
+
 ### 2020-05-23
 
 #### 11:59pm
