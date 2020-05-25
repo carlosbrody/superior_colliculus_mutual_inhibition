@@ -1,5 +1,11 @@
 ### 2020-05-23
 
+#### 11:59pm
+
+Approach has produced only one viable candidate on `proanti002` and `proanti003`. Clearly not workable. Dropping Optim.jl, upgraded old optimization code to Julia 1.0.5, and running `setup_C32.jl` / `opto_reduced_farm_C32.jl`, old code, on `proanti002`, `proanti004`, and `proanti005`.
+
+`proanti001` and `proanti005` have one viable candidate each (runs 13 and 38, respectively), and am letting those single ones play out.
+
 #### 4pm
 
 Pure gradient on `proanti004` definitely not cutting it. Closing that down, turning off VM.
