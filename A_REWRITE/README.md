@@ -2,7 +2,7 @@
 
 #### 10am
 
-Not clear old code is faster. Startup `proanti006`, `proanti007`, and `proanti008` on the grow-backwards settings from `proanti002`:
+Not clear old code is faster. Startup `proanti006`, `proanti007`, and `proanti008` on `softwallHessianFarming.jl` (with Optim package), on the grow-backwards settings from `proanti002`:
 ```julia
 # Enough trials, iters for a real run:
 extra_pars[:nPasses]                   =  8       # of pass blocks below
