@@ -38,9 +38,9 @@ extra_pars[:binarized_delta_threshold] = 0.1    # average frac correct must be w
 extra_pars[:anti_perf_delta]           = 0.05   # delay anti must be at least this worse off than control or choice anti
 extra_pars[:pro_better_than_anti]      = true   # if true, in each condition pro hits must be > anti hits
 
-append_to_file(report_file, @sprintf("\n\n\nStarting with random seed %d\n\n\n", extra_pars[:seedrand]))
+append_to_file(report_file, "\n\n\nStarting with random seed $(extra_pars[:seedrand])\n\n\n")
 
-just_testing = false; if just_testing   #
+just_testing = true; if just_testing   #
     extra_pars[:maxiter]                   = 5
     extra_pars[:testruns]                  = 3
     extra_pars[:few_trials]                = 10
@@ -53,7 +53,7 @@ end
 
 while true
 
-    append_to_file(report_file, @sprintf("\n\n--- new run -- %s ---\n\n", Dates.format(now(), "e, dd u yyyy HH:MM:SS")))
+    append_to_file(report_file, "\n\n--- new run -- $(Dates.format(now(), "e, dd u yyyy HH:MM:SS")) ---\n\n")
 
     args = []; seed = []; bbox = Dict()
     for k in keys(search_conditions)
@@ -92,13 +92,13 @@ while true
             hBAA = mean(hBAA, dims=2);
         end
 
-        append_to_file(report_file, @sprintf("mean diff = %g\n", mean(abs.(extra_pars[:opto_targets] - [hBPA hBAA]))))
-        append_to_file(report_file, @sprintf("all(hBPA .> hBAA) = %s\n", all(hBPA .> hBAA)))
+        append_to_file(report_file, "mean diff = $(mean(abs.(extra_pars[:opto_targets] - [hBPA hBAA])))\n")
+        append_to_file(report_file, "all(hBPA .> hBAA) = $(all(hBPA .> hBAA))\n")
         println(report_file, hBPA); println(report_file, hBAA)
-        append_to_file(report_file, @sprintf("\nhBAA[2] <= hBAA[1] - extra_pars[:anti_perf_delta] = %s\n",
-                                             hBAA[2] <= hBAA[1] - extra_pars[:anti_perf_delta]))
-        append_to_file(report_file, @sprintf("hBAA[2] <= hBAA[3] - extra_pars[:anti_perf_delta] = %s\n",
-                                             hBAA[2] <= hBAA[3] - extra_pars[:anti_perf_delta]))
+        append_to_file(report_file,
+            "\nhBAA[2] <= hBAA[1] - extra_pars[:anti_perf_delta] = $(hBAA[2] <= hBAA[1] - extra_pars[:anti_perf_delta])\n")
+        append_to_file(report_file,
+            "hBAA[2] <= hBAA[3] - extra_pars[:anti_perf_delta] = $(hBAA[2] <= hBAA[3] - extra_pars[:anti_perf_delta])\n")
 
 
         if mean(abs.(extra_pars[:opto_targets] - [hBPA hBAA])) < extra_pars[:binarized_delta_threshold]  &&
@@ -108,8 +108,8 @@ while true
             hBAA[1] > 0.5  &&
             hBAA[3] > 0.5
 
-            append_to_file(report_file, @sprintf("\n\n**** training further **** %s ---\n\n",
-                                                 Dates.format(now(), "e, dd u yyyy HH:MM:SS")))
+            append_to_file(report_file, "\n\n**** training further **** " *
+                "$(Dates.format(now(), "e, dd u yyyy HH:MM:SS")) ---\n\n")
 
             extra_pars[:nPro]     = extra_pars[:many_trials]
             extra_pars[:nAnti]    = extra_pars[:many_trials]
@@ -132,7 +132,7 @@ while true
                 myfilename = next_file(fbasename, 4)
                 myfilename = myfilename*".jld"
 
-                append_to_file(report_file, @sprintf("\n\n ****** writing to file %s *******\n\n", myfilename))
+                append_to_file(report_file, "\n\n ****** writing to file $myfilename *******\n\n")
 
                 # write file
                 save(myfilename, Dict("README"=>README, "nPro"=>extra_pars[:nPro], "nAnti"=>extra_pars[:nAnti],
@@ -152,8 +152,8 @@ while true
                 if isa(y1, InterruptException); throw(InterruptException()); end
 
                 # Other errors get caught and a warning is issued but then we run again
-                append_to_file(report_file, @sprintf("\n\nWhoopsety, unkown error during LONG search!\n\n"))
-                append_to_file(report_file, @sprintf("Error was :\n%s\n\nTrying new random seed.\n\n", y1))
+                append_to_file(report_file, "\n\nWhoopsety, unkown error during LONG search!\n\n")
+                append_to_file(report_file, "Error was :\n$y1\n\nTrying new random seed.\n\n")
             end
         end
 #    catch y
@@ -166,5 +166,5 @@ while true
 #    end
 
     extra_pars[:seedrand] = extra_pars[:seedrand]+1
-    append_to_file(report_file, @sprintf("\n\nChanging to random seed %d\n\n\n", extra_pars[:seedrand]))
+    append_to_file(report_file, "\n\nChanging to random seed $(extra_pars[:seedrand])\n\n\n")
 end
