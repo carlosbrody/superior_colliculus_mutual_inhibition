@@ -2,7 +2,7 @@ module GeneralUtils
 
 
 
-export replacer, next_file
+export replacer, next_file, append_to_file
 
 using Printf
 

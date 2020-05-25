@@ -6,6 +6,8 @@ using Random
 using Optim
 using JLD
 using DelimitedFiles
+using Dates
+using Statistics
 
 JLD.translate("Core.Bool", "oldbool")
 
@@ -22,6 +24,8 @@ using RateNetworks
 using ProAnti
 using TanhWalls
 using ResultsAnalysis
+using ConstrainedParabolicMinimization
+using OptimizationUtils
 
 ##
 

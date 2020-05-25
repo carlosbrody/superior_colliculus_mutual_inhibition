@@ -1,4 +1,102 @@
-##
+## ====  testing OptimizationUtils
+
+using Printf
+using OptimizationUtils
+using PyPlot
+
+
+sr = Int64(round(time()*1000))
+# sr = 1510162002784 # For these values of sr
+# sr = 1509561656447 # when start_eta=1, the threshold quickly goes very positive and the minimization gets stuck
+#
+# sr = 1510164239381   # For this value, it gets stuck at a very small inverse slope param... don't know why
+Random.seed!(sr)
+
+
+npoints = 1000; # srand(400)
+args = ["baseline", "amplitude", "threshold", "slope"]
+
+# Generating values for our four params:
+params = [1 5 0.5 0.8]
+
+# Make some points and plot them
+x = rand(npoints, 1)*6 .- 3
+y = params[1] .+ params[2]*0.5*(tanh.((x.-params[3])./params[4]).+1) .+ randn(npoints,1)*2
+figure(1); clf();
+plot(x, y, ".")
+
+# Starting values for the four params. Plot the corresponding curve they generate
+seed = [8, 3.1, 0, 0.02]
+xx = -3:0.01:3
+plot(xx, seed[1] .+ seed[2]*0.5*(tanh.((xx.-seed[3])/seed[4]).+1), "g-")
+
+# Cost function.  First output is the scalar
+# that will be minimized, and we also returns a second output whose trajectory will be stashed
+# by bbox in ftraj as a diagnostic during the minimization.
+function myJJ(x, y; baseline=0, amplitude=1, threshold=0, slope=1, do_plot=false, fignum=1, clearfig=true)
+
+    if do_plot
+        figure(fignum);
+        if clearfig; clf(); end;
+        xx = -3:0.01:3; x2=zeros(get_eltype((baseline,amplitude,threshold,slope)), size(xx,1), size(xx,2))
+        for i=1:length(xx); x2[i]=xx[i]; end; xx= x2
+
+        plot(x, y, ".")
+        plot(xx, baseline .+ amplitude*0.5*(tanh.((xx.-threshold)/slope).+1), "r-")
+    end
+
+    yhat =  baseline .+ amplitude*0.5*(tanh.((x.-threshold)./slope).+1)
+    err = yhat .- y
+    return sum(err.*err), get_value(err)    # Note first output, the scalar to be minimized,
+    # may be ForwardDiff Duals during the minimization, which is fine, so it can be differentiated.
+    # The second one we use get_value to turn into regular Float64 array so it comes out readable.
+end
+
+
+
+if ~isdir("Trash"); mkdir("Trash"); end;  # we're going to put the iteration-step by iteration-step report file there
+
+bbox = Dict(:baseline=>[-2, 10], :slope=>[0.001 5])
+func = (;pars...) -> myJJ(x, y; do_plot=false, pars...)
+
+stopping_func = (;cost=0, func_out=[], pars...) -> return cost<1500;   # Make that a high number and it'll stop early
+
+opars, traj, cost, cpm_traj, ftraj = bbox_Hessian_keyword_minimization(seed, args, bbox, func,
+    frac_cost_threshold = 0.5, stopping_function = stopping_func,
+    verbose=true, verbose_level=1, verbose_file="tester.txt",
+    softbox=true, start_eta=0.1, report_file="Trash/example_report.jld")
+
+# Note that the gradient at step i of the minimization will be available as ftraj[1,i], the hessian will be
+# in ftraj[2,i], and the error vector, which is the first of the extra outputs of myJJ(), will be in ftraj[3,i][1].
+# In our example myJJ() produced only one extra output; a second extra output would be in ftraj[3,i][2], and so on.
+
+# Plot the resulting curve, and report both final and generating params
+figure(1);
+plot(xx, opars[1] .+ opars[2]*0.5*(tanh.((xx.-opars[3])/opars[4]).+1), "r-")
+[opars' ; params]
+xlabel("x"); ylabel("y"); title("green is sigmoid with starting params, red is end")
+
+
+figure(2); clf();
+ax1 = subplot(2,1,1)
+plot(cpm_traj[4,:], ".-")
+plot(traj[2,2:end] - traj[2,1:end-1], ".-")
+grid("on")
+gca().set_xticklabels("")
+legend(["expected cost change", "actual cost change"])
+
+subplot(2,1,2)
+plot((traj[2,2:end] - traj[2,1:end-1])./cpm_traj[4,1:end-1], ".-")
+plot(traj[1,2:end]./traj[1,1:end-1], ".-")
+grid("on")
+
+legend(["actual/expected cost change", "fractional change in eta"])
+
+println("Final costs were: ", traj[2,end-3:end]);
+
+
+
+##   ====  testing using callbacks with package Optim
 
 using Optim
 

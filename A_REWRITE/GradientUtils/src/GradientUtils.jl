@@ -3,7 +3,7 @@ module GradientUtils
 using ForwardDiff
 using Debugger
 
-export make_dict, get_eltype, get_value
+export make_dict, get_eltype, get_value, vgh, keyword_vgh
 
 
 """
@@ -167,6 +167,88 @@ will work regardless of whether x is a ForwardDiff Dual, a Float64, or an Int64
         error("Don't know how to get the value of type ", typeof(x))
     end
 end
+
+
+
+
+using DiffResults
+
+@doc """
+function value, gradient, hessian = vgh(func, x0)
+
+Wrapper for ForwardDiff.hessian!() that computes and returns all three of a function's value, gradient, and hessian.
+
+EXAMPLE:
+========
+
+function tester(x::Vector)
+
+    return sum(x.*x)
+end
+
+value, grad, hess = vgh(tester, [10, 3.1])
+""" function vgh(func, x0)
+    out = DiffResults.HessianResult(x0)
+    out = ForwardDiff.hessian!(out, func, x0)
+    value    = DiffResults.value(out)
+    gradient = DiffResults.gradient(out)
+    hessian  = DiffResults.hessian(out)
+
+    return value, gradient, hessian
+end
+
+
+@doc """
+function value, gradient, hessian = keyword_vgh(func, args, x0)
+
+Wrapper for vgh() that computes and returns all three of a function's value, gradient, and hessian, but now
+uses make_dict() to apply it to a function that only takes keyword-value pairs.
+
+*Note that if you declare any vectors or matrices inside func() (or inside any function inside func()),
+you will need to make sure they are ForwardDiff Duals if you want to differentiate w.r.t. their contents.*
+The function get_eltype()  can help you with this.  For example, if you have three variables, a, b, and c,
+and you don't know in advance which one you will differentiate w.r.t., you could declare a matrix using
+
+    new_matrix = zeros(get_eltype((a,b,c)), 2, 3)
+
+and that will make sure that it is the right type if you later want derivatives of contents of that
+matrix.
+
+# PARAMETERS
+
+* func    A function that takes keyword-value pairs only, including nderivs and difforder.  I.e., it must be a function declared as `function func(; nderivs=0, difforder=0, other_kw_value_pairs)` or as `function func(; nderivs=0, difforder=0, other_kw_value_pairs_dict...)`
+* args    A list of strings indicating names of variables to work with
+* x0      A vector with the value of the variables indicates in args.  **See make_dict() for how to pass both scalars and vectors as variables**
+
+# IMPORTANT JULIA BUG
+
+If you modify func, it is possible that keyword_vgh() will still work on the previously defined version. AACK!
+That's horrible! Alice Yoon's tip on the workaround: instead of func(), use (;params...) -> func(; params...) and then
+everything will be fine. Not sure yet whether this bug is fixed in Julia 0.6
+
+# EXAMPLE:
+
+function tester(;a=10, b=20, c=30)
+    M = zeros(get_eltype((a,b,c)), 3, 3)
+    M[1,1] = a^2*10
+    M[2,2] = b*20
+    M[3,3] = a*sqrt(c)*30.1
+    return trace(M)
+end
+
+value, grad, hess = keyword_vgh(tester, ["a", "c"], [10, 3.1])
+
+value, grad, hess = keyword_vgh((;params...) -> tester(;params...), ["a", "c"], [10, 3.1])
+
+""" function keyword_vgh(func, args, x0)
+
+    value, gradient, hessian = vgh(x -> func(;make_dict(args, x)...), x0)
+
+    return value, gradient, hessian
+end
+
+
+
 
 
 end # END MODULE
