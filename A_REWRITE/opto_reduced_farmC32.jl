@@ -40,7 +40,7 @@ extra_pars[:pro_better_than_anti]      = true   # if true, in each condition pro
 
 append_to_file(report_file, "\n\n\nStarting with random seed $(extra_pars[:seedrand])\n\n\n")
 
-just_testing = true; if just_testing   #
+just_testing = false; if just_testing   #
     extra_pars[:maxiter]                   = 5
     extra_pars[:testruns]                  = 3
     extra_pars[:few_trials]                = 10
