@@ -1,6 +1,6 @@
 ### 2020-05-26  Was using the wrong cost limit!  Previous "good solutions" were at -0.0001
 
-### 2020-05-26:3.21pm Stopping `proanti001` and `proanti003` to save money
+#### 2020-05-26 : 3.21pm -- Stopping `proanti001` and `proanti003` to save money
 
 Both of these machines have only a single process that is worthwhile. On `proanti001` it can be found in `julia_outs_proanti001_13` and on `proanti003` it is `julia_outs_proanti003_38`. Only the latter has a trace of the parameters values, so only the latter can be recovered. To recover, start the VM first.
 
