@@ -119,7 +119,7 @@ extra_pars[:pass6RnD]                  = [1.0   1.2]    # rule and delay period 
 
 extra_pars[:pass7NTrials]              = 100        # number of trials to use in first pass
 extra_pars[:pass7NIter]                = 4000       # maximum iterations in first pass
-extra_pars[:pass7CostThreshold]        = -0.00015   # maximum cost threshold for a first pass run to seed a second pass run
+extra_pars[:pass7CostThreshold]        = -0.0001    # maximum cost threshold for a first pass run to seed a second pass run
 extra_pars[:pass7RnD]                  = [1.0   1.2]    # rule and delay period range
 
 extra_pars[:pass8NTrials]              = 4000       # number of trials to use in first pass
