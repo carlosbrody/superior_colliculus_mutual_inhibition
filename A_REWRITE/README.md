@@ -1,3 +1,15 @@
+### 2020-05-30  5pm Rectuiting Spock
+
+Now running the old `opto_reduced_farmC32.jl` code, as in `proanti002`, on Spock. Vroom vroom!  Instead of 6 min per 10 iterations, it takes 40 seconds, about 9 times faster. Go!  I ran the following four times while logged into spock.
+```
+sbatch --array=0-44 spockFarm.sh opto_reduced_farmC32.jl 
+```
+This uses all 44 cores (not 45) in one CPU node. Between each of those runs, I waited until all runs had been assigned a core (so filenames in the Reports directory don't get confusing), by running this
+```
+squeue | grep spockFar | grep None
+```
+and waiting until it came back empty.
+
 ### 2020-05-30  Running with much higher number of maxIter
 
 It seems that it equally often gets stuck because of low gradients, in which case it properly aborts, or because it ran out of iterations. Maybe it's best to let it have lots of iterations, trust that if it is really off on the wrong path it'll get to a local minimum and abort.
