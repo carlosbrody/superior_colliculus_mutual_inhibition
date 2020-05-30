@@ -1,4 +1,8 @@
-### 2020-05-30  5pm Recruiting Spock
+
+
+### 2020-05-30 -- Noise vs trials numbers, Higher Iters, Recruiting Spock
+
+#### 2020-05-30 5pm Recruiting Spock
 
 Now running the old `opto_reduced_farmC32.jl` code, as in `proanti002`, on Spock. Takes about 4min30 per 10 iterations instead of 6 min on the Google VMs. A little faster but not hugely so.  Run the following four times while logged into spock.
 ```
