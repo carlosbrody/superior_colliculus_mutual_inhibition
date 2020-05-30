@@ -7,7 +7,9 @@
 #SBATCH --mem 1000
 #SBATCH -c 1
 
-module load julia/0.6.3
+echo "I'm alive!" >> imalive.txt
+
+module load julia/1.2.0
 module load
 
 julia example.jl

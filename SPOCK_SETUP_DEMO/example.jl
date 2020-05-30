@@ -2,7 +2,7 @@
 println("Hey, im running an example script")
 using MAT
 using ForwardDiff
-using DiffBase
+using DiffResults
 using PyCall
 using JLD
 using MultivariateStats
