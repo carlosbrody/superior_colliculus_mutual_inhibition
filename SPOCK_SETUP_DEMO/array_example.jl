@@ -1,4 +1,7 @@
 # farm function
+
+using Random
+
 function array_example(farm_id, job_id, task_id)
     # print out some info
     println(farm_id)
@@ -7,7 +10,7 @@ function array_example(farm_id, job_id, task_id)
 
     # set up random number
     random_seed = parse(Int64,job_id)*parse(Int64,task_id)
-    srand(random_seed)
+    Random.seed!(random_seed)
     random_num = rand(2)
 
     # save a data file with inputs and random number
@@ -25,6 +28,3 @@ using MAT
 
 # Call the function using the inputs from the bash script
 array_example(ARGS[1], ARGS[2], ARGS[3])
-
-
-
