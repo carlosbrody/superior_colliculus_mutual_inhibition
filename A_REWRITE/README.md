@@ -1,10 +1,10 @@
 ### 2020-05-30  5pm Recruiting Spock
 
-Now running the old `opto_reduced_farmC32.jl` code, as in `proanti002`, on Spock. Takes about 4min30 per 10 iterations instead of 6 min on the Google VMs. A little faster but not hugely so.  I ran the following four times while logged into spock.
+Now running the old `opto_reduced_farmC32.jl` code, as in `proanti002`, on Spock. Takes about 4min30 per 10 iterations instead of 6 min on the Google VMs. A little faster but not hugely so.  Run the following four times while logged into spock.
 ```
-sbatch --array=0-44 spockFarm.sh opto_reduced_farmC32.jl 
+sbatch --array=0-43 spockFarm.sh opto_reduced_farmC32.jl 
 ```
-This turns out to use 45 cores (not 44) so the tasks got distributed across 5 CPUs, not 4 as I intended. Between each of those runs, I waited until all runs had been assigned a core (so filenames in the Reports directory don't get confusing), by running this
+This will use all 44 cores on each CPU. Between each of those 4 runs, I waited until all runs had been assigned a core (so filenames in the Reports directory don't get confusing), by running this
 ```
 squeue | grep spockFar | grep None
 ```
