@@ -89,37 +89,37 @@ extra_pars[:nPasses]                   =  8       # of pass blocks below
 
 extra_pars[:pass1NTrials]              = 25       # number of trials to use in first pass
 extra_pars[:pass1NIter]                = 4000     # maximum iterations in first pass
-extra_pars[:pass1CostThreshold]        = -0.00028 # maximum cost threshold for a first pass run to seed a second pass run
+extra_pars[:pass1CostThreshold]        = 0        # maximum cost threshold for a first pass run to seed a second pass run
 extra_pars[:pass1RnD]                  = [1.2]    # rule and delay period range
 
 extra_pars[:pass2NTrials]              = 25        # number of trials to use in first pass
 extra_pars[:pass2NIter]                = 4000      # maximum iterations in first pass
-extra_pars[:pass2CostThreshold]        = -0.00028  # maximum cost threshold for a first pass run to seed a second pass run
+extra_pars[:pass2CostThreshold]        = 0         # maximum cost threshold for a first pass run to seed a second pass run
 extra_pars[:pass2RnD]                  = [1.15  1.2]    # rule and delay period range
 
 extra_pars[:pass3NTrials]              = 25       # number of trials to use in first pass
 extra_pars[:pass3NIter]                = 4000      # maximum iterations in first pass
-extra_pars[:pass3CostThreshold]        = -0.00028  # maximum cost threshold for a first pass run to seed a second pass run
+extra_pars[:pass3CostThreshold]        = 0         # maximum cost threshold for a first pass run to seed a second pass run
 extra_pars[:pass3RnD]                  = [1.1   1.2]    # rule and delay period range
 
-extra_pars[:pass4NTrials]              = 25       # number of trials to use in first pass
+extra_pars[:pass4NTrials]              = 25        # number of trials to use in first pass
 extra_pars[:pass4NIter]                = 4000      # maximum iterations in first pass
-extra_pars[:pass4CostThreshold]        = -0.00028        # maximum cost threshold for a first pass run to seed a second pass run
+extra_pars[:pass4CostThreshold]        = 0         # maximum cost threshold for a first pass run to seed a second pass run
 extra_pars[:pass4RnD]                  = [1.05   1.2]    # rule and delay period range
 
-extra_pars[:pass5NTrials]              = 25       # number of trials to use in first pass
+extra_pars[:pass5NTrials]              = 25        # number of trials to use in first pass
 extra_pars[:pass5NIter]                = 4000      # maximum iterations in first pass
-extra_pars[:pass5CostThreshold]        = -0.00028  # maximum cost threshold for a first pass run to seed a second pass run
+extra_pars[:pass5CostThreshold]        = -0.0001   # maximum cost threshold for a first pass run to seed a second pass run
 extra_pars[:pass5RnD]                  = [1.0   1.2]    # rule and delay period range
 
-extra_pars[:pass6NTrials]              = 50      # number of trials to use in first pass
+extra_pars[:pass6NTrials]              = 50        # number of trials to use in first pass
 extra_pars[:pass6NIter]                = 4000      # maximum iterations in first pass
-extra_pars[:pass6CostThreshold]        = -0.00028  # maximum cost threshold for a first pass run to seed a second pass run
+extra_pars[:pass6CostThreshold]        = -0.0001   # maximum cost threshold for a first pass run to seed a second pass run
 extra_pars[:pass6RnD]                  = [1.0   1.2]    # rule and delay period range
 
-extra_pars[:pass7NTrials]              = 100       # number of trials to use in first pass
+extra_pars[:pass7NTrials]              = 100        # number of trials to use in first pass
 extra_pars[:pass7NIter]                = 4000       # maximum iterations in first pass
-extra_pars[:pass7CostThreshold]        = -0.00028  # maximum cost threshold for a first pass run to seed a second pass run
+extra_pars[:pass7CostThreshold]        = -0.00015   # maximum cost threshold for a first pass run to seed a second pass run
 extra_pars[:pass7RnD]                  = [1.0   1.2]    # rule and delay period range
 
 extra_pars[:pass8NTrials]              = 4000       # number of trials to use in first pass
