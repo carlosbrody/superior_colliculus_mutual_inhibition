@@ -10,7 +10,7 @@ extra_pars[:nAnti] = extra_pars[:pass1NTrials]
 
 global latest_minimizer
 global latest_minimum = Inf
-## 
+##
 func = x -> begin
     answer = JJ(extra_pars[:nPro], extra_pars[:nAnti]; verbose=false,
         make_dict(args, x, merge(mypars, extra_pars))...)[1]
