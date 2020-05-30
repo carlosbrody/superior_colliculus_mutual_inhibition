@@ -1,4 +1,4 @@
-### 2020-05-30  5pm Rectuiting Spock
+### 2020-05-30  5pm Recruiting Spock
 
 Now running the old `opto_reduced_farmC32.jl` code, as in `proanti002`, on Spock. Vroom vroom!  Instead of 6 min per 10 iterations, it takes 40 seconds, about 9 times faster. Go!  I ran the following four times while logged into spock.
 ```
