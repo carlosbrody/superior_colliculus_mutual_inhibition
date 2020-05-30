@@ -8,7 +8,7 @@
 #SBATCH -c 1
 
 # load the julia module
-module load julia/0.6.3
+module load julia/1.2.0
 
 # print out some info for the log file
 echo "Slurm Job ID, unique: $SLURM_JOB_ID"
