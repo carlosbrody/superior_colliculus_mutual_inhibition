@@ -4,7 +4,7 @@ Now running the old `opto_reduced_farmC32.jl` code, as in `proanti002`, on Spock
 ```
 sbatch --array=0-44 spockFarm.sh opto_reduced_farmC32.jl 
 ```
-This uses all 44 cores (not 45) in one CPU node. Between each of those runs, I waited until all runs had been assigned a core (so filenames in the Reports directory don't get confusing), by running this
+This turns out to use 45 cores (not 44) so the tasks got distributed across 5 CPUs, not 4 as I intended. Between each of those runs, I waited until all runs had been assigned a core (so filenames in the Reports directory don't get confusing), by running this
 ```
 squeue | grep spockFar | grep None
 ```
