@@ -1,4 +1,5 @@
 using PyPlot
+PyPlot.rc("font", family="Helvetica Neue")
 using ForwardDiff
 using DiffResults
 using MAT
