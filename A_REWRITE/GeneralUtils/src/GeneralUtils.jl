@@ -2,9 +2,26 @@ module GeneralUtils
 
 
 
-export replacer, next_file, append_to_file
+export replacer, next_file, append_to_file, savefig2jpg
 
 using Printf
+
+"""
+   savefig2jpg(fname::String)
+
+   saves current figure to fname.jpg, then calls Mac system executable
+   sips to make a jpg version in fname.jpg, and removed the .png version
+
+   If fname == "" then does nothing
+"""
+function savefig2jpg(fname::String)
+   if fname != ""
+      savefig("$fname.png")
+      run(`sips -s format JPEG $fname.png --out $fname.jpg`)
+      run(`rm $fname.png`)
+   end
+end
+
 
 """
     tbin(tvector, t)
