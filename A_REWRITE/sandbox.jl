@@ -1,3 +1,52 @@
+##  === Pulling in Reports from old-style training and parsing them
+
+pullReports=false; if pullReports
+    machines = ["proanti002", "proanti004", "proanti005"]
+
+    for i in machines
+        run(`./pull_reports.sh $i`)
+    end
+end
+##
+global costs  = fill(0.0, 0)
+global fnames = fill("",  0)
+global pvals  = fill(0.0, 0, 16)
+
+u = readdir("../../Reports")
+for i in u
+    fp = open("../../Reports/$i", "r")
+    s = read(fp, String)
+    close(fp)
+
+    z = findlast("OVERALL", s)
+    if z != nothing
+        z2 = findfirst("cost=", s[z[end]:end])
+        z3 = findfirst(",", s[z[end]:end])
+        mycost = parse(Float64, s[z[end]+z2[end]:z[end]+z3[1]-2])
+        # println("$i: mycost=$mycost")
+        global costs  = vcat(costs, mycost)
+        global fnames = vcat(fnames, i)
+
+        z = findlast("ps=[", s)[end].+1
+        n = findfirst("]", s[z+1:end])[1] + z-1
+        global pvals = vcat(pvals, readdlm(Vector{UInt8}(s[z:n]), ','))
+    end
+    # println("Checked $i")
+end
+
+
+nguys = 17
+colids = [10, 11, 16]
+
+p = sortperm(costs, rev=true)
+costs = costs[p]
+fnames = fnames[p]
+pvals = pvals[p,:]
+display([fnames costs])
+
+merges = [reshape(args[colids],1,length(colids)) ; pvals[end-nguys:end, colids]]
+merges = hcat(["cost" ; costs[end-nguys:end]], merges)
+display(merges)
 ## ====  testing OptimizationUtils
 
 using Printf
