@@ -10,7 +10,7 @@ using RateNetworks
 
 
 export plot_PA, parse_opto_times, make_input, run_ntrials, JJ, load_run
-export model_params, makeWeightMatrix
+export model_params, makeWeightMatrix, evaluateModel
 
 """
     plot_PA(t, U, V; fignum=1, clearfig=true, rule_and_delay_period=1, target_period=1,
@@ -1083,6 +1083,93 @@ end
 
 # DON'T MODIFY THIS FILE -- the source is in file ProAnti.ipynb. Look there for further documentation and examples of running the code.
 
+
+
+"""
+    evaluateModel(testruns, args, parvals, mypars, extra_pars;
+            reportFile=nothing, antiMinPerf=0.5)
+
+    uses testruns of Pro and testruns of Anti to evaluate how well a model is
+    doing. Returns true if the model is doing well, false if not.
+
+    The evaluation assumes that there are three opto periods, the second one
+    of which should impact Anti. The evaluation is that:
+
+    - if extra_pars[:pro_better_than_anti] is true, then each Pro conditions
+        should have better binarized perf than corresponding Anti condition
+    - the binarized Anti perf in the second opto period should be
+        extra_pars[:anti_perf_delta] worse than bianrized Anti perf in first
+        and third opto conditions
+    - the mean difference between extra_pars[:opto_targets] and binarized
+        perf should be less than extra_pars[:binarized_delta_threshold]
+    - binarized Anti perf in first and third opto periods should be better than
+        antiMinPerf
+
+    it thus uses
+        antiMinPerf
+        extra_pars[:pro_better_than_anti]
+        extra_pars[:anti_perf_delta]
+        extra_pars[:binarized_delta_threshold]
+
+    currently no conditions on dP or dA are being used.
+
+
+"""
+function evaluateModel(testruns, args, parvals, mypars, extra_pars;
+        reportFile=nothing, antiMinPerf=0.5)
+    @assert size(extra_pars[:opto_periods],1)==3 "Evaluation assumes three opto "*
+        "periods, the middle one of which is expected to have impacted Anti performance."
+
+    costA, cost1sA, cost2sA, hP, hA, dP, dA, hBP, hBA =
+        JJ(testruns, testruns; verbose=false,
+        make_dict(args, parvals, merge(merge(mypars, extra_pars)))...)
+
+    if reportFile != nothing && reportFile != stdout
+        reportFile = open(reportFile, "a")
+    end
+
+    if reportFile != nothing
+        println(reportFile, "\n=== evaluateModel() testruns=$testruns: ===\n")
+        println(reportFile, "Raw Pro and Anti binarized perfs:\nhBP=", hBP);
+        println(reportFile, "hBA=", hBA);
+        println(reportFile, "mean dP=", round(mean(dP), digits=3),
+            " mean dA=", round(mean(dA), digits=3))
+    end
+    if size(hBP,2) > 1
+        hBP = mean(hBP, dims=2);
+        hBA = mean(hBA, dims=2);
+    end
+
+    overall = mean(abs.(extra_pars[:opto_targets] - [hBP hBA])) <
+        extra_pars[:binarized_delta_threshold]  &&
+        (!extra_pars[:pro_better_than_anti] || all(hBP .> hBA))  &&
+        (hBA[2] <= hBA[1] - extra_pars[:anti_perf_delta]) &&
+        (hBA[2] <= hBA[3] - extra_pars[:anti_perf_delta]) &&
+        hBA[1] > antiMinPerf  &&
+        hBA[3] > antiMinPerf
+
+    if reportFile != nothing
+        println(reportFile, "\navg Pro  perf for each opto:", hBP);
+        println(reportFile, "avg Anti perf for each opto:", hBA)
+        println(reportFile, "mean abs diff from target= " *
+            "$(mean(abs.(extra_pars[:opto_targets] - [hBP hBA])))\n")
+        println(reportFile, "all(hBP .> hBA) = $(all(hBP .> hBA))\n")
+        println(reportFile,
+            "hBA[2] <= hBA[1] - $(extra_pars[:anti_perf_delta]) = "*
+            "$(hBA[2] <= hBA[1] - extra_pars[:anti_perf_delta])")
+        println(reportFile,
+            "hBA[2] <= hBA[3] - $(extra_pars[:anti_perf_delta]) = "*
+            "$(hBA[2] <= hBA[3] - extra_pars[:anti_perf_delta])")
+
+        println(reportFile, "\nmodel passed overall=", overall)
+
+        if reportFile != stdout
+            close(reportFile)
+        end
+    end
+
+    return
+end
 
 
 """
