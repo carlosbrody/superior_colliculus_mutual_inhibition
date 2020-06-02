@@ -2,7 +2,7 @@
 
 ### 2020-05-30 -- Noise vs trials numbers, Higher Iters, Recruiting Spock
 
-#### Costs change with number of trials used to assess them
+#### Costs change with number of trials used to assess them (see [Costs_vs_ntrials.ipynb](Costs_vs_ntrials.ipynb) )
 
 You might think that different  numbers of trials just affect variability in the cost function, not the mean value.  **This is wrong.**
 
