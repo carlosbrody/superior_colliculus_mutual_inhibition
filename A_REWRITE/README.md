@@ -1,3 +1,28 @@
+### 2020-06-01. Starting 6-node on old optimization code
+
+None of the runs on `proanti006` through `proanti011` were going past pass 5, and only two made it past pass 4. The strategy has clearly failed. The old code would train to optimum on 50 trials; there do an evaluation, and if the model passed the evaluation, train to optimum on 1000 trials.
+
+To facilitate this, the evaluation has been put into `evaluateModel()` in the `ProAnti.jl` module. There remains the question of whether new optimization procedures, using `Optim.jl` run faster than the old optimization procedures. For now, simply starting a 6-node run on 6 VMs (`proanti006` through `proanti011`), using the old optimization code, using files `sixNode_reduced_farm_C32.jl` and `sixNodeSetup_C32.jl`.  Report files start with `r6` and farms go into `../../Farms_6N`.
+
+#### old code reproducing old results
+
+A straight re-run of the old code (merely upgraded to Julia 1.0) seems to be reproducing the old results -- as it should!! Running on `proanti002`, `proanti004`, and `proanti005` after 7 days it has produced no farms yet, but looking at report files shows they are on their way. 158 CPUs are running, and at this point 63 of them have gone into pass 2 further training. 
+
+Of those 63, a few have gone beyond the -0.0001 threshold and display the expected results (a) `hW_P` is varied in sign; (b) `vW_PA` is almost always negative; (c) `dW_PA` is usually positive, and when it is negative, it is still greater than `vW_PA`. Fron `sandbox.jl`:
+```julia
+ "cost"        "hW_P"     "vW_PA"    "dW_PA" 
+ -3.66935e-5    0.84933   -1.50096    0.815532 
+ -4.06454e-5   -0.298154  -2.66791   -0.331266 
+ -4.247e-5     -0.507152  -2.00155   -0.0776131
+ -8.65474e-5    0.244958  -1.29238    0.602195 
+ -9.73053e-5   -0.423981  -1.6231     0.457797 
+ -0.000101394   0.330891  -2.17932    1.49553  
+ -0.000109802   0.992769  -2.21862    0.0740309
+ -0.000119361  -0.871576  -2.20647    0.315527 
+ -0.000121367  -1.02623   -1.13486    0.0724739
+ -0.000151369   0.692988  -2.03862    0.104209 
+ -0.00017751   -0.728513  -1.54116   -0.603525 
+ ```
 
 
 ### 2020-05-30 -- Noise vs trials numbers, Higher Iters, Recruiting Spock
