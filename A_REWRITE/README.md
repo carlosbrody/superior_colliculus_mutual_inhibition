@@ -4,7 +4,7 @@ None of the runs on `proanti006` through `proanti011` were going past pass 5, an
 
 To facilitate this, the evaluation has been put into `evaluateModel()` in the `ProAnti.jl` module. There remains the question of whether new optimization procedures, using `Optim.jl` run faster than the old optimization procedures. For now, simply starting a 6-node run on 6 VMs (`proanti006` through `proanti011`), using the old optimization code, using files `sixNode_reduced_farm_C32.jl` and `sixNodeSetup_C32.jl`.  Report files start with `r6` and farms go into `../../Farms_6N`.
 
-#### old code reproducing old results
+#### old code is slow, but is successfully reproducing old results, now in Julia 1.0
 
 A straight re-run of the old code (merely upgraded to Julia 1.0) seems to be reproducing the old results -- as it should!! Running on `proanti002`, `proanti004`, and `proanti005` after 7 days it has produced no farms yet, but looking at report files shows they are on their way. 158 CPUs are running, and at this point 63 of them have gone into pass 2 further training. 
 
