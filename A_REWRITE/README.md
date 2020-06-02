@@ -4,6 +4,8 @@ None of the runs on `proanti006` through `proanti011` were going past pass 5, an
 
 We now have the question of whether new optimization procedures, using `Optim.jl` would run that old strategy faster than the old optimization procedures. Not answering that yet. For now, am taking what seems like a more guaranteed path. We are simply starting a 6-node run on 6 VMs (`proanti006` through `proanti011`), using the old optimization code. We are using files `sixNode_reduced_farm_C32.jl` and `sixNodeSetup_C32.jl`, which are almost identical to `opto_reduced_farm_C32.jl` and `setup_C32.jl`. Report files start with `r6` and farms go into `../../Farms_6N`.
 
+6-node code has 26 parameters, old code had 16; 26^2/16^2 ~= 2.65. In practice, 6-node code looks like it runs about 3 times slower. **So we should expect results in about 3 weeks**. :(
+
 #### old code is slow, but is successfully reproducing old results, now in Julia 1.0
 
 A straight re-run of the old code (merely upgraded to Julia 1.0) seems to be reproducing the old results -- as it should!! Running on `proanti002`, `proanti004`, and `proanti005` after 7 days it has produced no farms yet, but looking at report files shows they are on their way. 158 CPUs are running, and at this point 63 of them have gone into pass 2 further training. 
