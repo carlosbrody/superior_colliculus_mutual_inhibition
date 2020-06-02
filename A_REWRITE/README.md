@@ -2,6 +2,18 @@
 
 ### 2020-05-30 -- Noise vs trials numbers, Higher Iters, Recruiting Spock
 
+#### Costs change with number of trials used to assess them
+
+You might think that different  numbers of trials just affect variability in the cost function, not the mean value.  **This is wrong.**
+
+Take a well-trained network and a random seed equal to the one used to measure cost at, say 10000 trials.  The cost function includes a squared error term for how close to the target the mean hits are. At few trials, the typical distance to the target will be greater than for many trials. So, as number of trials grows, cost falls, even under these conditions.  
+
+Conversely, for a badly trained network, we expect that evaluating it with few trials used to train it is equivalent to picking out that noise instance that gives you the lowest cost-- in this case, increasing number of trials will lead to increased cost, because of overfitting.
+
+In sum, this means that our strategy of using cost thresholds to switch between passes may be flawed.
+
+<img src=costs_vs_ntrials.jpg>
+
 #### 2020-05-30 5pm Recruiting Spock
 
 Now running the old `opto_reduced_farmC32.jl` code, as in `proanti002`, on Spock. Takes about 4min30 per 10 iterations instead of 6 min on the Google VMs. A little faster but not hugely so.  Run the following four times while logged into spock.
