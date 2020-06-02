@@ -374,7 +374,8 @@ end
 
 
 """
-    makeWeightMatrix(model_params, symmetrized_W=false; asString=false)
+    makeWeightMatrix(model_params, symmetrized_W=false; asString=false,
+        dataType=Float64)
 
     = PARAMETERS
 
@@ -382,11 +383,19 @@ end
 
     - symmetrized_W    Boolean
 
+    = OPTIONAL PARAMETERS
+
+    - asString        If true returns a matrix of strings with the names of the params
+
+    -dataType         What data type should elements of W be?  Normally Float64s,
+                      but when using ForwardDiff they might be Duals.
+
     = RETURNS
 
     - W                Square weight matrix
 """
-function makeWeightMatrix(model_params, symmetrized_W=false; asString=false)
+function makeWeightMatrix(model_params, symmetrized_W=false; asString=false,
+    dataType=Float64)
 
     global AntiNodeID  = model_params[:AntiNodeID]
     global ProNodeID   = model_params[:ProNodeID]
@@ -418,7 +427,7 @@ function makeWeightMatrix(model_params, symmetrized_W=false; asString=false)
              dW_AP hW_A  sW_A  vW_AP ;
              hW_P  dW_PA vW_PA sW_P]
     elseif nUnits==6
-        W = fill(asString ? "" : 0.0, 6, 6)
+        W = fill(asString ? "" : dataType(0), 6, 6)
         global numAnti = Int64(length(AntiNodeID)/2) # divide by 2 for two sides of brain
         global numPro  = Int64(length(ProNodeID)/2)
         for fromSide in ["Left", "Right"]
@@ -635,7 +644,8 @@ function run_ntrials(nPro, nAnti; AntiNodeID=[2,3], ProNodeID=setdiff(1:4, AntiN
     model_params = Dict(model_params)
     model_params = make_dict(["AntiNodeID", "ProNodeID", "LeftNodeID", "RightNodeID"],
         [AntiNodeID, ProNodeID, LeftNodeID, RightNodeID], model_params)
-    model_params = make_dict(["W"], [makeWeightMatrix(model_params, symmetrized_W)],
+    model_params = make_dict(["W"],
+        [makeWeightMatrix(model_params, symmetrized_W, dataType=get_eltype(varbag))],
         model_params)
 
     pro_input,  t, nsteps = make_input("Pro" ; model_params...)
