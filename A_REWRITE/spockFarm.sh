@@ -4,7 +4,6 @@
 #SBATCH -o  log-spockFarm-%j.out
 #SBATCH -p Brody
 #SBATCH --time 96:00:00
-#SBATCH --mem 1000
 #SBATCH -c 1
 
 # load the julia module
