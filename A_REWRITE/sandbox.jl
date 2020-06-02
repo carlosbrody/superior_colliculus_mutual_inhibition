@@ -35,8 +35,8 @@ for i in u
 end
 
 
-nguys = 17
-colids = [10, 11, 16]
+nguys = 10
+colids = [11, 16, 10]
 
 p = sortperm(costs, rev=true)
 costs = costs[p]
