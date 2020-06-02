@@ -1,8 +1,8 @@
 ### 2020-06-01. Starting 6-node on old optimization code
 
-None of the runs on `proanti006` through `proanti011` were going past pass 5, and only two made it past pass 4. The strategy has clearly failed. The old code would train to optimum on 50 trials; there do an evaluation, and if the model passed the evaluation, train to optimum on 1000 trials.
+None of the runs on `proanti006` through `proanti011` were going past pass 5, and only two made it past pass 4. The strategy has clearly failed. The old code would train to optimum on 50 trials; there do an evaluation, and if the model passed the evaluation, train to optimum on 1000 trials. The evaluation has now been put into `evaluateModel()` in the `ProAnti.jl` module. 
 
-To facilitate this, the evaluation has been put into `evaluateModel()` in the `ProAnti.jl` module. There remains the question of whether new optimization procedures, using `Optim.jl` run faster than the old optimization procedures. For now, simply starting a 6-node run on 6 VMs (`proanti006` through `proanti011`), using the old optimization code, using files `sixNode_reduced_farm_C32.jl` and `sixNodeSetup_C32.jl`.  Report files start with `r6` and farms go into `../../Farms_6N`.
+We now have the question of whether new optimization procedures, using `Optim.jl` would run that old strategy faster than the old optimization procedures. Not answering that yet. For now, am taking what seems like a more guaranteed path. We are simply starting a 6-node run on 6 VMs (`proanti006` through `proanti011`), using the old optimization code. We are using files `sixNode_reduced_farm_C32.jl` and `sixNodeSetup_C32.jl`, which are almost identical to `opto_reduced_farm_C32.jl` and `setup_C32.jl`. Report files start with `r6` and farms go into `../../Farms_6N`.
 
 #### old code is slow, but is successfully reproducing old results, now in Julia 1.0
 
