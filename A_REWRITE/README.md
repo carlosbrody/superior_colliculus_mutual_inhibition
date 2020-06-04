@@ -1,3 +1,29 @@
+### 2020-06-03. Stopping old 4-node run to save money.
+
+At this point it seems clear that the old 4-node code rerpoduces the old results, even in Julia 1.0.5, even if it hasn't produced final farms. Reading from the Reports files, filtering for 2nd-pass training, and sorting by cost on 1000 trials, we get the following out of the first cell in `sandbox.jl`:
+```julia
+  "cost"        "hW_P"     "vW_PA"    "dW_PA" 
+ -4.43512e-5   -0.31714   -2.77002   -0.326953 
+ -4.51673e-5    0.821592  -2.37589    1.79628  
+ -4.8334e-5    -0.520949  -2.03382   -0.0968841
+ -5.73134e-5    1.12911   -1.63477    0.799051 
+ -5.95355e-5    0.443505  -1.52204    1.44696  
+ -6.45954e-5    0.298148  -1.455      0.796008 
+ -8.82276e-5    0.24758   -1.36222    0.671435 
+ -0.000107178  -0.424304  -1.62051    0.455756 
+ -0.00010807    0.311738  -2.18619    1.47656  
+ -0.000116492   1.00027   -2.24554    0.0822045
+ -0.000117643   0.454465  -1.23349    0.376089 
+ -0.000141724  -1.03584   -1.14418    0.0712079
+ -0.000161144   0.705797  -2.05363    0.117806 
+ -0.000162982  -0.75624   -2.08015   -0.0950036
+ -0.000178077  -0.893418  -2.20795    0.300835 
+ -0.000216462  -0.794968  -1.54534   -0.51226  
+ ```
+ One can clearly see that `hW_P` has mixed signs, `vW_PA` is always negative, and `vW_PA < dW_PA`, even when `dW_PA` is negative.  I.e., confirming old results.
+ 
+Am therefore stopping `proanti002`, `proanti004`, and `proanti005` to save money. No need to keep them going. They can be restarted if need be.
+
 ### 2020-06-01. Starting 6-node on old optimization code
 
 None of the runs on `proanti006` through `proanti011` were going past pass 5, and only two made it past pass 4. The strategy has clearly failed. The old code would train to optimum on 50 trials (with maxIter=1000); there do an evaluation, and if the model passed the evaluation, train to optimum on 1000 trials. The evaluation has now been put into `evaluateModel()` in the `ProAnti.jl` module. 
