@@ -1,6 +1,6 @@
 ### 2020-06-14. Stopping 6-node run -- enough results in for now.
 
-Have now stopped the last VMs running, `proanti006`, `proanti007`, `proanti008`, `proanti009`, `proanti010`, `proanti011`. Pulling reports from them finds 66 solutions with a cost less than -0.0001. Run the cell at the top of `sandbox.jl`. Not looking at final Farms outputs, but at Reports as it goes with 1000 trials. 
+Have now stopped the last VMs running, `proanti006`, `proanti007`, `proanti008`, `proanti009`, `proanti010`, `proanti011`. Pulling reports from them finds 66 solutions with a cost less than -0.0001. Run the cell at the top of `sandbox.jl`. Not looking at final Farms outputs, but at Reports as it goes with 1600 trials. 
 
 ### 2020-06-03. Stopping old 4-node run to save money.
 
