@@ -1,3 +1,170 @@
+##  === Pulling in Reports from NEW-style training and parsing them
+
+
+include("sixNodeSetup_C32.jl")
+args = argsSeedBounder()[1]   # get the string list of model params
+
+
+
+pullReports=false; if pullReports   # if there are new runs on the VMs, get them
+    machines = ["proanti006", "proanti007", "proanti008",
+                "proanti009", "proanti010", "proanti011"]
+
+    for i in machines
+        run(`./pull_reports.sh $i`)
+    end
+
+    # At the of this block, report files will have been put in ../../Reports
+end
+##
+global costs  = fill(0.0, 0)   # the cost for each solution
+global fnames = fill("",  0)   # the filename for each solution
+global pvals  = fill(0.0, 0, length(args))  # model params for each solution
+global srands = fill(0, 0)     # random seeds for each solution
+
+# Now we'll parse each Report file to find where it ended up at.
+u = readdir("../../Reports")
+for i in filter(x -> startswith(x, "r6"), u)
+    # Read the file into string s:
+    fp = open("../../Reports/$i", "r")
+    s = read(fp, String)
+    close(fp)
+
+    # Find the last cost report:
+    z = findlast("OVERALL", s)
+    if z != nothing
+        z2 = findfirst("cost=", s[z[end]:end])
+        z3 = findfirst(",", s[z[end]:end])
+        mycost = parse(Float64, s[z[end]+z2[end]:z[end]+z3[1]-2])
+        # println("$i: mycost=$mycost")
+        global costs  = vcat(costs, mycost)
+        global fnames = vcat(fnames, i)
+
+        z = findlast("ps=[", s)[end].+1
+        n = findfirst("]", s[z+1:end])[1] + z-1
+        global pvals = vcat(pvals, readdlm(Vector{UInt8}(s[z:n]), ','))
+
+        sz1 = findlast("random seed", s)
+        sz2 = findfirst('\n', s[sz1[end]:end])
+        global srands = vcat(srands, parse(Int64, s[sz1[end]+2:sz1[end]+sz2-2]))
+    end
+    # println("Checked $i")
+end
+
+
+nguys = 65   # number of solutions with the best costs that we'll look at
+colids = [5, 7, 21, 4, 18, 3, 6] # args[colids] will be the weights collected into "merges"
+
+# we only want to see the best cost solutions
+p = sortperm(costs, rev=true)
+costs = costs[p]
+fnames = fnames[p]
+pvals = pvals[p,:]
+srands = srands[p]
+display([fnames costs])
+
+# merges will hold the chosen weights
+merges = [reshape(args[colids],1,length(colids)) ; pvals[end-nguys:end, colids]]
+merges = hcat(["cost" ; costs[end-nguys:end]], merges)
+display(merges)
+
+## After running the cell above, run this one to produce parameter histograms
+
+mycolids = vcat(colids, [10,22])
+collist = vcat(mycolids, setdiff(1:25, mycolids))
+
+figure(10); clf()
+for i=1:25
+    nrows = 5; ncols =5;
+    subplot(nrows, ncols, i)
+    hist(pvals[end-nguys:end, collist[i]])
+    myrow = Int64(floor((i-1)/nrows))+1
+    axisMove(0, 0.025*(nrows/2+0.5 - myrow))
+    axisWidthChange(0.9, lock="c"); axisHeightChange(0.9, lock="c")
+    title(args[collist[i]])
+end
+savefig2jpg("Plots/parameterHistograms")
+
+figure(11); clf();
+pairs = [
+    "dW_P1A1" "dW_P1A2";
+    "vW_P1A1" "vW_P1A2"
+    ]
+
+for i=1:size(pairs,1)
+    u1 = findfirst(args.==pairs[i,1])
+    u2 = findfirst(args.==pairs[i,2])
+    subplot(1,2,i)
+    hist(0.5*(pvals[end-nguys:end, u1] .+ pvals[end-nguys:end, u2]))
+    title("mean of $(args[u1]) and $(args[u2])")
+end
+savefig2jpg("Plots/parameterMeanHistograms")
+
+
+
+
+## Running an old solution.
+
+id = size(pvals,1)-0  # We choose a number between 1 and size(pvals,1) to identify
+# the solution in pvals that we'll run with
+
+params = pvals[id,:]
+include("sixNodeSetup_C32.jl")
+extra_pars[:seedrand] = srands[id]
+extra_pars[:few_trials]                = 50
+extra_pars[:many_trials]               = 1600
+
+extra_pars[:nPro] = 10
+extra_pars[:nAnti] = 10
+
+# This will now run the same way as when the cost during training was calculated,
+# meaning that costs[id] and answers["cost"] will be the same:
+answers = JJ(extra_pars[:nPro], extra_pars[:nAnti]; verbose=false, asDict=true,
+    model_details=true, merge(make_dict(args, params, mypars), extra_pars)...)
+display(answers)
+
+# Plot the activity of some nodes
+mid = id - size(pvals,1)+size(merges,1)   # id in the mergers
+display(merges[[1;mid],1:end])
+t = (1:length(answers["antiValls"][1,1][1,:,1]))*mypars[:dt] .- mypars[:dt]
+
+figure(1); clf()
+ntrials = 10
+for node = 1:3
+    rule_and_delay_period_id = 1
+    target_period_id = 1
+    nrdp = length(mypars[:rule_and_delay_periods])
+    ntp  = length(mypars[:target_periods])
+    pid   = (rule_and_delay_period_id-1)*ntp + target_period_id
+    proValls  = answers["proValls" ][1,pid]
+    antiValls = answers["antiValls"][1,pid]
+
+    subplot(3,1,node); # axisMove(0, 0.025*(2-node))
+    plot(t, proValls[node,:,1:ntrials],  color="b", linewidth=0.5)
+    plot(t, antiValls[node,:,1:ntrials], color="r", linewidth=0.5);
+    if node<3; remove_xtick_labels(); end
+
+    radp = mypars[:rule_and_delay_periods][rule_and_delay_period_id]
+    tagp = mypars[:target_periods][target_period_id]
+    vlines([radp, radp+tagp], ylim()[1], ylim()[2], linewidth=0.5)
+    if in(node, mypars[:ProNodeID])
+        flavor = "Pro"
+        title("$flavor node (id=$node), blue is Pro trials, red is Anti trials")
+    else
+        flavor = "Anti"
+        title("$flavor node $(node-1), blue is Pro trials, red is Anti trials")
+    end
+end
+
+subplot(3,1,1)
+vW_P1A1 = findfirst(args.=="vW_P1A1")
+vW_P1A2 = findfirst(args.=="vW_P1A2")
+t = text(0.6, 1.5, "Solution #$(size(pvals,1)-id),  A1->P1=$(params[vW_P1A1])"*
+    ",  A2->P1=$(params[vW_P1A2])",
+    horizontalalignment="center", fontSize=15)
+
+savefig2jpg("Plots/solution$(size(pvals,1)-id)")
+
 ##  === Pulling in Reports from old-style training and parsing them
 
 pullReports=false; if pullReports
@@ -35,7 +202,7 @@ for i in u
 end
 
 
-nguys = 10
+nguys = 15
 colids = [11, 16, 10]
 
 p = sortperm(costs, rev=true)

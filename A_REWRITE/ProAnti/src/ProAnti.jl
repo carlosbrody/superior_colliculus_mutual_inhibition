@@ -389,7 +389,6 @@ end
 
     -dataType         What data type should elements of W be?  Normally Float64s,
                       but when using ForwardDiff they might be Duals.
-
     = RETURNS
 
     - W                Square weight matrix
@@ -877,7 +876,6 @@ If model_details is set to true, also returns the following (nopto is number of 
 
 
 """
-
 function JJ(nPro, nAnti; asDict=false, pro_target=0.9, anti_target=0.7,
     opto_targets = Array{Float64}(undef,0,2), opto_periods = Array{Float64}(undef, 0,2),
     model_details = false,

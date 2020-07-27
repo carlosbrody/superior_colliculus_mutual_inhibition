@@ -122,3 +122,35 @@ global bbox = Dict()
 for k in keys(search_conditions)
     global bbox = merge(bbox, Dict(k=>search_conditions[k][3]))
 end
+
+"""
+   argsSeedBounder()
+
+   This function uses the global search_conditions to define its return
+   values.
+
+   = RETURNS:
+
+   - args     A vector of N strings defining the argumenrs
+
+   - seed     A vector of N Float64s, each correspinding to its arg
+
+   - bounder  An N-by-2 matrix, first column lower bounds, second column upper bounds.
+
+"""
+function argsSeedBounder()
+   args    = Array{String}(undef, 0)
+   seed    = Array{Float64}(undef, 0)
+   bounder = Array{Float64}(undef, 0, 2)
+
+   for k in keys(search_conditions)
+      sbox = search_conditions[k][2]
+      bbox = search_conditions[k][3]
+
+      args    = vcat(args, string(k))
+      seed    = vcat(seed, sbox[1] + rand()*(diff(sbox)[1]))
+      bounder = vcat(bounder, bbox[:]')
+   end
+
+   return args, seed, bounder
+end

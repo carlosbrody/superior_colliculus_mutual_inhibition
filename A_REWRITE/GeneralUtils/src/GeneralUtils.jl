@@ -3,6 +3,7 @@ module GeneralUtils
 
 
 export replacer, next_file, append_to_file, savefig2jpg
+export axisHeightChange, axisWidthChange, axisMove, remove_xtick_labels, remove_ytick_labels
 
 using Printf
 
@@ -542,7 +543,7 @@ end
 """
 function axisWidthChange(factor; lock="c", ax=nothing)
     if ax==nothing; ax=gca(); end
-    x, y, w, h = ax[:get_position]()[:bounds]
+    x, y, w, h = ax.get_position().bounds
 
     if lock=="l";
     elseif lock=="c" || lock=="m"; x = x + w*(1-factor)/2;
@@ -551,7 +552,7 @@ function axisWidthChange(factor; lock="c", ax=nothing)
     end
 
     w = w*factor;
-    ax[:set_position]([x, y, w, h])
+    ax.set_position([x, y, w, h])
 
     return ax
 end
@@ -562,7 +563,7 @@ ax = axisHeightChange(factor; lock="c", ax=nothing)
 """
 function axisHeightChange(factor; lock="c", ax=nothing)
     if ax==nothing; ax=gca(); end
-    x, y, w, h = ax[:get_position]()[:bounds]
+    x, y, w, h = ax.get_position().bounds
 
     if lock=="b";
     elseif lock=="c" || lock=="m"; y = y + h*(1-factor)/2;
@@ -571,7 +572,7 @@ function axisHeightChange(factor; lock="c", ax=nothing)
     end
 
     h = h*factor;
-    ax[:set_position]([x, y, w, h])
+    ax.set_position([x, y, w, h])
 
     return ax
 end
@@ -582,12 +583,12 @@ end
 """
 function axisMove(xd, yd; ax=nothing)
     if ax==nothing; ax=gca(); end
-    x, y, w, h = ax[:get_position]()[:bounds]
+    x, y, w, h = ax.get_position().bounds
 
     x += xd
     y += yd
 
-    ax[:set_position]([x, y, w, h])
+    ax.set_position([x, y, w, h])
     return ax
 end
 
@@ -614,14 +615,14 @@ function remove_xtick_labels(ax=nothing)
         return
     end
 
-    nlabels = length(ax[:xaxis][:get_ticklabels]())
+    nlabels = length(ax.xaxis.get_ticklabels())
 
-    newlabels = Array{String,1}(nlabels)
+    newlabels = fill("", nlabels)
     for i=1:length(newlabels);
         newlabels[i] = ""
     end
 
-    ax[:xaxis][:set_ticklabels](newlabels)
+    ax.xaxis.set_ticklabels(newlabels)
     return
 end
 
