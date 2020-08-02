@@ -68,6 +68,13 @@ merges = [reshape(args[colids],1,length(colids)) ; pvals[end-nguys:end, colids]]
 merges = hcat(["cost" ; costs[end-nguys:end]], merges)
 display(merges)
 
+matwrite("Solutions/solutions6.mat", Dict(
+    "costs"=>costs[end-nguys:end],
+    "fnames"=>fnames[end-nguys:end],
+    "argnames"=>args,
+    "paramvals"=>pvals[end-nguys:end,:],
+    "randseeds"=>srands[end-nguys:end]
+    ))
 ## After running the cell above, run this one to produce parameter histograms
 
 mycolids = vcat(colids, [10,22])
@@ -105,7 +112,7 @@ savefig2jpg("Plots/parameterMeanHistograms")
 
 ## Running an old solution.
 
-id = size(pvals,1)-0  # We choose a number between 1 and size(pvals,1) to identify
+id = size(pvals,1)-9  # We choose a number between 1 and size(pvals,1) to identify
 # the solution in pvals that we'll run with
 
 params = pvals[id,:]
