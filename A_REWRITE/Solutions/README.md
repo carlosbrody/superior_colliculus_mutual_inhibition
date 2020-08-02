@@ -1,4 +1,4 @@
-Contains 65 solutions to the 6-node network problem.
+This directory contains 65 solutions to the 6-node network problem.
 
 File `solutions6.mat` has:
 
