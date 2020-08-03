@@ -1,6 +1,6 @@
 ### 2020-08-03. Bug found, need to re-run 6-node solutions.
 
-In `ProAnti.jl/run_ntrials`, there is an optional paramtere, `opto_units`, whose default value is `1:4`. It should have been set to `1:6` for the 6-node runs, but wasn't. (This can be done as one of the params in `mypars`, as in `mypars[:opyo_units]=1:6`.
+In `ProAnti.jl/run_ntrials`, there is an optional parameter, `opto_units`, whose default value is `1:4`. It should have been set to `1:6` for the 6-node runs, but wasn't. (This can be done as one of the params in `mypars`, as in `mypars[:opyo_units]=1:6`.
 
 All solutions need tobe re-generated.  **!!!!!!!!!**
 
