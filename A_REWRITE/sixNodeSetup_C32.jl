@@ -59,7 +59,8 @@ mypars = Dict(
 :RightNodeID            =>          [1,2,3],
 :LeftNodeID             =>          [4,5,6],
 :start_anti             =>          -0.5*ones(6),
-:start_pro              =>          -0.5*ones(6)
+:start_pro              =>          -0.5*ones(6),
+:opto_units             =>          1:6
 )
 
 for i in W6
