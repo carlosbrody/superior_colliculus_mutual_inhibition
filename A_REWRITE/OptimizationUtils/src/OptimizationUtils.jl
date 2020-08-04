@@ -296,7 +296,7 @@ end
 function bbox_Hessian_keyword_minimization(seed, args, bbox, func; start_eta=0.1,
     tol=1e-6, maxiter=400, frac_cost_threshold = 0.5, stopping_function = nothing,
     verbose=false, verbose_level=1, verbose_every=1, verbose_file=stdout,
-    verbose_timestamp = false,
+    verbose_timestamp = false, start_iter_num = 1,
     softbox=true, hardbox=false, report_file="")
 
 Like constrained_Hessian_minimization, but uses keyword_hessian!().
@@ -331,6 +331,8 @@ Like constrained_Hessian_minimization, but uses keyword_hessian!().
              this, the minimization stops.
 
 - maxiter=400  Maximum number of iterations to do before stopping
+
+- start_iter_num=1  Number to start iterations count at
 
 - frac_cost_threshold   When the algorithm is going to take a step, it first checks whether this will reduce the cost.
                 If the answer is "no" then the step is not taken, and the step size is halved.
@@ -408,7 +410,7 @@ params, trajectory = bbox_Hessian_keyword_minimization([0.5, 0.5], ["x", "y"], [
 function bbox_Hessian_keyword_minimization(seed, args, bbox, func; start_eta=0.1, tol=1e-6, maxiter=400,
     frac_cost_threshold = 0.5, stopping_function = nothing,
     verbose=false, verbose_level=1, verbose_every=1, verbose_file=stdout,
-    verbose_timestamp = false,
+    verbose_timestamp = false, start_iter_num = 1,
     softbox=true, hardbox=false, report_file="")
 
     # --- check that saving will be done to a .jld file ---
@@ -456,7 +458,7 @@ function bbox_Hessian_keyword_minimization(seed, args, bbox, func; start_eta=0.1
 
     if verbose
         if verbose_file==stdout; ostr=stdout else ostr=open(verbose_file, "a"); end
-        @printf ostr "%d: eta=%g ps=" 0 eta
+        @printf ostr "%d: eta=%g ps=" start_iter_num-1 eta
         println(ostr, vector_wrap(bbox, args, params))
         if verbose_file!=stdout; close(ostr); end
     end
@@ -476,7 +478,7 @@ function bbox_Hessian_keyword_minimization(seed, args, bbox, func; start_eta=0.1
     chess_cost_delta    = 0   # this will hold the constrained prediction
 
     my_iter=new_params=new_cost=new_grad=new_hess=0  # here so these variables are available outside the loop
-    for i in [1:maxiter;]
+    for i in [start_iter_num:(maxiter+start_iter_num);]
         my_iter = i
         if i > size(trajectory, 2)
             trajectory = [trajectory zeros(2+length(params), traj_increment)]
