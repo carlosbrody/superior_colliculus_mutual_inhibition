@@ -91,6 +91,8 @@ else
     extra_pars[:seedrand] = parseLast(s, "random seed ", Int64)
     start_eta             = parseLast(s, " eta=", Float64)
     seed                  = parseLast(s, " ps=", Vector{Float64})
+    start_iter_num        = parse(Int64,
+                                s[findall(r"\] [0-9]*:", s)[end][3:end-1]])+10
 
     tf = findlast("training further", s)
     if tf != nothing
@@ -98,6 +100,10 @@ else
             second_stage_training = true
         end
     end
+
+    append_to_file(report_file, "\n\n--- respawning -- "*
+        "$(Dates.format(now(), "e, dd u yyyy HH:MM:SS")) ---\n\n")
+
 end
 
 # --- define the args string vector and bbox for seacrh space bounding box
@@ -112,7 +118,7 @@ args = Array{String}(args)
 
 while true
     global second_stage_training, respawn, report_file, bspockID, onSpock
-    global hostname, seed
+    global hostname, seed, start_iter_num
 
     if !second_stage_training
         if !respawn
@@ -139,7 +145,7 @@ while true
         # try
         parsA, trajA, costA, cpm_trajA, ftrajA = bbox_Hessian_keyword_minimization(seed,
             args, bbox, func_quiet,
-            start_eta = start_eta, tol=1e-12, verbose_file=report_file, verbose_timestamp=true,
+            start_eta = start_eta, tol=1e-12, verbose_file=report_file, verbose_timestamp=true, start_iter_num = start_iter_num,
             verbose=true, verbose_every=10, maxiter=extra_pars[:maxiter])
 
         # evaluate the result with many trials, for accuracy
@@ -178,6 +184,7 @@ while true
 
             second_stage_training = true
             seed = parsA
+            start_iter_num = 1
         end
     end
 
@@ -191,6 +198,7 @@ while true
             try
                 pars3, traj3, cost3, cpm_traj3, ftraj3 = bbox_Hessian_keyword_minimization(seed,
                      args, bbox, func_chatty,  verbose_timestamp=true,
+                     start_iter_num = start_iter_num,
                      start_eta = start_eta, tol=1e-12, verbose_file=report_file,
                      verbose=true, verbose_every=10, maxiter=extra_pars[:maxiter])
 
