@@ -73,7 +73,8 @@ matwrite("Solutions/solutions6.mat", Dict(
     "fnames"=>fnames[end-nguys:end],
     "argnames"=>args,
     "paramvals"=>pvals[end-nguys:end,:],
-    "randseeds"=>srands[end-nguys:end]
+    "randseeds"=>srands[end-nguys:end],
+    "weightMatrixMap"=>makeWeightMatrix(mypars; asString=true)
     ))
 ## After running the cell above, run this one to produce parameter histograms
 
@@ -123,6 +124,9 @@ extra_pars[:many_trials]               = 1600
 
 extra_pars[:nPro] = 10
 extra_pars[:nAnti] = 10
+# mypars[:opto_units] = 1:6
+
+# params[15] = 0.01
 
 # This will now run the same way as when the cost during training was calculated,
 # meaning that costs[id] and answers["cost"] will be the same:
@@ -135,21 +139,25 @@ mid = id - size(pvals,1)+size(merges,1)   # id in the mergers
 display(merges[[1;mid],1:end])
 t = (1:length(answers["antiValls"][1,1][1,:,1]))*mypars[:dt] .- mypars[:dt]
 
+opto_condition = 2   # 1 is control, 2 is rule_and_delay, 3 is target_period
+
 figure(1); clf()
 ntrials = 10
-for node = 1:3
+nodes2plot = [4,5,6]
+for nodenum = 1:length(nodes2plot)
+    node = nodes2plot[nodenum]
     rule_and_delay_period_id = 1
     target_period_id = 1
     nrdp = length(mypars[:rule_and_delay_periods])
     ntp  = length(mypars[:target_periods])
     pid   = (rule_and_delay_period_id-1)*ntp + target_period_id
-    proValls  = answers["proValls" ][1,pid]
-    antiValls = answers["antiValls"][1,pid]
+    proValls  = answers["proValls" ][opto_condition,pid]
+    antiValls = answers["antiValls"][opto_condition,pid]
 
-    subplot(3,1,node); # axisMove(0, 0.025*(2-node))
+    subplot(length(nodes2plot),1,nodenum); # axisMove(0, 0.025*(2-node))
     plot(t, proValls[node,:,1:ntrials],  color="b", linewidth=0.5)
     plot(t, antiValls[node,:,1:ntrials], color="r", linewidth=0.5);
-    if node<3; remove_xtick_labels(); end
+    if nodenum<length(nodes2plot); remove_xtick_labels(); end
 
     radp = mypars[:rule_and_delay_periods][rule_and_delay_period_id]
     tagp = mypars[:target_periods][target_period_id]
@@ -163,7 +171,7 @@ for node = 1:3
     end
 end
 
-subplot(3,1,1)
+subplot(length(nodes2plot),1,1)
 vW_P1A1 = findfirst(args.=="vW_P1A1")
 vW_P1A2 = findfirst(args.=="vW_P1A2")
 t = text(0.6, 1.5, "Solution #$(size(pvals,1)-id),  A1->P1=$(params[vW_P1A1])"*
@@ -171,6 +179,36 @@ t = text(0.6, 1.5, "Solution #$(size(pvals,1)-id),  A1->P1=$(params[vW_P1A1])"*
     horizontalalignment="center", fontSize=15)
 
 savefig2jpg("Plots/solution$(size(pvals,1)-id)")
+
+## === Linearizing around specific solutions/conditions/timepoints
+
+
+id = size(pvals,1)-9  # We choose a number between 1 and size(pvals,1) to identify
+# the solution in pvals that we'll run with
+
+params = pvals[id,:]
+include("sixNodeSetup_C32.jl")
+extra_pars[:seedrand] = srands[id]
+
+nPro  = 10;
+nAnti = 10;
+mypars[:rule_and_delay_period] = mean(mypars[:rule_and_delay_periods])
+mypars[:target_period]         = mean(mypars[:target_periods])
+
+my_params = merge(mypars, make_dict(args, params))
+
+proVs, antiVs, proVall, antiVall, opto_fraction,pro_input,anti_input =
+    run_ntrials(nPro, nAnti; my_params...)
+
+
+
+
+#
+
+# my_params = make_dict(["rule_and_delay_period","target_period","post_target_period"],   [i,j,k])
+# my_params = make_dict(["opto_times"], [reshape(opto_periods[nopto,:], 1, 2)], my_params)
+# my_params = merge(Dict(model_params), my_params)  # my_params takes precedence
+
 
 ##  === Pulling in Reports from old-style training and parsing them
 
