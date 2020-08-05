@@ -1,3 +1,10 @@
+### 2020-08-03. Bug found, need to re-run 6-node solutions.
+
+In `ProAnti.jl/run_ntrials`, there is an optional parameter, `opto_units`, whose default value is `1:4`. It should have been set to `1:6` for the 6-node runs, but wasn't. (This can be done as one of the params in `mypars`, as in `mypars[:opyo_units]=1:6`.
+
+All solutions need tobe re-generated.  **!!!!!!!!!**
+
+
 ### 2020-06-14. Stopping 6-node run -- enough results in for now.
 
 Have now stopped the last VMs running, `proanti006`, `proanti007`, `proanti008`, `proanti009`, `proanti010`, `proanti011`. Pulling reports from them finds 66 solutions with a cost less than -0.0001. Run the cell at the top of `sandbox.jl`. Not looking at final Farms outputs, but at Reports as it goes with 1600 trials. 

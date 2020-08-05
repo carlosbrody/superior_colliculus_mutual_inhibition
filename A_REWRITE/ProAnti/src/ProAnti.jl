@@ -969,8 +969,10 @@ function JJ(nPro, nAnti; asDict=false, pro_target=0.9, anti_target=0.7,
                     n += 1
 
                     # include this opto inactivation in the parameters to pass on
-                    my_params = make_dict(["rule_and_delay_period","target_period","post_target_period"], [i,j,k])
-                    my_params = make_dict(["opto_times"], [reshape(opto_periods[nopto,:], 1, 2)], my_params)
+                    my_params =
+                        make_dict(["rule_and_delay_period","target_period","post_target_period"],   [i,j,k])
+                    my_params =
+                        make_dict(["opto_times"], [reshape(opto_periods[nopto,:], 1, 2)], my_params)
                     my_params = merge(Dict(model_params), my_params)  # my_params takes precedence
 
                     my_plot_list = [];
