@@ -4,8 +4,32 @@ module GeneralUtils
 
 export replacer, next_file, append_to_file, savefig2jpg
 export axisHeightChange, axisWidthChange, axisMove, remove_xtick_labels, remove_ytick_labels
+export parseLast
 
-using Printf
+using Printf, DelimitedFiles
+
+"""
+function parseLast(str, afterStr, type)
+"""
+function parseLast(s, afterStr, type)
+    if type==Int64 || type==Float64
+        z = findlast(afterStr, s)
+        if z != nothing
+            z2 = findfirst(r"[, \n]", s[z[end]+1:end])
+            if z2 != nothing
+                return parse(type, s[z[end]+1:z[end]+z2[1]-1])
+            end
+        end
+        return NaN
+    elseif type==Vector{Float64}
+        z = findlast(afterStr*"[", s)[end].+1
+        n = findfirst("]", s[z+1:end])[1] + z-1
+        return readdlm(Vector{UInt8}(s[z:n]), ',')[:]
+    else
+        error("parseLast does not yet know how to handle type $type")
+    end
+end
+
 
 """
    savefig2jpg(fname::String)
@@ -676,7 +700,10 @@ using PyCall
 #
 # Note that get_current_fig_position() and set_current_fig_position() work only with either QT or Tk at this point.
 #
-using PyPlot
+if !occursin("spock", String(chomp(read(`hostname`, String))))
+    using PyPlot
+    PyPlot.rc("font", family="Helvetica Neue")
+end
 
 
 # If the Python path does not already have the local directory in it
