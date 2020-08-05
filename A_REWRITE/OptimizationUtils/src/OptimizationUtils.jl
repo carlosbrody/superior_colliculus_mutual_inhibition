@@ -1,7 +1,10 @@
 module OptimizationUtils
 
 using Printf
-using PyPlot
+if !occursin("spock", String(chomp(read(`hostname`, String))))
+    using PyPlot
+    PyPlot.rc("font", family="Helvetica Neue")
+end
 using JLD
 using LinearAlgebra
 using MAT
