@@ -83,7 +83,7 @@ second_stage_training = false
 if !respawn
     if isfile(report_file); rm(report_file); end
 
-    extra_pars[:seedrand] = Int64(my_run_number*round(time()*1000))
+    extra_pars[:seedrand] = Int64((my_run_number+1)*round(time()*1000))
     append_to_file(report_file, "\n\n\nStarting with random seed "*
         "$(extra_pars[:seedrand])\n\n\n")
     start_eta = 0.01
