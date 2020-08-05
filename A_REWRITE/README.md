@@ -1,6 +1,18 @@
+### 2020-08-05. Regenerating 6-node solutions on spock
+
+Added `mypars[:opto_units]=1:6` to `sixNodeSetup_C32.jl` and also rewrote `sixNode_reduced_farmC32.jl` so that it takes a number of optional params, including `--respawn` and `--report_file`. If those are passed, it will restart a run from the latest info in that report file.  Also modified `spockFarm.sh` so it has an internal parameter, `taskIDOffset` that allows starting some arrays of runs separately, and furthermore allows passing extra command-line args to the julia script. 
+
+To set it going and use 200 cores, and furthermore ask it to respawn from existing report files, you might run something like
+```bash
+sbatch --array=0-199 spockFarm.sh sixNode_reduced_farmC32.jl --respawn
+```
+and it will expect files `../../Reports/r6_spock_%d` where %d rund from 0 to 199, and it will run further from the state described in those files, appending to them.
+
+For now, started 200 spock cores on the 6-node code.
+
 ### 2020-08-03. Bug found, need to re-run 6-node solutions.
 
-In `ProAnti.jl/run_ntrials`, there is an optional parameter, `opto_units`, whose default value is `1:4`. It should have been set to `1:6` for the 6-node runs, but wasn't. (This can be done as one of the params in `mypars`, as in `mypars[:opyo_units]=1:6`.
+In `ProAnti.jl/run_ntrials`, there is an optional parameter, `opto_units`, whose default value is `1:4`. It should have been set to `1:6` for the 6-node runs, but wasn't. (This can be done as one of the params in `mypars`, as in `mypars[:opto_units]=1:6`.
 
 All solutions need tobe re-generated.  **!!!!!!!!!**
 
