@@ -87,6 +87,7 @@ if !respawn
     append_to_file(report_file, "\n\n\nStarting with random seed "*
         "$(extra_pars[:seedrand])\n\n\n")
     start_eta = 0.01
+    start_iter_num = 0
 else
     fp = open(report_file, "r")
     s = read(fp, String)
