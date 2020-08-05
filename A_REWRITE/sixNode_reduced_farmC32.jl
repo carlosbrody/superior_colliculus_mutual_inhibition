@@ -15,7 +15,6 @@ s = ArgParseSettings()
         arg_type = String
     "--bspockID", "-b"
         help = "the job ID that the spock respawner is keeping track of for iterations of this process"
-        arg_type = Int64
     "--onSpock", "-s"
         help = "flag used to indicate we're running on spock"
         action = :store_true
