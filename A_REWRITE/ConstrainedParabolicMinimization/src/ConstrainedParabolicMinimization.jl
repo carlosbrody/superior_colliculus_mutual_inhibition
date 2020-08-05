@@ -1,6 +1,9 @@
 module ConstrainedParabolicMinimization
 
-using PyPlot
+if !occursin("spock", String(chomp(read(`hostname`, String))))
+    using PyPlot
+    PyPlot.rc("font", family="Helvetica Neue")
+end
 using GradientUtils
 using LinearAlgebra
 
