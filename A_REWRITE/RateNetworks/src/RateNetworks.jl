@@ -2,7 +2,9 @@ module RateNetworks
 # include("optimization_utils.jl")
 
 using PyCall
-using PyPlot
+if !occursin("spock", String(chomp(read(`hostname`, String))))
+    using PyPlot
+end
 using ForwardDiff
 using DiffResults
 using MAT

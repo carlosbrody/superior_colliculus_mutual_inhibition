@@ -1,5 +1,7 @@
-using PyPlot
-PyPlot.rc("font", family="Helvetica Neue")
+if !occursin("spock", String(chomp(read(`hostname`, String))))
+    using PyPlot
+    PyPlot.rc("font", family="Helvetica Neue")
+end
 using ForwardDiff
 using DiffResults
 using MAT
