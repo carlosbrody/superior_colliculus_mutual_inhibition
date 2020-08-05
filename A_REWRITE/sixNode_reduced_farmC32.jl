@@ -40,7 +40,7 @@ s = ArgParseSettings()
         arg_type = Int64
         default = 1
 end
-parsed_args = parse_args(myargs, s)
+parsed_args = parse_args(s)
 for k in keys(parsed_args)
     eval(Meta.parse("$k = parsed_args[\"$k\"]"))
 end
