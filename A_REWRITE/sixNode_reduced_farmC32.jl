@@ -27,6 +27,10 @@ s = ArgParseSettings()
         help = "string used within farm and report filenames"
         arg_type = String
         default = String(chomp(read(`hostname`, String)))
+    "--myRunNumber"
+        help = "used as within-job-array run number if indicated, "*
+            "will supersede my_run_number"
+        arg_type = Int64
     "my_run_number"
         help = "if not on spock, will be first positional argument"
         arg_type = Int64
@@ -43,6 +47,9 @@ end
 if onSpock
     hostname = "spock"
 end
+if myRunNumber != nothing
+    my_run_number = myRunNumber
+end
 
 
 farmdir = "../../Farms_6Node"
@@ -52,11 +59,7 @@ fbasename = "$farmdir/farm_6Node_$(hostname)_"
 reports_dir = "../../Reports"
 if !isdir(reports_dir); mkdir(reports_dir); end
 if report_file == nothing
-    if onSpock
-        report_file = "$reports_dir/r6_$(hostname)_$bspockID"
-    else
-        report_file = "$reports_dir/r6_$(hostname)_$my_run_number"
-    end
+    report_file = "$reports_dir/r6_$(hostname)_$my_run_number"
 end
 
 extra_pars[:maxiter]                   = 1000
@@ -81,8 +84,9 @@ second_stage_training = false
 if !respawn
     if isfile(report_file); rm(report_file); end
 
-    extra_pars[:seedrand]                  = Int64(my_run_number*round(time()*1000))
-    append_to_file(report_file, "\n\n\nStarting with random seed $(extra_pars[:seedrand])\n\n\n")
+    extra_pars[:seedrand] = Int64(my_run_number*round(time()*1000))
+    append_to_file(report_file, "\n\n\nStarting with random seed "*
+        "$(extra_pars[:seedrand])\n\n\n")
     start_eta = 0.01
 else
     fp = open(report_file, "r")
