@@ -95,8 +95,11 @@ else
     extra_pars[:seedrand] = parseLast(s, "random seed ", Int64)
     start_eta             = parseLast(s, " eta=", Float64)
     seed                  = parseLast(s, " ps=", Vector{Float64})
-    start_iter_num        = parse(Int64,
-                                s[findall(r"\] [0-9]*:", s)[end][3:end-1]])+10
+#  Julia 1.2 (as on Spock) does not have findall(Regexp, String), so we do a workaround
+#    start_iter_num        = parse(Int64,
+#                                s[findall(r"\] [0-9]*:", s)[end][3:end-1]])+10
+    z = findfirst(r":[0-9]* \]", reverse(s)); z = reverse(length(s) .- z).+1)
+    start_iter_num = parse(Int64, s[z[3:end-1]])
 
     tf = findlast("training further", s)
     if tf != nothing
