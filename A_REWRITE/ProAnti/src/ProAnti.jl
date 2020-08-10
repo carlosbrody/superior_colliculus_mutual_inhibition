@@ -879,11 +879,17 @@ If model_details is set to true, also returns the following (nopto is number of 
 function JJ(nPro, nAnti; asDict=false, pro_target=0.9, anti_target=0.7,
     opto_targets = Array{Float64}(undef,0,2), opto_periods = Array{Float64}(undef, 0,2),
     model_details = false,
+    AntiNodeID = [2,3], ProNodeID = [1,4], RightNodeID = [1,2], LeftNodeID = [3,4],
     theta1=0.025, theta2=0.035, cbeta=0.003, verbose=false, verbose_file = stdout,
     pre_string="", zero_last_sigmas=0, seedrand=NaN,
     rule_and_delay_periods = nothing, target_periods = nothing, post_target_periods = nothing,
     plot_conditions=false, plot_list = [],
     nderivs=0, difforder=0, model_params...)
+
+    if length(intersect(ProNodeID, RightNodeID)) != 1  ||
+        length(intersect(ProNodeID, LeftNodeID)) != 1
+        error("Only know how to compute hits and diffs for 1 ProNode per brain side")
+    end
 
     # All the variables that we MIGHT choose to differentiate w.r.t. go into this bag -- further down
     # we'll use get_eltype(varbag) to check for any of them being ForwardDiff.Dual.
@@ -973,6 +979,8 @@ function JJ(nPro, nAnti; asDict=false, pro_target=0.9, anti_target=0.7,
                         make_dict(["rule_and_delay_period","target_period","post_target_period"],   [i,j,k])
                     my_params =
                         make_dict(["opto_times"], [reshape(opto_periods[nopto,:], 1, 2)], my_params)
+                    my_params = make_dict(["AntiNodeID", "ProNodeID"],   [AntiNodeID, ProNodeID],   my_params)
+                    my_params = make_dict(["LeftNodeID", "RightNodeID"], [LeftNodeID, RightNodeID], my_params)
                     my_params = merge(Dict(model_params), my_params)  # my_params takes precedence
 
                     my_plot_list = [];
@@ -1001,18 +1009,21 @@ function JJ(nPro, nAnti; asDict=false, pro_target=0.9, anti_target=0.7,
                     proValls[nopto,  n] = proVall
                     antiValls[nopto, n] = antiVall
 
-                    hitsP  = 0.5*(1 .+ tanh.((proVs[1,:] .- proVs[4,:,])/theta1))
-                    diffsP = tanh.((proVs[1,:,] .- proVs[4,:])/theta2).^2
-                    hitsA  = 0.5*(1 .+ tanh.((antiVs[4,:] .- antiVs[1,:,])/theta1))
-                    diffsA = tanh.((antiVs[4,:,] .- antiVs[1,:])/theta2).^2
+                    rightPro = intersect(ProNodeID, RightNodeID)
+                    leftPro  = intersect(ProNodeID, LeftNodeID)
+
+                    hitsP  = 0.5*(1 .+ tanh.((proVs[rightPro,:] .- proVs[leftPro,:,])/theta1))
+                    diffsP = tanh.((proVs[rightPro,:,] .- proVs[leftPro,:])/theta2).^2
+                    hitsA  = 0.5*(1 .+ tanh.((antiVs[leftPro,:] .- antiVs[rightPro,:,])/theta1))
+                    diffsA = tanh.((antiVs[leftPro,:,] .- antiVs[rightPro,:])/theta2).^2
 
                     # set up storage  -- we do get_value() to make sure to from ForwardDiff.Dual into Float64 if necessary
                     hP[nopto, n] = mean(get_value(hitsP));
                     hA[nopto, n] = mean(get_value(hitsA));
                     dP[nopto, n] = mean(get_value(diffsP));
                     dA[nopto, n] = mean(get_value(diffsA));
-                    hBP[nopto, n] = get_value(sum(proVs[1,:] .>= proVs[4,:,])/nPro);
-                    hBA[nopto, n] = get_value(sum(antiVs[4,:] .>  antiVs[1,:,])/nAnti);
+                    hBP[nopto, n] = get_value(sum(proVs[rightPro,:] .>= proVs[leftPro,:,])/nPro);
+                    hBA[nopto, n] = get_value(sum(antiVs[leftPro,:] .>  antiVs[rightPro,:,])/nAnti);
 
                     if nPro>0 && nAnti>0
                         # cost1s and cost2s can accept ForwardDiff.Dual, so no get_value() for them
