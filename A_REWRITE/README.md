@@ -1,16 +1,20 @@
+### 2020-08-09. Respawned
+
+Got to the 4-day limit on spock. Best solution has a cost better than -0.0002 -- but running it doesn't look like a proper solution? Suspect a bug :(
+
 ### 2020-08-05. Regenerating 6-node solutions on spock
 
    * Added `mypars[:opto_units]=1:6` to `sixNodeSetup_C32.jl`. 
    * Rewrote `sixNode_reduced_farmC32.jl` so that it takes a number of optional params, including `--respawn` (a flag) and `--report_file` (takes a further arg that will be a filename). If those two are passed, `sixNode_reduced_farmC32.jl` will restart a run from the latest info in the indicated report file.  
    * Also modified `spockFarm.sh` so it has an internal parameter, `taskIDOffset` that allows starting some arrays of runs separately, and furthermore allows passing extra command-line args to the julia script. 
 
-To set this going and use 200 cores, and furthermore ask it to respawn from existing report files, you might run something like
+To set this going and use 220 cores, and furthermore ask it to respawn from existing report files, you might run something like
 ```bash
-sbatch --array=0-199 spockFarm.sh sixNode_reduced_farmC32.jl --respawn
+sbatch --array=0-219 spockFarm.sh sixNode_reduced_farmC32.jl --respawn
 ```
-and because of the `--respawn` flag, it will expect files `../../Reports/r6_spock_%d` where %d rund from 0 to 199, and it will run further from the state described in those files, appending to them.  Without the `--respawn` flag, it would start from scratch.
+and because of the `--respawn` flag, it will expect files `../../Reports/r6_spock_%d` where %d rund from 0 to 219, and it will run further from the state described in those files, appending to them.  Without the `--respawn` flag, it would start from scratch.
 
-For now, started 200 spock cores on the 6-node code.
+For now, started 220 spock cores on the 6-node code.
 
 ### 2020-08-03. Bug found, need to re-run 6-node solutions.
 
