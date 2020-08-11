@@ -1,10 +1,20 @@
-### 2020-08-09. Another bug found, restarted again
+### 2020-08-10. Indeed it was a bug, restarted again
 
-Got to the 4-day limit on spock. Best solution has a cost better than -0.0002 -- but running it doesn't look like a proper solution? Suspect a bug :(
+To loook at costs before the second training step
+
+```tcsh
+ssh brody@spock.princeton.edu "cd A_REWRITE ; module load julia/1.2.0 ; julia lastLines.jl ../../Reports/r6_spockRun3*" | grep 'cost=' | grep -v new_cost | awk '{print $8}' | sed 's/cost=//' | sort -g
+```
+
+### 2020-08-10. Indeed it was a bug, restarted again
 
 Indeed -- when evaluating costs, had failed to notice that Pro Nodes are no longer necessarily nodes 1 and 4. Rewrote to make it more robust. Nodes are now indicated in `mypars[:AntiNodeID], mypars[:ProNodeID], mypars[:LeftNodeID], mypars[:RightNodeID]`. Function `JJ()` now checks that there is only one ProNode per side, and uses the IDs extracted from these parameters, to evaluate how well a network is doing.
 
 Killed all processes on spock, restarted. From scratch. Sigh.
+
+### 2020-08-09. Respawning -- bug?
+
+Got to the 4-day limit on spock. Best solution has a cost better than -0.0002 -- but running it doesn't look like a proper solution? Suspect a bug :(
 
 ### 2020-08-05. Regenerating 6-node solutions on spock
 
