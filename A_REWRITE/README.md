@@ -1,4 +1,6 @@
-### 2020-08-10. Indeed it was a bug, restarted again
+### 2020-08-11. Looking at reports files
+
+After the second training step, `./pull_reports.sh` and the top cell in `sandbox.jl` will analyze the reports.
 
 To loook at costs before the second training step
 
