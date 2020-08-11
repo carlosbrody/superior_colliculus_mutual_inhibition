@@ -1,10 +1,10 @@
-### 2020-08-09. Respawned
+### 2020-08-09. Another bug found, restarted again
 
 Got to the 4-day limit on spock. Best solution has a cost better than -0.0002 -- but running it doesn't look like a proper solution? Suspect a bug :(
 
-Indeed -- when evaluating costs, had failed to notice that Pro Nodes are no longer necessarily nodes 1 and 4. Rewrote to make it more robust (nodes are now indicated in `mypars[:AntiNodeID], mypars[:ProNodeID], mypars[:LeftNodeID], mypars[:RightNodeID]` and function `JJ()` now checks that there is only one ProNode per side, and uses the IDs extracted from these parameters, to evaluate how well a network is doing.
+Indeed -- when evaluating costs, had failed to notice that Pro Nodes are no longer necessarily nodes 1 and 4. Rewrote to make it more robust. Nodes are now indicated in `mypars[:AntiNodeID], mypars[:ProNodeID], mypars[:LeftNodeID], mypars[:RightNodeID]`. Function `JJ()` now checks that there is only one ProNode per side, and uses the IDs extracted from these parameters, to evaluate how well a network is doing.
 
-Killed all processes on spock, restarted. From scratch.
+Killed all processes on spock, restarted. From scratch. Sigh.
 
 ### 2020-08-05. Regenerating 6-node solutions on spock
 
