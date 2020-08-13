@@ -1,17 +1,25 @@
 ##  === Pulling in Reports from NEW-style training and parsing them
 
-
+using DelimitedFiles
 include("sixNodeSetup_C32.jl")
 args = argsSeedBounder()[1]   # get the string list of model params
 
 
 
 pullReports=false; if pullReports   # if there are new runs on the VMs, get them
-    machines = ["proanti006", "proanti007", "proanti008",
-                "proanti009", "proanti010", "proanti011"]
+    remotes = "spock"
 
-    for i in machines
-        run(`./pull_reports.sh $i`)
+    if remotes == "googleVMs"
+        machines = ["proanti006", "proanti007", "proanti008",
+                    "proanti009", "proanti010", "proanti011"]
+
+        for i in machines
+            run(`./pull_reports.sh $i`)
+        end
+    elseif remotes == "spock"
+        run(`./pull_reports.sh`)
+    else
+        error("Don't know remotes $remotes")
     end
 
     # At the of this block, report files will have been put in ../../Reports
@@ -24,15 +32,15 @@ global srands = fill(0, 0)     # random seeds for each solution
 
 # Now we'll parse each Report file to find where it ended up at.
 u = readdir("../../Reports")
-for i in filter(x -> startswith(x, "r6"), u)
+for i in filter(x -> startswith(x, "r6_spockRun3"), u)
     # Read the file into string s:
     fp = open("../../Reports/$i", "r")
     s = read(fp, String)
     close(fp)
-
+    println(i)
     # Find the last cost report:
     z = findlast("OVERALL", s)
-    if z != nothing
+    if z != nothing  && findlast("random seed", s)!=nothing
         z2 = findfirst("cost=", s[z[end]:end])
         z3 = findfirst(",", s[z[end]:end])
         mycost = parse(Float64, s[z[end]+z2[end]:z[end]+z3[1]-2])
@@ -52,8 +60,8 @@ for i in filter(x -> startswith(x, "r6"), u)
 end
 
 
-nguys = 65   # number of solutions with the best costs that we'll look at
-colids = [5, 7, 21, 4, 18, 3, 6] # args[colids] will be the weights collected into "merges"
+nguys = 14   # number of solutions with the best costs that we'll look at
+colids = [5, 7, 21, 10, 22, 4, 18, 3] # args[colids] will be the weights collected into "merges"
 
 # we only want to see the best cost solutions
 p = sortperm(costs, rev=true)
@@ -76,10 +84,46 @@ matwrite("Solutions/solutions6.mat", Dict(
     "randseeds"=>srands[end-nguys:end],
     "weightMatrixMap"=>makeWeightMatrix(mypars; asString=true)
     ))
+
 ## After running the cell above, run this one to produce parameter histograms
 
+cost_threshold = -0.0001
+
+pairs = [
+    "vW_P1A1" "vW_P1A2"
+    "dW_P1A1" "dW_P1A2";
+    ]
+
+u = findall(costs .<= cost_threshold)
+coords = fill(0.0, length(u), 2)
+
+for i=1:size(pairs,1)
+    u1 = findfirst(args.==pairs[i,1])
+    u2 = findfirst(args.==pairs[i,2])
+
+    coords[:,i] = 0.5*(pvals[u,u1] .+ pvals[u,u2])
+end
+
+markersize=12;
+fontname="Helvetica"
+fontsize=14
+figure(11); clf()
+plot(coords[:,1], coords[:,2], "k.", markersize=12);
+xlabel("mean vW_PA", fontname=fontname, fontsize=fontsize);
+ylabel("mean dW_PA", fontname=fontname, fontsize=fontsize)
+axis("square")
+xlim([-3,3]); ylim([-3,3]);
+vlines([0], ylim()[1], ylim()[2], linestyle="--", linewidth=1.5, color="k")
+hlines([0], xlim()[1], xlim()[2], linestyle="--", linewidth=1.5, color="k")
+plot([-3,3], [-3,3], "r--")
+gca().tick_params(labelsize=fontsize)
+title("networks with cost < -0.0001", fontname=fontname, fontsize=fontsize)
+
+## After running the cell above, run this one to produce parameter scatterplot
+
 mycolids = vcat(colids, [10,22])
-collist = vcat(mycolids, setdiff(1:25, mycolids))
+collist = unique(vcat(mycolids, setdiff(1:25, mycolids)))
+
 
 figure(10); clf()
 for i=1:25
@@ -113,7 +157,7 @@ savefig2jpg("Plots/parameterMeanHistograms")
 
 ## Running an old solution.
 
-id = size(pvals,1)-9  # We choose a number between 1 and size(pvals,1) to identify
+id = size(pvals,1)  # We choose a number between 1 and size(pvals,1) to identify
 # the solution in pvals that we'll run with
 
 params = pvals[id,:]
@@ -122,8 +166,9 @@ extra_pars[:seedrand] = srands[id]
 extra_pars[:few_trials]                = 50
 extra_pars[:many_trials]               = 1600
 
-extra_pars[:nPro] = 10
-extra_pars[:nAnti] = 10
+ntrials = 20
+extra_pars[:nPro] = ntrials
+extra_pars[:nAnti] = ntrials
 # mypars[:opto_units] = 1:6
 
 # params[15] = 0.01
@@ -139,11 +184,10 @@ mid = id - size(pvals,1)+size(merges,1)   # id in the mergers
 display(merges[[1;mid],1:end])
 t = (1:length(answers["antiValls"][1,1][1,:,1]))*mypars[:dt] .- mypars[:dt]
 
-opto_condition = 2   # 1 is control, 2 is rule_and_delay, 3 is target_period
+opto_condition = 1   # 1 is control, 2 is rule_and_delay, 3 is target_period
 
 figure(1); clf()
-ntrials = 10
-nodes2plot = [4,5,6]
+nodes2plot = [1,2,3]
 for nodenum = 1:length(nodes2plot)
     node = nodes2plot[nodenum]
     rule_and_delay_period_id = 1
