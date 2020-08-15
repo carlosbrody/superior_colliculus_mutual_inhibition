@@ -483,7 +483,7 @@ function bbox_Hessian_keyword_minimization(seed, args, bbox, func; start_eta=0.1
     my_iter=new_params=new_cost=new_grad=new_hess=0  # here so these variables are available outside the loop
     for i in [start_iter_num:(maxiter+start_iter_num);]
         my_iter = i
-        if i > size(trajectory, 2)
+        while i > size(trajectory, 2)
             trajectory = [trajectory zeros(2+length(params), traj_increment)]
             cpm_traj   = [cpm_traj   zeros(4, traj_increment)]
         end
