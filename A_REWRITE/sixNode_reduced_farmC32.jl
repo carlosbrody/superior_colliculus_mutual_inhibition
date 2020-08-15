@@ -39,7 +39,13 @@ s = ArgParseSettings()
         arg_type = Int64
         default = 1
 end
-parsed_args = parse_args(s)
+
+if isdefined(Main, :MYARGS) && length(MYARGS)>0
+    parsed_args = parse_args(MYARGS, s)
+else
+    parsed_args = parse_args(s)
+end
+
 for k in keys(parsed_args)
     eval(Meta.parse("$k = parsed_args[\"$k\"]"))
 end
