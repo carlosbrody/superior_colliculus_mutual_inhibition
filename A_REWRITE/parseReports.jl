@@ -3,6 +3,9 @@
 # Produces a quick report on how many networks are below cost threshold
 # and prints out some of their parameters (no figures)
 
+if !in(".", LOAD_PATH)
+    push!(LOAD_PATH, ".")
+end
 
 using DelimitedFiles
 include("sixNodeSetup_C32.jl")

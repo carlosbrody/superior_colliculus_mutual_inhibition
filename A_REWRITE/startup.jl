@@ -19,7 +19,9 @@ println("\n     finished loading system modules in startup.jl ---")
 
 # G = load("farm_C30_Farms_C30_spock-brody01-03_0064.jld")
 
-push!(LOAD_PATH, ".")
+if !in(".", LOAD_PATH)
+    push!(LOAD_PATH, ".")
+end
 
 using Revise
 using GeneralUtils
