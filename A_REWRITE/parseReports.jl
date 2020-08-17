@@ -61,7 +61,7 @@ for i in filter(x -> startswith(x, "r6_spockRun3"), u)
 
         sz1 = findlast("random seed", s)
         sz2 = findfirst("\n", s[sz1[end]:end])
-        global srands = vcat(srands, parse(Int64, s[sz1[end]+2:sz1[end]+sz2-2]))
+        global srands = vcat(srands, parse(Int64, s[sz1[end]+2:sz1[end]+sz2[1]-2]))
     end
     # println("Checked $i")
 end
@@ -83,3 +83,7 @@ display([fnames costs])
 merges = [reshape(args[colids],1,length(colids)) ; pvals[end-nguys:end, colids]]
 merges = hcat(["cost" ; costs[end-nguys:end]], merges)
 display(merges)
+
+cost_threshold = -0.0001
+u = findall(costs .<= cost_threshold)
+println("\nFound $(length(u)) networks below cost threshold of $cost_threshold")
