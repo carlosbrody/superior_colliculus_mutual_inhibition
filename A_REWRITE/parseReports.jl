@@ -60,7 +60,7 @@ for i in filter(x -> startswith(x, "r6_spockRun3"), u)
         global pvals = vcat(pvals, readdlm(Vector{UInt8}(s[z:n]), ','))
 
         sz1 = findlast("random seed", s)
-        sz2 = findfirst('\n', s[sz1[end]:end])
+        sz2 = findfirst("\n", s[sz1[end]:end])
         global srands = vcat(srands, parse(Int64, s[sz1[end]+2:sz1[end]+sz2-2]))
     end
     # println("Checked $i")
