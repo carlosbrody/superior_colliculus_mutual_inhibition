@@ -59,8 +59,9 @@ for i in filter(x -> startswith(x, "r6_spockRun3"), u)
     # println("Checked $i")
 end
 
+println("$(length(costs)) networks went into further training")
 
-nguys = 14   # number of solutions with the best costs that we'll look at
+nguys = 20   # number of solutions with the best costs that we'll look at
 colids = [5, 7, 21, 10, 22, 4, 18, 3] # args[colids] will be the weights collected into "merges"
 
 # we only want to see the best cost solutions
@@ -85,7 +86,7 @@ matwrite("Solutions/solutions6.mat", Dict(
     "weightMatrixMap"=>makeWeightMatrix(mypars; asString=true)
     ))
 
-## After running the cell above, run this one to produce parameter histograms
+# # After running the cell above, run this one to produce parameter scatterplot
 
 cost_threshold = -0.0001
 
@@ -104,26 +105,41 @@ for i=1:size(pairs,1)
     coords[:,i] = 0.5*(pvals[u,u1] .+ pvals[u,u2])
 end
 
+figure(11); clf()
 markersize=12;
 fontname="Helvetica"
 fontsize=14
-figure(11); clf()
+axlim=2.5
+
+subplot(1,2,1)
+hist(pvals[u, findfirst(args.=="hW_P1P1")])
+axis("square")
+vlines([0], ylim()[1], ylim()[2], linestyle="--", linewidth=1.5, color="k")
+gca().tick_params(labelsize=fontsize)
+xlabel("hW_P1P1", fontname=fontname, fontsize=fontsize);
+title("Pro<-->Pro weight,\n$(length(u)) networks with cost < -0.0001", fontname=fontname, fontsize=fontsize)
+axisMove(-0.025, 0)
+
+subplot(1,2,2)
 plot(coords[:,1], coords[:,2], "k.", markersize=12);
 xlabel("mean vW_PA", fontname=fontname, fontsize=fontsize);
 ylabel("mean dW_PA", fontname=fontname, fontsize=fontsize)
 axis("square")
-xlim([-3,3]); ylim([-3,3]);
+xlim([-axlim,axlim]); ylim([-axlim,axlim]);
 vlines([0], ylim()[1], ylim()[2], linestyle="--", linewidth=1.5, color="k")
 hlines([0], xlim()[1], xlim()[2], linestyle="--", linewidth=1.5, color="k")
-plot([-3,3], [-3,3], "r--")
+plot([-axlim,axlim], [-axlim,axlim], "r--")
 gca().tick_params(labelsize=fontsize)
-title("networks with cost < -0.0001", fontname=fontname, fontsize=fontsize)
+title("$(length(u)) networks with cost < -0.0001", fontname=fontname, fontsize=fontsize)
+axisMove(0.025, 0)
+
+println("\nFound $(length(u)) networks below cost threshold of $cost_threshold")
+savefig2jpg("Plots/parameterScatterplot")
 
 ## After running the cell above, run this one to produce parameter scatterplot
 
 mycolids = vcat(colids, [10,22])
 collist = unique(vcat(mycolids, setdiff(1:25, mycolids)))
-
 
 figure(10); clf()
 for i=1:25
