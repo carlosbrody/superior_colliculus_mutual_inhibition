@@ -5,10 +5,22 @@ using DelimitedFiles
 
 """
 
-answer = runSolution(id, ntrials)
+answer = runSolution(id::Int64, ntrials::Int64)
 
 Loads Solutions/solutions6.mat, and from there picks out a solution and runs
 ntrials of it.  Returns a dictionary, here referred to as "answers".
+
+= PARAMETERS
+
+- id    An integer from 1 to nSolutions
+
+- ntrials    Number of Pro and Anti trials to run
+
+runSolution will always run using the random seed with which the solution was found.
+
+= RETURNS
+
+- answers, a Dict() containing all output.
 
 Unit activities will be in answers["proValls"] (all the Pro trials) and
 answers["antiValls"] (all the Anti trials). Each one of those will have size
