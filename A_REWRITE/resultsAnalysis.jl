@@ -8,18 +8,36 @@ using DelimitedFiles
 answer = runSolution(id, ntrials)
 
 Loads Solutions/solutions6.mat, and from there picks out a solution and runs
-ntrials of it.  Returns dictionary answers.
+ntrials of it.  Returns a dictionary, here referred to as "answers".
 
 Unit activities will be in answers["proValls"] (all the Pro trials) and
-answers["antiValls"] (all the Anti trials). Esch one of those will be
+answers["antiValls"] (all the Anti trials). Each one of those will have size
 nOptoConditions by nRunConditions where the nRunConditions will be the
 product of the number of rule_and_delay_periods and the target_periods.
 (values of these two for each run are found in answers["rule_and_delay_periods"]
-and in answers[]"target_periods"]).
+and in answers["target_periods"]).
 
-So, for example, answers["proValls"][1,1] will be unit activities for the first
-opto condition (control), and the first rule_and_delay_period and first target_period.
-This entry will be nunits-by-ntimebins-by-ntrials.
+So, for example, answers["proValls"][1,3] will be unit activities for the first
+opto condition (control), and for answers["rule_and_delay_period"][3] and
+answers["target_period"][3]. Opto conditions are 1=control, 2=delay_period,
+3=target_period.
+    answers["hBP"] will also be nOptoConditions by nRunConditions, and holds
+        fraction of hits for Pro trials
+    answers["hBA"] will also be nOptoConditions by nRunConditions, and holds
+        fraction of hits for Anti trials
+
+answers["proValls"][i,j] will itself have size nunits-by-ntimebins-by-ntrials,
+where nunits=6.
+
+NodeIDs are indicated by answers["ProNodeID"], answers["AntiNodeID"],
+answers["LeftNodeID"] and answers["RightNodeID"]. answers[""]
+
+answers["paramNames"]      contains parameter names.
+answers["paramvals"]       contains parameter values for this solution,
+answers["weightMatrixMap"] contains strings showing weights
+    Weights are symmetrical across the two sides of the brain, such that
+    node 2 (the first Anti node) will have the same weight pattern as node 4
+    (the first Anti node on the other side of the brain).
 
 
 """
@@ -58,6 +76,10 @@ function runSolution(id::Int64, ntrials::Int64)
 
     answers["rule_and_delay_periods"] = mypars[:rule_and_delay_periods][:][[1,1,2,2]]
     answers["target_periods"]         = mypars[:target_periods][:][[1,2,1,2]]
+
+    answers["weightMatrixMap"] = G["weightMatrixMap"]
+    answers["paramvals"]       = G["paramvals"]
+    answers["paramNames"]      = G["argnames"]
 
     return answers
 end
