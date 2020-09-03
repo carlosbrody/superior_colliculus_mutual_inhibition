@@ -90,7 +90,7 @@ function runSolution(id::Int64, ntrials::Int64)
     answers["target_periods"]         = mypars[:target_periods][:][[1,2,1,2]]
 
     answers["weightMatrixMap"] = G["weightMatrixMap"]
-    answers["paramvals"]       = G["paramvals"]
+    answers["paramvals"]       = params
     answers["paramNames"]      = G["argnames"]
 
     return answers
