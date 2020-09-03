@@ -59,6 +59,7 @@ function plot_dprime(;timestep=55,opto_condition=1,time_condition=1)
     axhline(0, color="k", linestyle="--")
     plt[:xlabel]("Pro/Anti d'")
     plt[:ylabel]("Choice d'")
+    plt[:axis]("equal")
     plt[:title]("Timestep: "*string(timestep))
     plt[:savefig]("scatter_timestep_"*string(timestep)*".png")
 end
