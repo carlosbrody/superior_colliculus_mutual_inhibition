@@ -10,6 +10,60 @@ include("resultsAnalysis.jl")
 NUM_SOLUTIONS = 36
 FILENAME = "node6_solutions.jld"
 
+function load_solutions()
+   d = matread("Solutions/solutions6.mat") 
+    return d
+end
+
+function scatterplot()
+    # Makes the scatterplot figure used in the extended data figure for 6-node network    
+    
+    # Get relevant parameters
+    d = load_solutions()
+    cost_threshold = -0.0001
+    pairs = [
+        "vW_P1A1" "vW_P1A2"
+        "dW_P1A1" "dW_P1A2";
+        ]
+    u = findall(d["costs"] .<= cost_threshold)
+    coords = fill(0.0, length(u), 2)
+    for i=1:size(pairs,1)
+        u1 = findfirst(d["argnames"].==pairs[i,1])
+        u2 = findfirst(d["argnames"].==pairs[i,2]) 
+        coords[:,i] = 0.5*(d["paramvals"][u,u1] .+ d["paramvals"][u,u2])
+    end
+    plt[:close]("all") 
+    figure(figsize=(8,4))
+    markersize=12;
+    fontname="Helvetica"
+    fontsize=14
+    axlim=2.5
+    
+    subplot(1,2,1) 
+    hist(d["paramvals"][u, findfirst(d["argnames"].=="hW_P1P1")])
+    xlim([-axlim,axlim])
+    gca().axvline(0, color="k", linestyle="--")
+    gca().tick_params(labelsize=fontsize)
+    xlabel("Weights between Pro units",fontname=fontname,fontsize=fontsize)
+    ylabel("# of solutions", fontname=fontname, fontsize=fontsize)
+    axisMove(-0.025, 0)
+    
+    subplot(1,2,2)
+    plot(coords[:,1], coords[:,2], "k.", markersize=12);
+    xlabel("avg Anti -> ipsi-Pro", fontname=fontname, fontsize=fontsize);
+    ylabel("avg Anti -> contra-Pro", fontname=fontname, fontsize=fontsize)
+    gca().axis("square")
+    xlim([-axlim,axlim]); ylim([-axlim,axlim]);
+    gca().axvline(0, color="k", linestyle="--")
+    gca().axhline(0, color="k", linestyle="--")
+    plot([-axlim,axlim], [-axlim,axlim], "r--")
+    gca().tick_params(labelsize=fontsize)
+    axisMove(0.025, 0)
+    tight_layout(pad=3.0)
+    plt[:savefig]("/Users/alex.piet/parameter_scatter_plot_alex.svg")
+    plt[:savefig]("/Users/alex.piet/parameter_scatter_plot_alex.png")
+end
+
 function save_solutions(;num_trials=10)
     ###
      #   Generates a file which is an array of the outputs of runSolution
@@ -104,6 +158,8 @@ function calc_dprime(vals1,vals2)
 end
 
 function compute_pa_dprime(pro_traces, anti_traces,d; timestep=55)
+    CA1 = 3
+    CA2 = 4
     # Extract just the timestep of interest
     pro_trials_pro_units = pro_traces[d["ProNodeID"],timestep,:]
     pro_trials_ant_units = pro_traces[d["AntiNodeID"],timestep,:]
@@ -113,10 +169,10 @@ function compute_pa_dprime(pro_traces, anti_traces,d; timestep=55)
     # concatenate across L/R symmetry
     pro_trials_pro_units_vec  = vcat(pro_trials_pro_units[1,:],pro_trials_pro_units[2,:])
     ant_trials_pro_units_vec  = vcat(ant_trials_pro_units[1,:],ant_trials_pro_units[2,:])
-    pro_trials_ant1_units_vec = vcat(pro_trials_ant_units[1,:],pro_trials_ant_units[4,:])
-    ant_trials_ant1_units_vec = vcat(ant_trials_ant_units[1,:],ant_trials_ant_units[4,:])
-    pro_trials_ant2_units_vec = vcat(pro_trials_ant_units[2,:],pro_trials_ant_units[3,:])
-    ant_trials_ant2_units_vec = vcat(ant_trials_ant_units[2,:],ant_trials_ant_units[3,:])
+    pro_trials_ant1_units_vec = vcat(pro_trials_ant_units[1,:],pro_trials_ant_units[CA1,:])
+    ant_trials_ant1_units_vec = vcat(ant_trials_ant_units[1,:],ant_trials_ant_units[CA1,:])
+    pro_trials_ant2_units_vec = vcat(pro_trials_ant_units[2,:],pro_trials_ant_units[CA2,:])
+    ant_trials_ant2_units_vec = vcat(ant_trials_ant_units[2,:],ant_trials_ant_units[CA2,:])
 
     # Compute dprime
     pro_units_pa_dprime  = calc_dprime(pro_trials_pro_units_vec, ant_trials_pro_units_vec)
@@ -137,7 +193,8 @@ function compute_choice_dprime(pro_traces, anti_traces,d; timestep=55)
     # Extract choice
     pro_trials_ipsi_choice = pro_traces[d["ProNodeID"],end,:][1,:] .> pro_traces[d["ProNodeID"],end,:][2,:]
     ant_trials_ipsi_choice = anti_traces[d["ProNodeID"],end,:][1,:] .> anti_traces[d["ProNodeID"],end,:][2,:]   
-
+    CA1 = 3
+    CA2 = 4
     # Merge pro units across pro/anti trials into ipsi/contra choice   
     pro_trials_pro_units_ipsi_choice = vcat(pro_trials_pro_units[1,pro_trials_ipsi_choice],pro_trials_pro_units[2,.~pro_trials_ipsi_choice])
     ant_trials_pro_units_ipsi_choice = vcat(ant_trials_pro_units[1,ant_trials_ipsi_choice],ant_trials_pro_units[2,.~ant_trials_ipsi_choice])
@@ -148,21 +205,21 @@ function compute_choice_dprime(pro_traces, anti_traces,d; timestep=55)
     pro_units_cont_choice = vcat(pro_trials_pro_units_cont_choice,ant_trials_pro_units_cont_choice )
 
     # Merge anti units across pro/anti trials into ipsi/contra choice 
-    pro_trials_ant1_units_ipsi_choice = vcat(pro_trials_ant_units[1,pro_trials_ipsi_choice],pro_trials_ant_units[4,.~pro_trials_ipsi_choice])
-    ant_trials_ant1_units_ipsi_choice = vcat(ant_trials_ant_units[1,ant_trials_ipsi_choice],ant_trials_ant_units[4,.~ant_trials_ipsi_choice])
+    pro_trials_ant1_units_ipsi_choice = vcat(pro_trials_ant_units[1,pro_trials_ipsi_choice],pro_trials_ant_units[CA1,.~pro_trials_ipsi_choice])
+    ant_trials_ant1_units_ipsi_choice = vcat(ant_trials_ant_units[1,ant_trials_ipsi_choice],ant_trials_ant_units[CA1,.~ant_trials_ipsi_choice])
     ant1_units_ipsi_choice = vcat(pro_trials_ant1_units_ipsi_choice,ant_trials_ant1_units_ipsi_choice )
 
-    pro_trials_ant1_units_cont_choice = vcat(pro_trials_ant_units[1,.~pro_trials_ipsi_choice],pro_trials_ant_units[4,pro_trials_ipsi_choice])
-    ant_trials_ant1_units_cont_choice = vcat(ant_trials_ant_units[1,.~ant_trials_ipsi_choice],ant_trials_ant_units[4,ant_trials_ipsi_choice])
+    pro_trials_ant1_units_cont_choice = vcat(pro_trials_ant_units[1,.~pro_trials_ipsi_choice],pro_trials_ant_units[CA1,pro_trials_ipsi_choice])
+    ant_trials_ant1_units_cont_choice = vcat(ant_trials_ant_units[1,.~ant_trials_ipsi_choice],ant_trials_ant_units[CA1,ant_trials_ipsi_choice])
     ant1_units_cont_choice = vcat(pro_trials_ant1_units_cont_choice,ant_trials_ant1_units_cont_choice )
 
     # Merge anti units across pro/anti trials into ipsi/contra choice 
-    pro_trials_ant2_units_ipsi_choice = vcat(pro_trials_ant_units[2,pro_trials_ipsi_choice],pro_trials_ant_units[3,.~pro_trials_ipsi_choice])
-    ant_trials_ant2_units_ipsi_choice = vcat(ant_trials_ant_units[2,ant_trials_ipsi_choice],ant_trials_ant_units[3,.~ant_trials_ipsi_choice])
+    pro_trials_ant2_units_ipsi_choice = vcat(pro_trials_ant_units[2,pro_trials_ipsi_choice],pro_trials_ant_units[CA2,.~pro_trials_ipsi_choice])
+    ant_trials_ant2_units_ipsi_choice = vcat(ant_trials_ant_units[2,ant_trials_ipsi_choice],ant_trials_ant_units[CA2,.~ant_trials_ipsi_choice])
     ant2_units_ipsi_choice = vcat(pro_trials_ant2_units_ipsi_choice,ant_trials_ant2_units_ipsi_choice )
 
-    pro_trials_ant2_units_cont_choice = vcat(pro_trials_ant_units[2,.~pro_trials_ipsi_choice],pro_trials_ant_units[3,pro_trials_ipsi_choice])
-    ant_trials_ant2_units_cont_choice = vcat(ant_trials_ant_units[2,.~ant_trials_ipsi_choice],ant_trials_ant_units[3,ant_trials_ipsi_choice])
+    pro_trials_ant2_units_cont_choice = vcat(pro_trials_ant_units[2,.~pro_trials_ipsi_choice],pro_trials_ant_units[CA2,pro_trials_ipsi_choice])
+    ant_trials_ant2_units_cont_choice = vcat(ant_trials_ant_units[2,.~ant_trials_ipsi_choice],ant_trials_ant_units[CA2,ant_trials_ipsi_choice])
     ant2_units_cont_choice = vcat(pro_trials_ant2_units_cont_choice,ant_trials_ant2_units_cont_choice )
 
     # Compute dprime
