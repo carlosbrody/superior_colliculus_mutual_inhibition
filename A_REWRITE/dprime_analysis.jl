@@ -79,32 +79,54 @@ function save_solutions(;num_trials=10)
     save(FILENAME, Dict("all_d"=>all_d, "NUM_SOLUTIONS"=>NUM_SOLUTIONS))
 end
 
-function plot_dprime(;timestep=55,opto_condition=1,time_condition=1)
+function plot_dprime(;timestep=55,opto_condition=1,time_condition=1,merge_anti=true,plot_title=false,hits_only=false, counter_balanced=false)
     
     # Grab the dprime values
-    pro_pa_d, ant1_pa_d, ant2_pa_d, pro_choice_d, ant1_choice_d, ant2_choice_d = get_dprime(timestep=timestep, opto_condition=opto_condition, time_condition=time_condition)
+    pro_pa_d, ant1_pa_d, ant2_pa_d, pro_choice_d, ant1_choice_d, ant2_choice_d = get_dprime(timestep=timestep, opto_condition=opto_condition, time_condition=time_condition,hits_only=hits_only, counter_balanced=counter_balanced)
 
     # Make a histogram of just choice encoding
-    figure(figsize=(5,4))     
-    plt[:hist](pro_choice_d, bins=10, color="k", alpha=.2, label="Pro")
-    plt[:hist](ant1_choice_d, bins=10, color="r", alpha=0.2, label="Anti-1")
-    plt[:hist](ant2_choice_d, bins=10, color="m", alpha=0.2, label="Anti-2")
-    axvline(0, color="k", linestyle="--")
-    plt[:xlabel]("Choice d'")
-    plt[:ylabel]("Count")
-    plt[:title]("Timestep: "*string(timestep))
-    plt[:savefig]("choice_dist_timestep_"*string(timestep)*".png")
+    figure(figsize=(5*.85,4*.85))     
+    plt[:hist](pro_choice_d, bins=10, color="k", alpha=.5, label="Pro")
+    if merge_anti
+        plt[:hist](sort(vcat(ant1_choice_d,ant2_choice_d)), bins=20, color="r", alpha=0.5, label="Anti")
+    else
+        plt[:hist](ant1_choice_d, bins=10, color="r", alpha=0.2, label="Anti-1")
+        plt[:hist](ant2_choice_d, bins=10, color="m", alpha=0.2, label="Anti-2")
+    end
+    axvline(0, color="k", linestyle="--",alpha=0.5)
+    plt[:xlabel]("Choice d'",fontsize=14)
+    plt[:ylabel]("Count",fontsize=14)
+    plt[:xticks](fontsize=14)
+    plt[:yticks](fontsize=14)
+    if plot_title
+        plt[:title]("Timestep: "*string(timestep))
+    end
+    plt[:legend]()
+    tight_layout()
+    plt[:savefig]("/Users/alex.piet/choice_dist_timestep_"*string(timestep)*".png")
+    plt[:savefig]("/Users/alex.piet/choice_dist_timestep_"*string(timestep)*".svg")
     
     # Make a histogram of just rule encoding
     figure(figsize=(5,4))     
-    plt[:hist](pro_pa_d, bins=10, color="k", alpha=.2, label="Pro")
-    plt[:hist](ant1_pa_d, bins=10, color="r", alpha=0.2, label="Anti-1")
-    plt[:hist](ant2_pa_d, bins=10, color="m", alpha=0.2, label="Anti-2")
+    plt[:hist](pro_pa_d, bins=10, color="k", alpha=.5, label="Pro")
+    if merge_anti
+        plt[:hist](vcat(ant1_choice_d,ant2_choice_d), bins=20, color="r", alpha=0.5, label="Anti")
+    else
+        plt[:hist](ant1_pa_d, bins=10, color="r", alpha=0.2, label="Anti-1")
+        plt[:hist](ant2_pa_d, bins=10, color="m", alpha=0.2, label="Anti-2")
+    end
     axvline(0, color="k", linestyle="--")
-    plt[:xlabel]("Pro/Anti d'")
-    plt[:ylabel]("Count")
-    plt[:title]("Timestep: "*string(timestep))
-    plt[:savefig]("proanti_dist_timestep_"*string(timestep)*".png")
+    plt[:xlabel]("Pro/Anti d'",fontsize=14)
+    plt[:ylabel]("Count",fontsize=14)
+    if plot_title
+        plt[:title]("Timestep: "*string(timestep))
+    end
+    plt[:xticks](fontsize=14)
+    plt[:yticks](fontsize=14)
+    plt[:legend]()
+    tight_layout()
+    plt[:savefig]("/Users/alex.piet/proanti_dist_timestep_"*string(timestep)*".png")
+    plt[:savefig]("/Users/alex.piet/proanti_dist_timestep_"*string(timestep)*".svg")
 
     # Make the scatter plot figure
     figure(figsize=(5,4))
@@ -113,14 +135,20 @@ function plot_dprime(;timestep=55,opto_condition=1,time_condition=1)
     plot(ant2_pa_d, ant2_choice_d, "mo",label="Anti-2")
     axvline(0, color="k", linestyle="--")
     axhline(0, color="k", linestyle="--")
-    plt[:xlabel]("Pro/Anti d'")
-    plt[:ylabel]("Choice d'")
+    plt[:xlabel]("Pro/Anti d'",fontsize=14)
+    plt[:ylabel]("Choice d'",fontsize=14)
+    plt[:xticks](fontsize=14)
+    plt[:yticks](fontsize=14)
     plt[:axis]("equal")
-    plt[:title]("Timestep: "*string(timestep))
-    plt[:savefig]("scatter_timestep_"*string(timestep)*".png")
+    if plot_title
+        plt[:title]("Timestep: "*string(timestep))
+    end
+    tight_layout()
+    plt[:savefig]("/Users/alex.piet/scatter_timestep_"*string(timestep)*".png")
+    plt[:savefig]("/Users/alex.piet/scatter_timestep_"*string(timestep)*".svg")
 end
 
-function get_dprime(; timestep=55,opto_condition=1,time_condition=1)
+function get_dprime(; timestep=55,opto_condition=1,time_condition=1,hits_only=false, counter_balanced=false)
     ###
      #   opto_condition should be 1=control, 2=delay_period, 3=target_period
      #   time_condition should be 1:4, for the different combinations of delay and target periods
@@ -140,13 +168,13 @@ function get_dprime(; timestep=55,opto_condition=1,time_condition=1)
         anti_traces = all_d[i]["antiValls"][opto_condition, time_condition]
 
         # Compute the Pro/Anti Trial d
-        pro_units_pa_d, ant1_units_pa_d, ant2_units_pa_d= compute_pa_dprime(pro_traces, anti_traces, all_d[i],timestep=timestep)
+        pro_units_pa_d, ant1_units_pa_d, ant2_units_pa_d= compute_pa_dprime(pro_traces, anti_traces, all_d[i],timestep=timestep,hits_only=hits_only, counter_balanced=counter_balanced)
         push!(pro_pa_d, pro_units_pa_d)
         push!(ant1_pa_d, ant1_units_pa_d)
         push!(ant2_pa_d, ant2_units_pa_d)
 
         # Compute the choice d
-        pro_units_choice_d, ant1_units_choice_d, ant2_units_choice_d  = compute_choice_dprime(pro_traces, anti_traces, all_d[i],timestep=timestep)
+        pro_units_choice_d, ant1_units_choice_d, ant2_units_choice_d  = compute_choice_dprime(pro_traces, anti_traces, all_d[i],timestep=timestep,hits_only=hits_only, counter_balanced=counter_balanced)
         push!(pro_choice_d, pro_units_choice_d)
         push!(ant1_choice_d, ant1_units_choice_d)
         push!(ant2_choice_d, ant2_units_choice_d)
@@ -159,7 +187,7 @@ function calc_dprime(vals1,vals2)
     return dprime
 end
 
-function compute_pa_dprime(pro_traces, anti_traces,d; timestep=55)
+function compute_pa_dprime(pro_traces, anti_traces,d; timestep=55,hits_only=hits_only, counter_balanced=counter_balanced)
     CA1 = 3
     CA2 = 4
     # Extract just the timestep of interest
@@ -169,12 +197,14 @@ function compute_pa_dprime(pro_traces, anti_traces,d; timestep=55)
     ant_trials_ant_units = anti_traces[d["AntiNodeID"],timestep,:]
 
     # concatenate across L/R symmetry
-    pro_trials_pro_units_vec  = vcat(pro_trials_pro_units[1,:],pro_trials_pro_units[2,:])
-    ant_trials_pro_units_vec  = vcat(ant_trials_pro_units[1,:],ant_trials_pro_units[2,:])
-    pro_trials_ant1_units_vec = vcat(pro_trials_ant_units[1,:],pro_trials_ant_units[CA1,:])
-    ant_trials_ant1_units_vec = vcat(ant_trials_ant_units[1,:],ant_trials_ant_units[CA1,:])
-    pro_trials_ant2_units_vec = vcat(pro_trials_ant_units[2,:],pro_trials_ant_units[CA2,:])
-    ant_trials_ant2_units_vec = vcat(ant_trials_ant_units[2,:],ant_trials_ant_units[CA2,:])
+    # because of the L/R symmetry we dont need to think about both Left and Right trials because we get both choices from both units. You can optionally
+    # do the same thing by flipping the ipsi/contra labels to make a longer vector, but this doesn't change the result
+    pro_trials_pro_units_vec  = vcat(pro_trials_pro_units[1,:],pro_trials_pro_units[2,:])#   ,pro_trials_pro_units[1,:],pro_trials_pro_units[2,:])
+    ant_trials_pro_units_vec  = vcat(ant_trials_pro_units[1,:],ant_trials_pro_units[2,:])#   ,ant_trials_pro_units[1,:],ant_trials_pro_units[2,:])
+    pro_trials_ant1_units_vec = vcat(pro_trials_ant_units[1,:],pro_trials_ant_units[CA1,:])# ,pro_trials_ant_units[1,:],pro_trials_ant_units[CA1,:])
+    ant_trials_ant1_units_vec = vcat(ant_trials_ant_units[1,:],ant_trials_ant_units[CA1,:])# ,ant_trials_ant_units[1,:],ant_trials_ant_units[CA1,:])
+    pro_trials_ant2_units_vec = vcat(pro_trials_ant_units[2,:],pro_trials_ant_units[CA2,:])# ,pro_trials_ant_units[2,:],pro_trials_ant_units[CA2,:])
+    ant_trials_ant2_units_vec = vcat(ant_trials_ant_units[2,:],ant_trials_ant_units[CA2,:])# ,ant_trials_ant_units[2,:],ant_trials_ant_units[CA2,:])
 
     # Compute dprime
     pro_units_pa_dprime  = calc_dprime(pro_trials_pro_units_vec, ant_trials_pro_units_vec)
@@ -185,7 +215,7 @@ function compute_pa_dprime(pro_traces, anti_traces,d; timestep=55)
 end
 
 
-function compute_choice_dprime(pro_traces, anti_traces,d; timestep=55)
+function compute_choice_dprime(pro_traces, anti_traces,d; timestep=55,hits_only=hits_only, counter_balanced=counter_balanced)
     # Extract just the timestep of interest
     pro_trials_pro_units = pro_traces[d["ProNodeID"],timestep,:]
     pro_trials_ant_units = pro_traces[d["AntiNodeID"],timestep,:]
@@ -226,7 +256,7 @@ function compute_choice_dprime(pro_traces, anti_traces,d; timestep=55)
 
     # Compute dprime
     pro_units_choice_dprime  = calc_dprime(pro_units_ipsi_choice, pro_units_cont_choice)
-    ant1_units_choice_dprime = calc_dprime(ant1_units_ipsi_choice, ant2_units_cont_choice) 
+    ant1_units_choice_dprime = calc_dprime(ant1_units_ipsi_choice, ant1_units_cont_choice) 
     ant2_units_choice_dprime = calc_dprime(ant2_units_ipsi_choice, ant2_units_cont_choice) 
    
     return pro_units_choice_dprime, ant1_units_choice_dprime, ant2_units_choice_dprime
