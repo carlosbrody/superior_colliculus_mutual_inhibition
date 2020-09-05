@@ -42,16 +42,18 @@ function scatterplot()
     subplot(1,2,1) 
     hist(d["paramvals"][u, findfirst(d["argnames"].=="hW_P1P1")])
     xlim([-axlim,axlim])
+    plot(mean(d["paramvals"][u, findfirst(d["argnames"].=="hW_P1P1")]),14.5, "rv",markersize=12)
+    ylim(0,15)
     gca().axvline(0, color="k", linestyle="--")
     gca().tick_params(labelsize=fontsize)
-    xlabel("Weights between Pro units",fontname=fontname,fontsize=fontsize)
+    xlabel("weights between Pro units",fontname=fontname,fontsize=fontsize)
     ylabel("# of solutions", fontname=fontname, fontsize=fontsize)
     axisMove(-0.025, 0)
     
     subplot(1,2,2)
     plot(coords[:,1], coords[:,2], "k.", markersize=12);
-    xlabel("avg Anti -> ipsi-Pro", fontname=fontname, fontsize=fontsize);
-    ylabel("avg Anti -> contra-Pro", fontname=fontname, fontsize=fontsize)
+    xlabel("avg Anti to ipsi-Pro", fontname=fontname, fontsize=fontsize);
+    ylabel("avg Anti to contra-Pro", fontname=fontname, fontsize=fontsize)
     gca().axis("square")
     xlim([-axlim,axlim]); ylim([-axlim,axlim]);
     gca().axvline(0, color="k", linestyle="--")
