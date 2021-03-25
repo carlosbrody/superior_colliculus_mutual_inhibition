@@ -61,7 +61,7 @@ end
 
 println("$(length(costs)) networks went into further training")
 
-nguys = 20   # number of solutions with the best costs that we'll look at
+nguys = 35   # number of solutions with the best costs that we'll look at
 colids = [5, 7, 21, 10, 22, 4, 18, 3] # args[colids] will be the weights collected into "merges"
 
 # we only want to see the best cost solutions
@@ -77,6 +77,11 @@ merges = [reshape(args[colids],1,length(colids)) ; pvals[end-nguys:end, colids]]
 merges = hcat(["cost" ; costs[end-nguys:end]], merges)
 display(merges)
 
+cost_threshold = -0.0001
+u = findall(costs .<= cost_threshold)
+println("\nFound $(length(u)) networks below cost threshold of $cost_threshold")
+nguys = length(u)-1
+
 matwrite("Solutions/solutions6.mat", Dict(
     "costs"=>costs[end-nguys:end],
     "fnames"=>fnames[end-nguys:end],
@@ -88,14 +93,11 @@ matwrite("Solutions/solutions6.mat", Dict(
 
 # # After running the cell above, run this one to produce parameter scatterplot
 
-cost_threshold = -0.0001
-
 pairs = [
     "vW_P1A1" "vW_P1A2"
     "dW_P1A1" "dW_P1A2";
     ]
 
-u = findall(costs .<= cost_threshold)
 coords = fill(0.0, length(u), 2)
 
 for i=1:size(pairs,1)
@@ -112,8 +114,10 @@ fontsize=14
 axlim=2.5
 
 subplot(1,2,1)
+bins = -2.2:0.2:2.2
 hist(pvals[u, findfirst(args.=="hW_P1P1")])
-axis("square")
+# axis("square");
+xlim(bins[1]-0.1, bins[end]+0.1)
 vlines([0], ylim()[1], ylim()[2], linestyle="--", linewidth=1.5, color="k")
 gca().tick_params(labelsize=fontsize)
 xlabel("hW_P1P1", fontname=fontname, fontsize=fontsize);
@@ -133,7 +137,6 @@ gca().tick_params(labelsize=fontsize)
 title("$(length(u)) networks with cost < -0.0001", fontname=fontname, fontsize=fontsize)
 axisMove(0.025, 0)
 
-println("\nFound $(length(u)) networks below cost threshold of $cost_threshold")
 savefig2jpg("Plots/parameterScatterplot")
 
 ## After running the cell above, run this one to produce parameter scatterplot
@@ -173,8 +176,10 @@ savefig2jpg("Plots/parameterMeanHistograms")
 
 ## Running an old solution.
 
-id = size(pvals,1)  # We choose a number between 1 and size(pvals,1) to identify
+# Solutions 19, 21, and 23 are interesting
+id = size(pvals,1)-24  # We choose a number between 1 and size(pvals,1) to identify
 # the solution in pvals that we'll run with
+opto_condition = 1   # 1 is control, 2 is rule_and_delay, 3 is target_period
 
 params = pvals[id,:]
 include("sixNodeSetup_C32.jl")
@@ -182,7 +187,7 @@ extra_pars[:seedrand] = srands[id]
 extra_pars[:few_trials]                = 50
 extra_pars[:many_trials]               = 1600
 
-ntrials = 20
+ntrials = 40
 extra_pars[:nPro] = ntrials
 extra_pars[:nAnti] = ntrials
 # mypars[:opto_units] = 1:6
@@ -191,7 +196,7 @@ extra_pars[:nAnti] = ntrials
 
 # This will now run the same way as when the cost during training was calculated,
 # meaning that costs[id] and answers["cost"] will be the same:
-answers = JJ(extra_pars[:nPro], extra_pars[:nAnti]; verbose=false, asDict=true,
+answers = JJ(extra_pars[:nPro], extra_pars[:nAnti]; verbose=true, asDict=true,
     model_details=true, merge(make_dict(args, params, mypars), extra_pars)...)
 display(answers)
 
@@ -200,45 +205,48 @@ mid = id - size(pvals,1)+size(merges,1)   # id in the mergers
 display(merges[[1;mid],1:end])
 t = (1:length(answers["antiValls"][1,1][1,:,1]))*mypars[:dt] .- mypars[:dt]
 
-opto_condition = 1   # 1 is control, 2 is rule_and_delay, 3 is target_period
 
 figure(1); clf()
-nodes2plot = [1,2,3]
-for nodenum = 1:length(nodes2plot)
-    node = nodes2plot[nodenum]
-    rule_and_delay_period_id = 1
-    target_period_id = 1
-    nrdp = length(mypars[:rule_and_delay_periods])
-    ntp  = length(mypars[:target_periods])
-    pid   = (rule_and_delay_period_id-1)*ntp + target_period_id
-    proValls  = answers["proValls" ][opto_condition,pid]
-    antiValls = answers["antiValls"][opto_condition,pid]
+nodes2plot = [3 5 ; 2 4 ; 1 6]
+for row=1:size(nodes2plot,1)
+    for col=1:size(nodes2plot,2)
+        node = nodes2plot[row, col]
+        rule_and_delay_period_id = 1
+        target_period_id = 1
+        nrdp = length(mypars[:rule_and_delay_periods])
+        ntp  = length(mypars[:target_periods])
+        pid   = (rule_and_delay_period_id-1)*ntp + target_period_id
+        proValls  = answers["proValls" ][opto_condition,pid]
+        antiValls = answers["antiValls"][opto_condition,pid]
 
-    subplot(length(nodes2plot),1,nodenum); # axisMove(0, 0.025*(2-node))
-    plot(t, proValls[node,:,1:ntrials],  color="b", linewidth=0.5)
-    plot(t, antiValls[node,:,1:ntrials], color="r", linewidth=0.5);
-    if nodenum<length(nodes2plot); remove_xtick_labels(); end
+        subplot(size(nodes2plot,1),size(nodes2plot,2), (row-1)*size(nodes2plot,2)+col); # axisMove(0, 0.025*(2-node))
+        plot(t, proValls[node,:,1:ntrials],  color="b", linewidth=0.5)
+        plot(t, antiValls[node,:,1:ntrials], color="r", linewidth=0.5);
+        if row<size(nodes2plot,1); remove_xtick_labels(); end
 
-    radp = mypars[:rule_and_delay_periods][rule_and_delay_period_id]
-    tagp = mypars[:target_periods][target_period_id]
-    vlines([radp, radp+tagp], ylim()[1], ylim()[2], linewidth=0.5)
-    if in(node, mypars[:ProNodeID])
-        flavor = "Pro"
-        title("$flavor node (id=$node), blue is Pro trials, red is Anti trials")
-    else
-        flavor = "Anti"
-        title("$flavor node $(node-1), blue is Pro trials, red is Anti trials")
+        radp = mypars[:rule_and_delay_periods][rule_and_delay_period_id]
+        tagp = mypars[:target_periods][target_period_id]
+        vlines([radp, radp+tagp], ylim()[1], ylim()[2], linewidth=0.5)
+        if in(node, mypars[:ProNodeID])
+            flavor = "Pro"
+            title("$flavor node (id=$node), blue is Pro trials, red is Anti trials")
+        else
+            flavor = "Anti"
+            title("$flavor node $(node-1), blue is Pro trials, red is Anti trials")
+        end
     end
 end
 
-subplot(length(nodes2plot),1,1)
+subplot(size(nodes2plot,1),size(nodes2plot,2),1)
 vW_P1A1 = findfirst(args.=="vW_P1A1")
 vW_P1A2 = findfirst(args.=="vW_P1A2")
-t = text(0.6, 1.5, "Solution #$(size(pvals,1)-id),  A1->P1=$(params[vW_P1A1])"*
+t = text(1.5, 1.3, "Solution #$(size(pvals,1)-id),\nA1->P1=$(params[vW_P1A1])"*
     ",  A2->P1=$(params[vW_P1A2])",
     horizontalalignment="center", fontSize=15)
 
 savefig2jpg("Plots/solution$(size(pvals,1)-id)")
+
+display([args pvals[id,:]])
 
 ## === Linearizing around specific solutions/conditions/timepoints
 

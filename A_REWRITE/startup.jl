@@ -1,3 +1,8 @@
+#
+# Within the package manager, if using a new Julia:
+#   add PyCall PyPlot ForwardDiff DiffResults MAT Random Optim JLD DelimitedFiles Dates Statistics ArgParse Debugger Revise
+#   update Revise  # don't forget to update Revise! otherwise Julia terminates when using Revise
+
 if !occursin("spock", String(chomp(read(`hostname`, String))))
     using PyPlot
     PyPlot.rc("font", family="Helvetica Neue")
@@ -18,13 +23,16 @@ JLD.translate("Core.Bool", "oldbool")
 println("\n     finished loading system modules in startup.jl ---")
 
 # G = load("farm_C30_Farms_C30_spock-brody01-03_0064.jld")
-
+##
 if !in(".", LOAD_PATH)
     push!(LOAD_PATH, ".")
 end
 
 using Revise
 using GeneralUtils
+
+## a
+
 using GradientUtils
 using RateNetworks
 using ProAnti
@@ -33,7 +41,7 @@ using ResultsAnalysis
 using ConstrainedParabolicMinimization
 using OptimizationUtils
 
-##
+## a
 
 model_params[:opto_times] =["trial_start", "trial_start"]
 
