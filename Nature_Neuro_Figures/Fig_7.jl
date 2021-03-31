@@ -17,7 +17,11 @@ results = load_farm_cost_filter("C32", "MiniC32"; threshold = -0.0001)
 SVD_interactive("C32"; farmdir="MiniC32", threshold=-0.0001, disp_encoding=false, color_clusters = false)
 
 # Panel 7B, example solutions
-# 01 01 0115, 01 04 0031, 02 01 0194, 02 03 0144 
+# Plots example solutions, will be randomly generated, so exact traces will look different
+plot_farm_figure("MiniC32/farm_C32_Farms_C32_spock-brody01-01_0115.jld");
+plot_farm_figure("MiniC32/farm_C32_Farms_C32_spock-brody01-04_0031.jld");
+plot_farm_figure("MiniC32/farm_C32_Farms_C32_spock-brody02-01_0194.jld");
+plot_farm_figure("MiniC32/farm_C32_Farms_C32_spock-brody02-03_0144.jld");
 
 # Panel 7C, scatter plot of Anti to Pro on same side vs contra side
 scatter_by_arg(results, args, "vW_PA", "dW_PA");
