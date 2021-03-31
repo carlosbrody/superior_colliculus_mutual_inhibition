@@ -17,9 +17,6 @@ results = load_farm_cost_filter("C32", "MiniC32"; threshold = -0.0001)
 # Panel C, Example solution
 plot_farm_figure("MiniC32/farm_C32_Farms_C32_spock-brody01-02_0098.jld");
 
-# Panel B
-# Panel D
-
 # Panel E, decoding
 # If file does not exist, you need to make long trajectories:
 # include("cluster_example.jl")
