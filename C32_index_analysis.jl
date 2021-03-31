@@ -1,6 +1,9 @@
 #make index plots
 using Distributions
-examples,results = load("MiniC32_C32_examples_50_long.jld","examples","results");
+# If file does not exist, you need to make trajectories
+# cluster_example_trajectories("C32","MiniC32"; threshold = -0.0001, long=true)
+examples,results = load("MiniC32_C32_examples_long.jld","examples","results");
+
 examplesS = get_synthetic_LR_trials(examples);
 dex = results["cost"] .<= -0.0001;
 ex = examples[dex,:,:,:,:,:];

@@ -37,10 +37,16 @@ save(farmfilejld, Dict("output"=>output,"results_output"=>results))
 end
 
 # has nothing to do with clusters really, but makes example trajectories for each solution. Very useful!
-function cluster_example_trajectories(farm_id, farmdir; threshold=-0.0001,testruns=50,num_steps=61)
+function cluster_example_trajectories(farm_id, farmdir; threshold=-0.0001,testruns=50,num_steps=61,long=false)
 
-farmfilemat = farmdir*"_"*farm_id*"_examples.mat";
-farmfilejld = farmdir*"_"*farm_id*"_examples.jld";
+if long
+    farmfilemat = farmdir*"_"*farm_id*"_examples_long.mat";
+    farmfilejld = farmdir*"_"*farm_id*"_examples_long.jld";
+    num_steps=75
+else
+    farmfilemat = farmdir*"_"*farm_id*"_examples.mat";
+    farmfilejld = farmdir*"_"*farm_id*"_examples.jld";
+end
 
 # load results
 #response, results = load(farmdir*"_"*farm_id*"_SVD_response_matrix3.jld", "response","results")
@@ -66,12 +72,19 @@ for i=1:length(results["files"])
     # run each condition
     for j=1:3
         these_pars = merge(mypars, extra_pars);
-        these_pars = merge(these_pars, Dict(
-        :opto_times=>reshape(extra_pars[:opto_periods][j,:], 1, 2),
-        :rule_and_delay_period=>these_pars[:rule_and_delay_periods][1], 
-        :target_period=>these_pars[:target_periods][1], 
-        :post_target_period=>these_pars[:post_target_periods][1]));
-
+        if long
+            these_pars = merge(these_pars, Dict(
+            :opto_times=>reshape(extra_pars[:opto_periods][j,:], 1, 2),
+            :rule_and_delay_period=>these_pars[:rule_and_delay_periods][2], 
+            :target_period=>these_pars[:target_periods][2], 
+            :post_target_period=>these_pars[:post_target_periods][1]));
+        else
+            these_pars = merge(these_pars, Dict(
+            :opto_times=>reshape(extra_pars[:opto_periods][j,:], 1, 2),
+            :rule_and_delay_period=>these_pars[:rule_and_delay_periods][1], 
+            :target_period=>these_pars[:target_periods][1], 
+            :post_target_period=>these_pars[:post_target_periods][1]));
+        end
         proVs, antiVs, pfull, afull = run_ntrials(testruns, testruns; plot_list=[1:10;], plot_Us=false,
             merge(make_dict(args, pars3, these_pars), Dict())...);
 
