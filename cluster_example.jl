@@ -214,8 +214,8 @@ end
 
 
 ## This is the top level function that plots dimension analysis
-function plot_dimension_analysis(cluster_ids;threshold=-0.0001, testruns = 50, refseed=13,return_all=false,limited_delay=false)
-    examples,results = load("MiniC32_C32_examples_50.jld","examples","results");
+function plot_dimension_analysis(;threshold=-0.0001, testruns = 50, refseed=13,return_all=false,limited_delay=false)
+    examples,results = load("MiniC32_C32_examples.jld","examples","results");
     examples = get_synthetic_LR_trials(examples);
     ref1, ref2 = get_reference(examples, results; seed=refseed,numruns=testruns)
     dims = check_dimensions(examples, results; threshold=threshold, ref1=ref1, ref2=ref2,numruns=testruns,return_all=return_all,limited_delay=limited_delay);
@@ -225,31 +225,31 @@ function plot_dimension_analysis(cluster_ids;threshold=-0.0001, testruns = 50, r
     end
     figure();
     all_colors = "bgrcmyk";
-    numclusters = sum(.!isnan.(unique(cluster_ids)));
+    #numclusters = sum(.!isnan.(unique(cluster_ids)));
+    numclusters =1;
     for i=1:numclusters
-        cdex = vec(cluster_ids .== i);
         subplot(2,2,1)
-        plot(dims[cdex,2],dims[cdex,3],"o",color=string(all_colors[i]))
+        plot(dims[:,2],dims[:,3],"o",color=string(all_colors[i]))
         xlim(.5, 1);ylim(.5, 1)
         ylabel("Variance Explained during Target Period")
         xlabel("Variance Explained during Delay Period")
 
         subplot(2,2,2)
-        plot(dims[cdex,4],dims[cdex,5],"o",color=string(all_colors[i]))
+        plot(dims[:,4],dims[:,5],"o",color=string(all_colors[i]))
         xlim(0, 90);ylim(0, 90)
         plot(vec([0 90]), vec([0 90]), "k--")
         ylabel("Angle 1 between delay and target spaces")
         xlabel("Angle 2 between delay and target spaces")
 
         subplot(2,2,3)
-        plot(dims[cdex,6],dims[cdex,7],"o",color=string(all_colors[i]))
+        plot(dims[:,6],dims[:,7],"o",color=string(all_colors[i]))
         xlim(0, 90);ylim(0, 90)
         plot(vec([0 90]), vec([0 90]), "k--")
         ylabel("Angle 1 between reference delay space")
         xlabel("Angle 2 between reference delay space")
 
         subplot(2,2,4)
-        plot(dims[cdex,8],dims[cdex,9],"o",color=string(all_colors[i]))
+        plot(dims[:,8],dims[:,9],"o",color=string(all_colors[i]))
         xlim(0, 90); ylim(0, 90)
         plot(vec([0 90]), vec([0 90]), "k--")
         ylabel("Angle 1 between reference target space")
