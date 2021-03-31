@@ -4,9 +4,10 @@ from tqdm import tqdm
 import h5py
 import matplotlib.pyplot as plt
 
-# study = run_study(10000)
-# plot_study(study, modes=True)
-# plot_study(study, modes=False)
+def make_figure():
+    study = run_study(10000)
+    plot_study(study, modes=True)
+    plot_study(study, modes=False)
 
 def load_mat(filename):
     f = h5py.File(filename)
@@ -189,7 +190,7 @@ def test_random(num2test, force_symmetry=False, force_bounds=False, solutions=Fa
     mxa2_mask = np.array([True,  True,    False,   True,    False,   False])
    
     if solutions:
-        d = load_mat('solutions6.mat')
+        d = load_mat('A_REWRITE/Solutions/solutions6.mat')
         num2test = np.shape(d['weights'])[1]
  
     # Iterate random samples 
