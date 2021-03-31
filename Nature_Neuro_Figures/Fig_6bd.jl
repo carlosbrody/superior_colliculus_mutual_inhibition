@@ -34,6 +34,7 @@ xlim(0.5, 3)
 ylabel("% Error Increase")
 xlabel("Delay")
 xticks([1.25, 2.25], ["Pro", "Anti"])
+plt[:tight_layout]()
 
 ## Choice period
 mean_diff_pro_choice = mean(full_output[:,5,1] - full_output[:,3,1]).*-100;
@@ -53,6 +54,7 @@ xlim(0.5, 3)
 ylabel("% Error Increase")
 xlabel("Choice")
 xticks([1.25, 2.25], ["Pro", "Anti"])
+plt[:tight_layout]()
 
 ## Full Trial
 if true
@@ -86,6 +88,7 @@ xlim(0.5, 3)
 ylabel("% Error Increase")
 xlabel("Full trial")
 xticks([1.25, 2.25], ["Pro", "Anti"])
+plt[:tight_layout]()
 
 ## Rule period
 if true
@@ -120,5 +123,5 @@ xlim(0.5, 3)
 ylabel("% Error Increase")
 xlabel("Task cue")
 xticks([1.25, 2.25], ["Pro", "Anti"])
-
+plt[:tight_layout]()
 
