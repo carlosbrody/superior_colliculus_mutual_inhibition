@@ -39,21 +39,19 @@ end
 # has nothing to do with clusters really, but makes example trajectories for each solution. Very useful!
 function cluster_example_trajectories(farm_id, farmdir; threshold=-0.0001,testruns=50,num_steps=61)
 
-farmfilemat = farmdir*"_"*farm_id*"_examples_feb.mat";
-farmfilejld = farmdir*"_"*farm_id*"_examples_feb.jld";
-#farmfilemat = farmdir*"_"*farm_id*"_examples.mat";
-#farmfilejld = farmdir*"_"*farm_id*"_examples.jld";
+farmfilemat = farmdir*"_"*farm_id*"_examples.mat";
+farmfilejld = farmdir*"_"*farm_id*"_examples.jld";
 
 # load results
 #response, results = load(farmdir*"_"*farm_id*"_SVD_response_matrix3.jld", "response","results")
 results = load_farm_cost_filter(farm_id, farmdir; threshold = threshold)
 
 
-# load cluster labels
-cluster_info    = load(farmdir*"_"*farm_id*"_clusters.jld")
-cluster_ids     = cluster_info["idx"]
-ids             = sort(unique(cluster_ids));
-all_colors      = "bgrcmyk";
+## load cluster labels
+#cluster_info    = load(farmdir*"_"*farm_id*"_clusters.jld")
+#cluster_ids     = cluster_info["idx"]
+#ids             = sort(unique(cluster_ids));
+#all_colors      = "bgrcmyk";
 
 # Iterate over every farm,
 # run 10 example trials pro and anti x 3 opto conditions
@@ -85,8 +83,8 @@ for i=1:length(results["files"])
 end
 
 # return everything for plotting
-save(farmfilejld, Dict("examples"=>examples,"results"=>results, "cluster_ids"=>cluster_ids))
-matwrite(farmfilemat, Dict("examples"=>examples,"results"=>results, "cluster_ids"=>cluster_ids))
+save(farmfilejld, Dict("examples"=>examples,"results"=>results))
+matwrite(farmfilemat, Dict("examples"=>examples,"results"=>results))
 end
 
 # This function computes the PCA dimensions during the rule and delay period, as well as the target period for example trials x. Then it computes the angle between those PCA dimensions and the reference PCAs 

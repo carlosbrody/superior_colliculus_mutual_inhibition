@@ -5,33 +5,18 @@ include("unilateral_analysis.jl")
 include("cluster_farms.jl")
 include("cluster_example.jl")
 
-#cluster_example_trajectories("C32", "MiniC32"; threshold=-0.0001) # This generates a bunch of examples
+function make_examples()
+    cluster_example_trajectories("C32", "MiniC32"; threshold=-0.0001) # This generates a bunch of examples
+end
 
-# Need to filter
-examples,results = load("MiniC32_C32_examples_feb.jld","examples","results");
-# N Solutions, 3 opto, pro/anti, 4 nodes, 61 timesteps, 10 trials
-# What time window? 50 - 61 is choice period, but lets try 50:55
+function make_dprime_figure()
+    # Need to filter
+    examples,results = load("MiniC32_C32_examples.jld","examples","results");
+    # N Solutions, 3 opto, pro/anti, 4 nodes, 61 timesteps, 10 trials
+    # What time window? 50 - 61 is choice period, but lets try 55
 
-# n1,n2 = iter_examples(examples, results);
-# plot_reviews(n1,n2,line_alpha=0.05,dot_alpha=.5);
-# plt[:savefig]
-
-if false
-    n1,n2 = iter_examples(examples, results;timestep=40);
-    plot_reviews(n1,n2,line_alpha=0.05,dot_alpha=.5);
-    plt[:savefig]("timestep_40.png")
-    n1,n2 = iter_examples(examples, results;timestep=45);
-    plot_reviews(n1,n2,line_alpha=0.05,dot_alpha=.5);
-    plt[:savefig]("timestep_45.png")
-    n1,n2 = iter_examples(examples, results;timestep=50);
-    plot_reviews(n1,n2,line_alpha=0.05,dot_alpha=.5);
-    plt[:savefig]("timestep_50.png")
-    n1,n2 = iter_examples(examples, results;timestep=55);
-    plot_reviews(n1,n2,line_alpha=0.05,dot_alpha=.5);
-    plt[:savefig]("timestep_55.png")
-    n1,n2 = iter_examples(examples, results;timestep=60);
-    plot_reviews(n1,n2,line_alpha=0.05,dot_alpha=.5);
-    plt[:savefig]("timestep_60.png")
+    n1,n2 = iter_examples(examples, results; timestep=55);
+    plot_dist(n1,n2)
 end
 
 function iter_examples(examples,results;timestep =55,threshold=10,line_alpha=.1,dot_alpha=.2,plot_line=true)
