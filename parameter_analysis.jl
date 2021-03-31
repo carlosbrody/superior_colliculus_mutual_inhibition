@@ -354,4 +354,28 @@ function histo_params_2(res; threshold=-0.0001, cost_choice="cost", further_para
     return histo_params(args, params[I,:], tcost[I], cost[I], files[I,:]; Dict(further_params)...)
 end
 
+function histo_params_2_just_one(args, params, tcosts, costs, files; fignum=1, nbins=10, linewidth=3)
+
+    pygui(true)
+    close(fignum); 
+    fig=figure(fignum,figsize=(4,3)); 
+    
+    HD = histo_data([], [], [], [], [])
+
+    nparams = 1 
+    nrows = 1
+
+    subplot(1,1,1) 
+    plt[:hist](params[:,1], nbins)
+    meanp = mean(params[1]);
+    y = ylim();
+    plot(vec([0 0]), vec([y[1] y[2]*1.1]), "k--")
+    plot(meanp, y[2].*1.05,"rv",markersize=10);
+    plt[:ylabel]("# of solutions")
+    plt[:xlabel](args[1])  
+    fig[:subplots_adjust](wspace=.25,hspace=0.5)  
+    plt[:tight_layout] 
+end
+
+
 
