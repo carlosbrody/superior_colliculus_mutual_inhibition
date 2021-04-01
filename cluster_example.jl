@@ -3,57 +3,64 @@ using MAT
 
 # simulates full trial inactivation
 function full_trial_inactivation(farm_id, farmdir; testruns=10000)
-farmfilejld = farmdir*"_"*farm_id*"_full_trial_inactivation_2.jld";
-# load results
-results = load_farm_cost_filter("C32", "MiniC32"; threshold = -0.0001)
-new_opto = ["trial_start" "trial_end"; "trial_start" "trial_start+0.4"];
-# Iterate over every farm,
-# save accuracy pro/anti x 2 opto conditions
-output = zeros(length(results["files"]), 2, 2);
-for i=1:length(results["files"])
-    println(string(i)*"/"*string(length(results["files"])))
-    # get stuff for this farm
-    filename = results["files"][i];
-    mypars, extra_pars, args, pars3 = load(filename, "mypars", "extra_pars", "args", "pars3");
-    # run each condition
-    for j=1:2
-        these_pars = merge(mypars, extra_pars);
-        these_pars = merge(these_pars, Dict(
-        :opto_times=>reshape(new_opto[j,:], 1, 2),
-        :rule_and_delay_period=>these_pars[:rule_and_delay_periods][2], 
-        :target_period=>these_pars[:target_periods][2], 
-        :post_target_period=>these_pars[:post_target_periods][1]));
-        proVs, antiVs, pfull, afull = run_ntrials(testruns, testruns; plot_list=[1:10;], plot_Us=false,
-            merge(make_dict(args, pars3, these_pars), Dict())...); 
-        hitsP  = 0.5*(1 + tanh.((proVs[1,:]-proVs[4,:,])/0.05));
-        hitsA  = 0.5*(1 + tanh.((antiVs[4,:]-antiVs[1,:,])/0.05));
-        # save each condition
-        output[i,j,1] = mean(hitsP);
-        output[i,j,2] = mean(hitsA);
-    end 
-end
-# return everything for plotting
-save(farmfilejld, Dict("output"=>output,"results_output"=>results))
+    farmfilejld = farmdir*"_"*farm_id*"_full_trial_inactivation_2.jld";
+    # load results
+    results = load_farm_cost_filter("C32", "MiniC32"; threshold = -0.0001)
+    num_conditions = 5
+    labels = ["Full","Cue", "control","delay","choice"]
+    new_opto = ["trial_start" "trial_end"; "trial_start" "trial_start+0.4";  "trial_start-0.1"     "trial_start-0.2" ;  "target_start-0.4"    "target_start" ;   "target_start+0.016"  "trial_end" ];
+
+    # Iterate over every farm,
+    # save accuracy pro/anti x 2 opto conditions
+    output = zeros(length(results["files"]), num_conditions, 2);
+    for i=1:length(results["files"])
+        println(string(i)*"/"*string(length(results["files"])))
+        # get stuff for this farm
+        filename = results["files"][i];
+        mypars, extra_pars, args, pars3 = load(filename, "mypars", "extra_pars", "args", "pars3");
+        # run each condition
+        for j=1:num_conditions
+            these_pars = merge(mypars, extra_pars);
+            these_pars = merge(these_pars, Dict(
+            :opto_times=>reshape(new_opto[j,:], 1, 2),
+            :rule_and_delay_period=>these_pars[:rule_and_delay_periods][2], 
+            :target_period=>these_pars[:target_periods][2], 
+            :post_target_period=>these_pars[:post_target_periods][1]));
+            proVs, antiVs, pfull, afull = run_ntrials(testruns, testruns; plot_list=[1:10;], plot_Us=false,
+                merge(make_dict(args, pars3, these_pars), Dict())...); 
+            hitsP  = 0.5*(1 + tanh.((proVs[1,:]-proVs[4,:,])/0.05));
+            hitsA  = 0.5*(1 + tanh.((antiVs[4,:]-antiVs[1,:,])/0.05));
+            # save each condition
+            output[i,j,1] = mean(hitsP);
+            output[i,j,2] = mean(hitsA);
+        end 
+    end
+    # return everything for plotting
+    save(farmfilejld, Dict("output"=>output,"results_output"=>results))
 end
 
 # has nothing to do with clusters really, but makes example trajectories for each solution. Very useful!
-function cluster_example_trajectories(farm_id, farmdir; threshold=-0.0001,testruns=50,num_steps=61)
+function cluster_example_trajectories(farm_id, farmdir; threshold=-0.0001,testruns=50,num_steps=61,long=false)
 
-farmfilemat = farmdir*"_"*farm_id*"_examples_feb.mat";
-farmfilejld = farmdir*"_"*farm_id*"_examples_feb.jld";
-#farmfilemat = farmdir*"_"*farm_id*"_examples.mat";
-#farmfilejld = farmdir*"_"*farm_id*"_examples.jld";
+if long
+    farmfilemat = farmdir*"_"*farm_id*"_examples_long.mat";
+    farmfilejld = farmdir*"_"*farm_id*"_examples_long.jld";
+    num_steps=75
+else
+    farmfilemat = farmdir*"_"*farm_id*"_examples.mat";
+    farmfilejld = farmdir*"_"*farm_id*"_examples.jld";
+end
 
 # load results
 #response, results = load(farmdir*"_"*farm_id*"_SVD_response_matrix3.jld", "response","results")
 results = load_farm_cost_filter(farm_id, farmdir; threshold = threshold)
 
 
-# load cluster labels
-cluster_info    = load(farmdir*"_"*farm_id*"_clusters.jld")
-cluster_ids     = cluster_info["idx"]
-ids             = sort(unique(cluster_ids));
-all_colors      = "bgrcmyk";
+## load cluster labels
+#cluster_info    = load(farmdir*"_"*farm_id*"_clusters.jld")
+#cluster_ids     = cluster_info["idx"]
+#ids             = sort(unique(cluster_ids));
+#all_colors      = "bgrcmyk";
 
 # Iterate over every farm,
 # run 10 example trials pro and anti x 3 opto conditions
@@ -68,12 +75,19 @@ for i=1:length(results["files"])
     # run each condition
     for j=1:3
         these_pars = merge(mypars, extra_pars);
-        these_pars = merge(these_pars, Dict(
-        :opto_times=>reshape(extra_pars[:opto_periods][j,:], 1, 2),
-        :rule_and_delay_period=>these_pars[:rule_and_delay_periods][1], 
-        :target_period=>these_pars[:target_periods][1], 
-        :post_target_period=>these_pars[:post_target_periods][1]));
-
+        if long
+            these_pars = merge(these_pars, Dict(
+            :opto_times=>reshape(extra_pars[:opto_periods][j,:], 1, 2),
+            :rule_and_delay_period=>these_pars[:rule_and_delay_periods][2], 
+            :target_period=>these_pars[:target_periods][2], 
+            :post_target_period=>these_pars[:post_target_periods][1]));
+        else
+            these_pars = merge(these_pars, Dict(
+            :opto_times=>reshape(extra_pars[:opto_periods][j,:], 1, 2),
+            :rule_and_delay_period=>these_pars[:rule_and_delay_periods][1], 
+            :target_period=>these_pars[:target_periods][1], 
+            :post_target_period=>these_pars[:post_target_periods][1]));
+        end
         proVs, antiVs, pfull, afull = run_ntrials(testruns, testruns; plot_list=[1:10;], plot_Us=false,
             merge(make_dict(args, pars3, these_pars), Dict())...);
 
@@ -85,8 +99,8 @@ for i=1:length(results["files"])
 end
 
 # return everything for plotting
-save(farmfilejld, Dict("examples"=>examples,"results"=>results, "cluster_ids"=>cluster_ids))
-matwrite(farmfilemat, Dict("examples"=>examples,"results"=>results, "cluster_ids"=>cluster_ids))
+save(farmfilejld, Dict("examples"=>examples,"results"=>results))
+matwrite(farmfilemat, Dict("examples"=>examples,"results"=>results))
 end
 
 # This function computes the PCA dimensions during the rule and delay period, as well as the target period for example trials x. Then it computes the angle between those PCA dimensions and the reference PCAs 
@@ -216,8 +230,8 @@ end
 
 
 ## This is the top level function that plots dimension analysis
-function plot_dimension_analysis(cluster_ids;threshold=-0.0001, testruns = 50, refseed=13,return_all=false,limited_delay=false)
-    examples,results = load("MiniC32_C32_examples_50.jld","examples","results");
+function plot_dimension_analysis(;threshold=-0.0001, testruns = 50, refseed=13,return_all=false,limited_delay=false)
+    examples,results = load("MiniC32_C32_examples.jld","examples","results");
     examples = get_synthetic_LR_trials(examples);
     ref1, ref2 = get_reference(examples, results; seed=refseed,numruns=testruns)
     dims = check_dimensions(examples, results; threshold=threshold, ref1=ref1, ref2=ref2,numruns=testruns,return_all=return_all,limited_delay=limited_delay);
@@ -227,31 +241,31 @@ function plot_dimension_analysis(cluster_ids;threshold=-0.0001, testruns = 50, r
     end
     figure();
     all_colors = "bgrcmyk";
-    numclusters = sum(.!isnan.(unique(cluster_ids)));
+    #numclusters = sum(.!isnan.(unique(cluster_ids)));
+    numclusters =1;
     for i=1:numclusters
-        cdex = vec(cluster_ids .== i);
         subplot(2,2,1)
-        plot(dims[cdex,2],dims[cdex,3],"o",color=string(all_colors[i]))
+        plot(dims[:,2],dims[:,3],"o",color=string(all_colors[i]))
         xlim(.5, 1);ylim(.5, 1)
         ylabel("Variance Explained during Target Period")
         xlabel("Variance Explained during Delay Period")
 
         subplot(2,2,2)
-        plot(dims[cdex,4],dims[cdex,5],"o",color=string(all_colors[i]))
+        plot(dims[:,4],dims[:,5],"o",color=string(all_colors[i]))
         xlim(0, 90);ylim(0, 90)
         plot(vec([0 90]), vec([0 90]), "k--")
         ylabel("Angle 1 between delay and target spaces")
         xlabel("Angle 2 between delay and target spaces")
 
         subplot(2,2,3)
-        plot(dims[cdex,6],dims[cdex,7],"o",color=string(all_colors[i]))
+        plot(dims[:,6],dims[:,7],"o",color=string(all_colors[i]))
         xlim(0, 90);ylim(0, 90)
         plot(vec([0 90]), vec([0 90]), "k--")
         ylabel("Angle 1 between reference delay space")
         xlabel("Angle 2 between reference delay space")
 
         subplot(2,2,4)
-        plot(dims[cdex,8],dims[cdex,9],"o",color=string(all_colors[i]))
+        plot(dims[:,8],dims[:,9],"o",color=string(all_colors[i]))
         xlim(0, 90); ylim(0, 90)
         plot(vec([0 90]), vec([0 90]), "k--")
         ylabel("Angle 1 between reference target space")

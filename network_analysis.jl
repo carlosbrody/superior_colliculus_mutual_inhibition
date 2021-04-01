@@ -146,6 +146,40 @@ sym_full_set,    sym_numcomplex,    sym_counts    = test_random(10000;add_symmet
 bound_full_set,  bound_numcomplex,  bound_counts  = test_random(10000;add_symmetry=true,  add_bounds=true);
 
 # get the schur results for all the model solutions
-results = load_farm_cost_filter("C32", "MiniC32"; threshold = -0.0001)
+results = load_farm_cost_filter("C32", "MiniC32"; threshold = -0.0001);
 full_set, numcomplex, counts, schurs, interactions = tabulate_modes(results;ofs=[0;0;0;0]);
+
+println("Analysis of Random, non-symmetric, non-bounded networks")
+println(string((random_full_set/10000)*100)*"% had a full set of all, task, side, and diagonal modes")
+println(string(round((random_counts[1,1]/sum(random_counts[1,:]))*100,2))*"% had a positive all mode")
+println(string(round((random_counts[2,1]/sum(random_counts[2,:]))*100,2))*"% had a positive side mode")
+println(string(round((random_counts[3,1]/sum(random_counts[3,:]))*100,2))*"% had a positive task mode")
+println(string(round((random_counts[4,1]/sum(random_counts[4,:]))*100,2))*"% had a positive diagonal mode")
+
+println("")
+println("Analysis of Random, symmetric, non-bounded networks")
+println(string((sym_full_set/10000)*100)*"% had a full set of all, task, side, and diagonal modes")
+println(string(round((sym_counts[1,1]/sum(sym_counts[1,:]))*100,2))*"% had a positive all mode")
+println(string(round((sym_counts[2,1]/sum(sym_counts[2,:]))*100,2))*"% had a positive side mode")
+println(string(round((sym_counts[3,1]/sum(sym_counts[3,:]))*100,2))*"% had a positive task mode")
+println(string(round((sym_counts[4,1]/sum(sym_counts[4,:]))*100,2))*"% had a positive diagonal mode")
+
+println("")
+println("Analysis of Random, symmetric, bounded networks")
+println(string((sym_full_set/10000)*100)*"% had a full set of all, task, side, and diagonal modes")
+println(string(round((bound_counts[1,1]/sum(bound_counts[1,:]))*100,2))*"% had a positive all mode")
+println(string(round((bound_counts[2,1]/sum(bound_counts[2,:]))*100,2))*"% had a positive side mode")
+println(string(round((bound_counts[3,1]/sum(bound_counts[3,:]))*100,2))*"% had a positive task mode")
+println(string(round((bound_counts[4,1]/sum(bound_counts[4,:]))*100,2))*"% had a positive diagonal mode")
+
+println("")
+println("Analysis of Model solutions")
+println(string((sum(full_set)/373)*100)*"% had a full set of all, task, side, and diagonal modes")
+println(string(round((counts[1,1]/sum(counts[1,:]))*100,2))*"% had a positive all mode")
+println(string(round((counts[2,1]/sum(counts[2,:]))*100,2))*"% had a positive side mode")
+println(string(round((counts[3,1]/sum(counts[3,:]))*100,2))*"% had a positive task mode")
+println(string(round((counts[4,1]/sum(counts[4,:]))*100,2))*"% had a positive diagonal mode")
+
+
+
 

@@ -8,7 +8,7 @@ include("resultsAnalysis.jl")
 # Did I do that in the 4-node network?
 
 NUM_SOLUTIONS = 36
-FILENAME = "node6_solutions.jld"
+FILENAME = "node6_solutions.jld2"
 
 function load_solutions()
    d = matread("Solutions/solutions6.mat") 
