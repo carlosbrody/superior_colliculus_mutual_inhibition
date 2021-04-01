@@ -8,9 +8,10 @@ include("parameter_analysis.jl")
 include("unilateral_analysis.jl")
 include("cluster_farms.jl")
 include("cluster_example.jl")
+include("C32_dprime.jl")
 
 # Make examples if you haven't already
-make_examples()
+#make_examples()
 
 # Do analysis
 dims = plot_dimension_analysis(;return_all=true,limited_delay=true);

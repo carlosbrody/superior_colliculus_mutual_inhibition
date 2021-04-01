@@ -1,3 +1,5 @@
+include("svd_cluster.jl")
+
 # Build the connectivity matrix from the parameter vector. Can optionally include an extra leak on the diagonal
 function build_w(params; ofs=zeros(4,1))
     w = [params[6]-ofs[1]   params[16]          params[10]          params[11];

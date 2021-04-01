@@ -5,6 +5,7 @@
 include("results_analysis.jl")
 include("svd_cluster.jl")
 include("parameter_analysis.jl")
+include("cluster_example.jl")
 
 
 # load (arbitrary first farm for list of parameter names "args")
