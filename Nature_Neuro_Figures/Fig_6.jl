@@ -1,4 +1,4 @@
-# This script makes Figure 6
+# This script makes Figure 6 panel C and E
 # This script works in Julia 0.6.4
 
 # load relevant files
