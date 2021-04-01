@@ -2,7 +2,7 @@
 # EDF Panel 9e
 # Run Python 3.6, from the main directory
 
-import matplotlib.pyplt as plt
+import matplotlib.pyplot as plt
 import schur_analysis_6_node_model as schur
 schur.make_figure()
 plt.show()
